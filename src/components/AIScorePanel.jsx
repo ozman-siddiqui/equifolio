@@ -31,6 +31,8 @@ export default function AIScorePanel({ property, loans, transactions }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [expanded, setExpanded] = useState(false)
+  const safeLoans = loans || []
+const safeTransactions = transactions || []
 
   const handleScore = async () => {
     if (score) {
@@ -53,7 +55,7 @@ export default function AIScorePanel({ property, loans, transactions }) {
             'Authorization': `Bearer ${session.access_token}`,
             'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
           },
-          body: JSON.stringify({ property, loans, transactions }),
+          body: JSON.stringify({ property, loans: safeLoans, transactions: safeTransactions }),
         }
       )
 

@@ -515,13 +515,15 @@ export default function Dashboard({ session,subscription }) {
                           )
                         })}
                       </div>
+                
                     )}
-{/* AI Score Panel */}
-<AIScorePanel
-  property={property}
-  loans={propertyLoans}
-  transactions={allPropTxns}
-/>
+
+                    {/* AI Score Panel */}
+                    <AIScorePanel
+                    property={property}
+                    loans={propertyLoans}
+                    transactions={allPropTxns}
+                    />
                     {/* Action buttons */}
                     <div className="flex items-center gap-3 mt-4 pt-3 border-t border-gray-50">
                       <button onClick={() => setCashFlowPropertyId(property.id)}
