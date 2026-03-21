@@ -7,78 +7,64 @@ import Pricing from './pages/Pricing'
 export default function App() {
   const [session, setSession] = useState(null)
   const [subscription, setSubscription] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [ready, setReady] = useState(false)
 
-  const forceSignOut = async () => {
+  const signOut = async () => {
     try { await supabase.auth.signOut() } catch (e) {}
     localStorage.clear()
     sessionStorage.clear()
-    setSession(null)
-    setSubscription(null)
-    setLoading(false)
+    window.location.reload()
   }
 
-  const fetchSubscription = async (userId) => {
-    try {
-      const { data } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle()
-      setSubscription(data || null)
-    } catch (err) {
-      setSubscription(null)
-    }
+  const fetchSubscription = (userId) => {
+    supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle()
+      .then(({ data }) => setSubscription(data || null))
+      .catch(() => setSubscription(null))
   }
 
   useEffect(() => {
-    // Step 1: get initial session on page load
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session) {
-        setSession(session)
-        await fetchSubscription(session.user.id)
-      }
-      // Always stop loading after initial check — no matter what
-      setLoading(false)
-    })
+    let isMounted = true
 
-    // Step 2: listen for auth changes but NEVER set loading again
+    const init = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!isMounted) return
+        if (session) {
+          setSession(session)
+          fetchSubscription(session.user.id) // no await — runs in background
+        }
+      } catch (e) {
+        console.error('Session error:', e)
+      } finally {
+        if (isMounted) setReady(true) // always fires no matter what
+      }
+    }
+
+    init()
+
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESH_FAILED') {
           setSession(null)
           setSubscription(null)
-          return
         }
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          if (session) {
-            setSession(session)
-            await fetchSubscription(session.user.id)
-          }
+          setSession(session)
+          if (session) fetchSubscription(session.user.id) // no await
         }
       }
     )
 
-    // Step 3: recheck session when user returns to tab
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        supabase.auth.getSession().then(({ data: { session }, error }) => {
-          if (error || !session) {
-            setSession(null)
-            setSubscription(null)
-          }
-        })
-      }
-    }
-    document.addEventListener('visibilitychange', handleVisibility)
-
     return () => {
+      isMounted = false
       authSub.unsubscribe()
-      document.removeEventListener('visibilitychange', handleVisibility)
     }
   }, [])
 
-  // Handle post-Stripe payment redirect
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('subscription') === 'success' && session) {
@@ -87,18 +73,15 @@ export default function App() {
     }
   }, [session])
 
-  // Only show loading screen on initial page load
-  if (loading) return (
+  if (!ready) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center">
         <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center mx-auto mb-4">
           <span className="text-white text-sm font-bold">E</span>
         </div>
-        <div className="text-gray-400 text-sm">Loading your portfolio...</div>
-        <button
-          onClick={forceSignOut}
-          className="mt-6 text-xs text-gray-400 hover:text-gray-600 underline"
-        >
+        <div className="text-gray-400 text-sm">Loading...</div>
+        <button onClick={signOut}
+          className="mt-6 text-xs text-gray-400 hover:text-gray-600 underline">
           Taking too long? Click here
         </button>
       </div>
