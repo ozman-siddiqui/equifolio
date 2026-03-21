@@ -11,6 +11,7 @@ import EditLoanModal from '../components/EditLoanModal'
 import CashFlowModal from '../components/CashFlowModal'
 import EditTransactionModal from '../components/EditTransactionModal'
 import AlertsDropdown, { buildAlerts } from '../components/AlertsDropdown'
+import AIScorePanel from '../components/AIScorePanel'
 import UpgradeModal from '../components/UpgradeModal'
 
 const PLAN_LIMITS = { starter: 3, investor: 10, premium: Infinity }
@@ -515,7 +516,12 @@ export default function Dashboard({ session,subscription }) {
                         })}
                       </div>
                     )}
-
+{/* AI Score Panel */}
+<AIScorePanel
+  property={property}
+  loans={propertyLoans}
+  transactions={allPropTxns}
+/>
                     {/* Action buttons */}
                     <div className="flex items-center gap-3 mt-4 pt-3 border-t border-gray-50">
                       <button onClick={() => setCashFlowPropertyId(property.id)}
