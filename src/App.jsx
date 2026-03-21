@@ -8,6 +8,7 @@ export default function App() {
   const [session, setSession] = useState(null)
   const [subscription, setSubscription] = useState(null)
   const [ready, setReady] = useState(false)
+  const [subscriptionReady, setSubscriptionReady] = useState(false)
 
   const signOut = async () => {
     try { await supabase.auth.signOut() } catch (e) {}
@@ -17,13 +18,20 @@ export default function App() {
   }
 
   const fetchSubscription = (userId) => {
+    setSubscriptionReady(false)
     supabase
       .from('subscriptions')
       .select('*')
       .eq('user_id', userId)
       .maybeSingle()
-      .then(({ data }) => setSubscription(data || null))
-      .catch(() => setSubscription(null))
+      .then(({ data }) => {
+        setSubscription(data || null)
+        setSubscriptionReady(true)
+      })
+      .catch(() => {
+        setSubscription(null)
+        setSubscriptionReady(true)
+      })
   }
 
   useEffect(() => {
@@ -35,12 +43,14 @@ export default function App() {
         if (!isMounted) return
         if (session) {
           setSession(session)
-          fetchSubscription(session.user.id) // no await — runs in background
+          fetchSubscription(session.user.id)
+        } else {
+          setSubscriptionReady(true)
         }
       } catch (e) {
-        console.error('Session error:', e)
+        if (isMounted) setSubscriptionReady(true)
       } finally {
-        if (isMounted) setReady(true) // always fires no matter what
+        if (isMounted) setReady(true)
       }
     }
 
@@ -51,10 +61,11 @@ export default function App() {
         if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESH_FAILED') {
           setSession(null)
           setSubscription(null)
+          setSubscriptionReady(true)
         }
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           setSession(session)
-          if (session) fetchSubscription(session.user.id) // no await
+          if (session) fetchSubscription(session.user.id)
         }
       }
     )
@@ -73,7 +84,8 @@ export default function App() {
     }
   }, [session])
 
-  if (!ready) return (
+  // Show loading until both session AND subscription are checked
+  if (!ready || !subscriptionReady) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center">
         <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center mx-auto mb-4">
