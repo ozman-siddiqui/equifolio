@@ -105,10 +105,10 @@ export default function Pricing({ session, existingPlan }) {
       }
 
       if (!data.url) {
-        setError('No checkout URL returned. Please try again.')
-        setLoading(null)
-        return
-      }
+  setError(`Debug: ${data.debug || data.error || 'No URL returned'}`)
+  setLoading(null)
+  return
+}
 
       window.location.href = data.url
 
