@@ -1,100 +1,68 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { crypto } from 'https://deno.land/std@0.168.0/crypto/mod.ts'
 
 const supabase = createClient(
-  Deno.env.get('SUPABASE_URL')!,
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  Deno.env.get('SUPABASE_URL') as string,
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') as string
 )
 
-async function verifyStripeSignature(payload: string, sigHeader: string, secret: string): Promise<boolean> {
-  const parts = sigHeader.split(',')
-  const timestamp = parts.find(p => p.startsWith('t='))?.split('=')[1]
-  const signature = parts.find(p => p.startsWith('v1='))?.split('=')[1]
-  if (!timestamp || !signature) return false
+serve(async (req: Request) => {
+  try {
+    const body = await req.text()
+    const event = JSON.parse(body)
+    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY') as string
 
-  const signedPayload = `${timestamp}.${payload}`
-  const key = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  )
-  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(signedPayload))
-  const computed = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('')
-  return computed === signature
-}
+    const upsertSub = async (sub: any, userId: string) => {
+      const priceId = sub.items?.data[0]?.price?.id ?? ''
+      let plan = 'starter'
+      if (priceId === Deno.env.get('STRIPE_PREMIUM_PRICE_ID')) plan = 'premium'
+      else if (priceId === Deno.env.get('STRIPE_INVESTOR_PRICE_ID')) plan = 'investor'
 
-serve(async (req) => {
-  const signature = req.headers.get('stripe-signature') ?? ''
-  const body = await req.text()
-  const secret = Deno.env.get('STRIPE_WEBHOOK_SECRET') ?? ''
+      await supabase.from('subscriptions').upsert({
+        user_id: userId,
+        stripe_customer_id: sub.customer,
+        stripe_subscription_id: sub.id,
+        plan: plan,
+        status: sub.status,
+        current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' })
+    }
 
-  const valid = await verifyStripeSignature(body, signature, secret)
-  if (!valid) {
-    return new Response('Invalid signature', { status: 400 })
-  }
+    const fetchSub = async (subId: string) => {
+      const res = await fetch('https://api.stripe.com/v1/subscriptions/' + subId, {
+        headers: { 'Authorization': 'Bearer ' + stripeKey }
+      })
+      return res.json()
+    }
 
-  const event = JSON.parse(body)
-
-  const upsertSubscription = async (subscription: any) => {
-    const userId = subscription.metadata?.user_id
-    if (!userId) return
-
-    const priceId = subscription.items?.data[0]?.price?.id
-    const plan = (() => {
-      if (priceId === Deno.env.get('STRIPE_PREMIUM_PRICE_ID')) return 'premium'
-      if (priceId === Deno.env.get('STRIPE_INVESTOR_PRICE_ID')) return 'investor'
-      return 'starter'
-    })()
-
-    await supabase.from('subscriptions').upsert({
-      user_id: userId,
-      stripe_customer_id: subscription.customer,
-      stripe_subscription_id: subscription.id,
-      plan,
-      status: subscription.status,
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'user_id' })
-  }
-
-  const stripeKey = Deno.env.get('STRIPE_SECRET_KEY')!
-
-  switch (event.type) {
-    case 'checkout.session.completed': {
+    if (event.type === 'checkout.session.completed') {
       const session = event.data.object
-      if (session.subscription) {
-        const res = await fetch(`https://api.stripe.com/v1/subscriptions/${session.subscription}`, {
-          headers: { 'Authorization': `Bearer ${stripeKey}` }
-        })
-        const subscription = await res.json()
-        // Inject user_id from session metadata
-        subscription.metadata = { ...subscription.metadata, user_id: session.metadata?.user_id, plan: session.metadata?.plan }
-        await upsertSubscription(subscription)
+      const userId = session.metadata?.user_id
+      if (session.subscription && userId) {
+        const sub = await fetchSub(session.subscription)
+        await upsertSub(sub, userId)
       }
-      break
-    }
-    case 'customer.subscription.updated':
-    case 'customer.subscription.deleted': {
-      await upsertSubscription(event.data.object)
-      break
-    }
-    case 'invoice.payment_failed': {
+    } else if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.deleted') {
+      const sub = event.data.object
+      const userId = sub.metadata?.user_id
+      if (userId) await upsertSub(sub, userId)
+    } else if (event.type === 'invoice.payment_failed') {
       const invoice = event.data.object
       if (invoice.subscription) {
-        const res = await fetch(`https://api.stripe.com/v1/subscriptions/${invoice.subscription}`, {
-          headers: { 'Authorization': `Bearer ${stripeKey}` }
-        })
-        const subscription = await res.json()
-        await upsertSubscription(subscription)
+        const sub = await fetchSub(invoice.subscription)
+        const userId = sub.metadata?.user_id
+        if (userId) await upsertSub(sub, userId)
       }
-      break
     }
-  }
 
-  return new Response(JSON.stringify({ received: true }), {
-    headers: { 'Content-Type': 'application/json' }
-  })
+    return new Response(JSON.stringify({ received: true }), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500, headers: { 'Content-Type': 'application/json' }
+    })
+  }
 })

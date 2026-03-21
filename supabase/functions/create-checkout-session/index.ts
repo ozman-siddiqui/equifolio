@@ -79,11 +79,17 @@ serve(async (req: Request) => {
       }),
     })
 
-    const sessionText = await sessionRes.text()
+  const session = await sessionRes.json()
 
-    return new Response(JSON.stringify({ debug: sessionText }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
+if (session.error) {
+  return new Response(JSON.stringify({ error: session.error.message }), {
+    status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  })
+}
+
+return new Response(JSON.stringify({ url: session.url }), {
+  headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+})
 
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {

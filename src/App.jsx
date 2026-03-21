@@ -8,51 +8,63 @@ export default function App() {
   const [session, setSession] = useState(null)
   const [subscription, setSubscription] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [checkingSubscription, setCheckingSubscription] = useState(false)
+
+  const fetchSubscription = async (userId) => {
+    const { data } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .single()
+    setSubscription(data || null)
+    setLoading(false)
+  }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
-      if (session) fetchSubscription(session.user.id)
-      else setLoading(false)
+      if (session) {
+        fetchSubscription(session.user.id)
+      } else {
+        setLoading(false)
+      }
     })
 
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setSession(session)
-        if (session) fetchSubscription(session.user.id)
-        else { setSubscription(null); setLoading(false) }
+        if (session) {
+          setLoading(true)
+          await fetchSubscription(session.user.id)
+        } else {
+          setSubscription(null)
+          setLoading(false)
+        }
       }
     )
 
     return () => authSub.unsubscribe()
   }, [])
 
-  const fetchSubscription = async (userId) => {
-    setCheckingSubscription(true)
-    const { data } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('user_id', userId)
-      .single()
-    setSubscription(data)
-    setLoading(false)
-    setCheckingSubscription(false)
-  }
-
   // Handle post-payment redirect
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('subscription') === 'success' && session) {
       window.history.replaceState({}, '', '/')
-      // Wait 2 seconds for webhook to fire then re-check
-      setTimeout(() => fetchSubscription(session.user.id), 2000)
+      setLoading(true)
+      // Wait 3 seconds for webhook to fire then re-check
+      setTimeout(() => fetchSubscription(session.user.id), 3000)
     }
   }, [session])
 
+  // Always show loading screen while checking — never flash pricing page
   if (loading) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-gray-400">Loading...</div>
+      <div className="text-center">
+        <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+          <span className="text-white text-sm font-bold">E</span>
+        </div>
+        <div className="text-gray-400 text-sm">Loading your portfolio...</div>
+      </div>
     </div>
   )
 
