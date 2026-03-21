@@ -13,23 +13,9 @@ const getUrgency = (days) => {
   return { color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', badge: 'bg-amber-500', label: '90 days' }
 }
 
-export default function AlertsDropdown({ properties, loans }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef(null)
-
-  // Close when clicking outside
-  useEffect(() => {
-    const handleClick = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
-
-  // Build alerts list
+export const buildAlerts = (properties, loans) => {
   const alerts = []
 
-  // Fixed rate expiry alerts
   loans.forEach(loan => {
     if (loan.loan_type !== 'Fixed' || !loan.fixed_rate_expiry) return
     const days = getDaysUntil(loan.fixed_rate_expiry)
@@ -43,10 +29,10 @@ export default function AlertsDropdown({ properties, loans }) {
       description: `${loan.lender} loan on ${property?.address || 'unknown property'}`,
       detail: `Expires ${new Date(loan.fixed_rate_expiry).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}`,
       icon: Clock,
+      urgent: days <= 30,
     })
   })
 
-  // Interest-only expiry alerts
   loans.forEach(loan => {
     if (loan.repayment_type !== 'Interest Only' || !loan.interest_only_expiry) return
     const days = getDaysUntil(loan.interest_only_expiry)
@@ -60,10 +46,10 @@ export default function AlertsDropdown({ properties, loans }) {
       description: `${loan.lender} loan on ${property?.address || 'unknown property'}`,
       detail: `Switches to P&I ${new Date(loan.interest_only_expiry).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}`,
       icon: AlertTriangle,
+      urgent: days <= 30,
     })
   })
 
-  // Lease renewal alerts
   properties.forEach(property => {
     if (!property.lease_expiry_date) return
     const days = getDaysUntil(property.lease_expiry_date)
@@ -76,30 +62,45 @@ export default function AlertsDropdown({ properties, loans }) {
       description: property.address,
       detail: `Expires ${new Date(property.lease_expiry_date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}`,
       icon: Home,
+      urgent: days <= 30,
     })
   })
 
-  // Sort by days (most urgent first)
-  alerts.sort((a, b) => a.days - b.days)
+  return alerts.sort((a, b) => a.days - b.days)
+}
 
+export default function AlertsDropdown({ properties, loans }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const alerts = buildAlerts(properties, loans)
   const count = alerts.length
+  const hasUrgent = alerts.some(a => a.urgent)
 
   return (
     <div className="relative" ref={ref}>
-      {/* Bell button */}
       <button
         onClick={() => setOpen(!open)}
         className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
       >
         <Bell size={20} />
         {count > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+          <span className={`absolute -top-0.5 -right-0.5 w-4 h-4 text-white text-xs font-bold rounded-full flex items-center justify-center ${
+            hasUrgent ? 'bg-red-500 animate-pulse' : 'bg-amber-500'
+          }`}>
             {count > 9 ? '9+' : count}
           </span>
         )}
       </button>
 
-      {/* Dropdown */}
       {open && (
         <div className="absolute right-0 top-10 w-80 bg-white rounded-xl shadow-lg border border-gray-100 z-50">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
@@ -117,7 +118,7 @@ export default function AlertsDropdown({ properties, loans }) {
                 <Bell size={24} className="text-gray-300 mx-auto mb-2" />
                 <p className="text-sm text-gray-500">No alerts right now</p>
                 <p className="text-xs text-gray-400 mt-1">
-                  Add fixed rate expiry dates and lease dates to see alerts here
+                  Add fixed rate expiry and lease dates to see alerts here
                 </p>
               </div>
             ) : (
@@ -128,14 +129,12 @@ export default function AlertsDropdown({ properties, loans }) {
                   return (
                     <div key={alert.id} className={`px-4 py-3 ${urgency.bg}`}>
                       <div className="flex items-start gap-3">
-                        <div className={`p-1.5 rounded-lg ${urgency.bg} border ${urgency.border} flex-shrink-0 mt-0.5`}>
+                        <div className={`p-1.5 rounded-lg border ${urgency.border} flex-shrink-0 mt-0.5`}>
                           <Icon size={14} className={urgency.color} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
-                            <p className={`text-xs font-semibold ${urgency.color}`}>
-                              {alert.title}
-                            </p>
+                            <p className={`text-xs font-semibold ${urgency.color}`}>{alert.title}</p>
                             <span className={`text-xs font-bold px-2 py-0.5 rounded-full text-white flex-shrink-0 ${urgency.badge}`}>
                               {alert.days}d
                             </span>
@@ -154,8 +153,8 @@ export default function AlertsDropdown({ properties, loans }) {
           {count > 0 && (
             <div className="px-4 py-2 border-t border-gray-100">
               <p className="text-xs text-gray-400 text-center">
-                {alerts.filter(a => a.days <= 30).length > 0
-                  ? `${alerts.filter(a => a.days <= 30).length} urgent — action required`
+                {alerts.filter(a => a.urgent).length > 0
+                  ? `${alerts.filter(a => a.urgent).length} urgent — action required`
                   : 'Review upcoming dates with your broker'}
               </p>
             </div>

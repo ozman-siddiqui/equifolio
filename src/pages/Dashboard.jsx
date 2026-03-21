@@ -11,6 +11,7 @@ import EditLoanModal from '../components/EditLoanModal'
 import CashFlowModal from '../components/CashFlowModal'
 import EditTransactionModal from '../components/EditTransactionModal'
 import AlertsDropdown from '../components/AlertsDropdown'
+import AlertsDropdown, { buildAlerts } from '../components/AlertsDropdown'
 import UpgradeModal from '../components/UpgradeModal'
 
 const PLAN_LIMITS = { starter: 3, investor: 10, premium: Infinity }
@@ -169,9 +170,33 @@ export default function Dashboard({ session,subscription }) {
 </button>
         </div>
 
-        {/* Fixed rate alert */}
+  {/* Fixed rate alert */}
+{(() => {
+  const urgentAlerts = buildAlerts(properties, loans).filter(a => a.urgent)
+  if (urgentAlerts.length === 0) return null
+  return (
+    <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+      <div className="flex items-start gap-3">
+        <div className="w-2 h-2 bg-red-500 rounded-full mt-1.5 animate-pulse flex-shrink-0" />
+        <div>
+          <p className="text-sm font-semibold text-red-800">
+            {urgentAlerts.length === 1 ? '1 urgent alert' : `${urgentAlerts.length} urgent alerts`} — action required within 30 days
+          </p>
+          <div className="mt-1 space-y-0.5">
+            {urgentAlerts.map(a => (
+              <p key={a.id} className="text-xs text-red-600">
+                · {a.title}: {a.description} ({a.days} days)
+              </p>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+})()}
 
-
+{/* 5 metric cards */}
+<div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         {/* 5 metric cards */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           <div className="bg-white rounded-xl border border-gray-100 p-5">
