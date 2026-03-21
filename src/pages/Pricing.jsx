@@ -134,10 +134,15 @@ export default function Pricing({ session, existingPlan }) {
             <span className="font-bold text-gray-900 text-lg">Equifolio</span>
           </div>
           {session && (
-            <button onClick={() => supabase.auth.signOut()}
-              className="text-sm text-gray-500 hover:text-gray-700">
-              Sign out
-            </button>
+           <button
+  onClick={async () => {
+    try { await supabase.auth.signOut() } catch(e) {}
+    localStorage.clear()
+    window.location.reload()
+  }}
+  className="text-sm text-gray-500 hover:text-gray-700">
+  Sign out
+</button>
           )}
         </div>
       </header>
