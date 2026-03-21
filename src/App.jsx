@@ -10,14 +10,19 @@ export default function App() {
   const [loading, setLoading] = useState(true)
 
   const fetchSubscription = async (userId) => {
+  try {
     const { data } = await supabase
       .from('subscriptions')
       .select('*')
       .eq('user_id', userId)
-      .single()
+      .maybeSingle()
     setSubscription(data || null)
+  } catch (err) {
+    setSubscription(null)
+  } finally {
     setLoading(false)
   }
+}
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
