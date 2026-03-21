@@ -10,7 +10,6 @@ import EditPropertyModal from '../components/EditPropertyModal'
 import EditLoanModal from '../components/EditLoanModal'
 import CashFlowModal from '../components/CashFlowModal'
 import EditTransactionModal from '../components/EditTransactionModal'
-import AlertsDropdown from '../components/AlertsDropdown'
 import AlertsDropdown, { buildAlerts } from '../components/AlertsDropdown'
 import UpgradeModal from '../components/UpgradeModal'
 
@@ -195,8 +194,7 @@ export default function Dashboard({ session,subscription }) {
   )
 })()}
 
-{/* 5 metric cards */}
-<div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+
         {/* 5 metric cards */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           <div className="bg-white rounded-xl border border-gray-100 p-5">
