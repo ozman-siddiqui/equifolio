@@ -14,14 +14,17 @@ export default function AddLoanModal({ onClose, onSave, userId, properties, pres
     loan_type: 'Variable',
     repayment_type: 'Principal and Interest',
     fixed_rate_expiry: '',
-    monthly_repayment: ''
+    monthly_repayment: '',
+    interest_only_expiry: ''
   })
 
   const handleChange = (e) => {
     const updated = { ...form, [e.target.name]: e.target.value }
-    // Clear fixed rate expiry when switching away from Fixed
     if (e.target.name === 'loan_type' && e.target.value !== 'Fixed') {
       updated.fixed_rate_expiry = ''
+    }
+    if (e.target.name === 'repayment_type' && e.target.value !== 'Interest Only') {
+      updated.interest_only_expiry = ''
     }
     setForm(updated)
   }
@@ -38,7 +41,8 @@ export default function AddLoanModal({ onClose, onSave, userId, properties, pres
       current_balance: Number(form.current_balance),
       interest_rate: Number(form.interest_rate),
       monthly_repayment: Number(form.monthly_repayment),
-      fixed_rate_expiry: form.loan_type === 'Fixed' && form.fixed_rate_expiry ? form.fixed_rate_expiry : null
+      fixed_rate_expiry: form.loan_type === 'Fixed' && form.fixed_rate_expiry ? form.fixed_rate_expiry : null,
+      interest_only_expiry: form.repayment_type === 'Interest Only' && form.interest_only_expiry ? form.interest_only_expiry : null,
     }])
 
     if (error) {
@@ -51,6 +55,7 @@ export default function AddLoanModal({ onClose, onSave, userId, properties, pres
   }
 
   const isFixed = form.loan_type === 'Fixed'
+  const isInterestOnly = form.repayment_type === 'Interest Only'
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
@@ -127,11 +132,18 @@ export default function AddLoanModal({ onClose, onSave, userId, properties, pres
             </div>
           </div>
 
-          {/* Only show fixed rate expiry when loan type is Fixed */}
           {isFixed && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Fixed Rate Expiry Date</label>
               <input name="fixed_rate_expiry" value={form.fixed_rate_expiry} onChange={handleChange} type="date"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+            </div>
+          )}
+
+          {isInterestOnly && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Interest Only Expiry Date</label>
+              <input name="interest_only_expiry" value={form.interest_only_expiry} onChange={handleChange} type="date"
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
             </div>
           )}
