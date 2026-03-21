@@ -10,13 +10,9 @@ export default function App() {
   const [loading, setLoading] = useState(true)
 
   const forceSignOut = async () => {
-    try {
-      await supabase.auth.signOut()
-    } catch (e) {
-      // ignore
-    }
-    // Clear everything manually as fallback
+    try { await supabase.auth.signOut() } catch (e) {}
     localStorage.clear()
+    sessionStorage.clear()
     setSession(null)
     setSubscription(null)
     setLoading(false)
@@ -24,96 +20,74 @@ export default function App() {
 
   const fetchSubscription = async (userId) => {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('subscriptions')
         .select('*')
         .eq('user_id', userId)
         .maybeSingle()
-
-      if (error) {
-        // If we get an auth error fetching subscription, session is broken
-        if (error.code === 'PGRST301' || error.message?.includes('JWT')) {
-          await forceSignOut()
-          return
-        }
-      }
       setSubscription(data || null)
     } catch (err) {
       setSubscription(null)
-    } finally {
-      setLoading(false)
     }
   }
 
   useEffect(() => {
-    // Hard timeout — never get stuck loading more than 6 seconds
-    const timeout = setTimeout(() => {
+    // Step 1: get initial session on page load
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session) {
+        setSession(session)
+        await fetchSubscription(session.user.id)
+      }
+      // Always stop loading after initial check — no matter what
       setLoading(false)
-    }, 6000)
-
-    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
-      clearTimeout(timeout)
-
-      if (error || !session) {
-        setSession(null)
-        setLoading(false)
-        return
-      }
-
-      // Check if token is expired
-      const expiresAt = session.expires_at
-      const now = Math.floor(Date.now() / 1000)
-      if (expiresAt && expiresAt < now) {
-        // Try to refresh
-        const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession()
-        if (refreshError || !refreshed.session) {
-          await forceSignOut()
-          return
-        }
-        setSession(refreshed.session)
-        fetchSubscription(refreshed.session.user.id)
-        return
-      }
-
-      setSession(session)
-      fetchSubscription(session.user.id)
     })
 
+    // Step 2: listen for auth changes but NEVER set loading again
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESH_FAILED') {
           setSession(null)
           setSubscription(null)
-          setLoading(false)
           return
         }
-        if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
-          setSession(session)
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (session) {
-            setLoading(true)
+            setSession(session)
             await fetchSubscription(session.user.id)
-          } else {
-            setLoading(false)
           }
         }
       }
     )
 
+    // Step 3: recheck session when user returns to tab
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        supabase.auth.getSession().then(({ data: { session }, error }) => {
+          if (error || !session) {
+            setSession(null)
+            setSubscription(null)
+          }
+        })
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+
     return () => {
-      clearTimeout(timeout)
       authSub.unsubscribe()
+      document.removeEventListener('visibilitychange', handleVisibility)
     }
   }, [])
 
+  // Handle post-Stripe payment redirect
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('subscription') === 'success' && session) {
       window.history.replaceState({}, '', '/')
-      setLoading(true)
       setTimeout(() => fetchSubscription(session.user.id), 3000)
     }
   }, [session])
 
+  // Only show loading screen on initial page load
   if (loading) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center">
@@ -134,7 +108,7 @@ export default function App() {
   if (!session) return <Auth />
 
   const isActive = subscription?.status === 'active' || subscription?.status === 'trialing'
-  if (!isActive) return <Pricing session={session} existingPlan={null} onSignOut={forceSignOut} />
+  if (!isActive) return <Pricing session={session} existingPlan={null} />
 
   return <Dashboard session={session} subscription={subscription} />
 }
