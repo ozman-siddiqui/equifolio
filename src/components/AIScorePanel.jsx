@@ -32,7 +32,7 @@ export default function AIScorePanel({ property, loans, transactions }) {
   const [error, setError] = useState(null)
   const [expanded, setExpanded] = useState(false)
   const safeLoans = loans || []
-const safeTransactions = transactions || []
+  const safeTransactions = transactions || []
 
   const handleScore = async () => {
     if (score) {

@@ -104,8 +104,15 @@ Be direct and specific to Australian property market conditions. Reference actua
       })
     })
 
-    const aiData = await response.json()
-    const text = aiData.content[0].text
+const aiData = await response.json()
+
+if (!aiData.content || !aiData.content[0]) {
+  return new Response(JSON.stringify({ error: `API error: ${JSON.stringify(aiData)}` }), {
+    status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  })
+}
+
+const text = aiData.content[0].text
 
     // Parse JSON from response
     const jsonMatch = text.match(/\{[\s\S]*\}/)
