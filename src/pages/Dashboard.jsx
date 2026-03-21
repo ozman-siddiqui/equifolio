@@ -24,7 +24,7 @@ const formatFrequency = (f) => {
   return map[f] || 'mo'
 }
 
-export default function Dashboard({ session }) {
+export default function Dashboard({ session,subscription }) {
   const [properties, setProperties] = useState([])
   const [loans, setLoans] = useState([])
   const [transactions, setTransactions] = useState([])
@@ -227,10 +227,18 @@ export default function Dashboard({ session }) {
               </div>
               <h3 className="font-medium text-gray-900 mb-1">No properties yet</h3>
               <p className="text-sm text-gray-500 mb-4">Add your first investment property to start tracking your portfolio</p>
-              <button
-  onClick={() => setShowAddProperty(true)}
-  className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-  <Plus size={16} /> Add Property
+<button
+  onClick={() => {
+    const plan = (subscription?.plan || 'starter').toLowerCase()
+    const limit = PLAN_LIMITS[plan] || 3
+    if (properties.length >= limit) {
+      setShowUpgradeModal(true)
+    } else {
+      setShowAddProperty(true)
+    }
+  }}
+  className="bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors">
+  Add your first property
 </button>
             </div>
           ) : (
