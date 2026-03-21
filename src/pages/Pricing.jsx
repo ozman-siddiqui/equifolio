@@ -67,8 +67,8 @@ export default function Pricing({ session, existingPlan }) {
     try {
       const { data: { session: authSession } } = await supabase.auth.getSession()
 
-      if (!authSession) {
-        setError('Not logged in. Please refresh and try again.')
+      if (!authSession?.access_token) {
+        setError('Session expired. Please sign out and sign back in.')
         setLoading(null)
         return
       }
@@ -87,7 +87,6 @@ export default function Pricing({ session, existingPlan }) {
       )
 
       const text = await res.text()
-      console.log('Edge function response:', text)
 
       let data
       try {
@@ -104,11 +103,17 @@ export default function Pricing({ session, existingPlan }) {
         return
       }
 
+      if (data.debug) {
+        setError(`Stripe response: ${data.debug}`)
+        setLoading(null)
+        return
+      }
+
       if (!data.url) {
-  setError(`Debug: ${data.debug || data.error || 'No URL returned'}`)
-  setLoading(null)
-  return
-}
+        setError(`No URL returned: ${text}`)
+        setLoading(null)
+        return
+      }
 
       window.location.href = data.url
 
@@ -144,7 +149,7 @@ export default function Pricing({ session, existingPlan }) {
             14-day free trial on all plans. No credit card required to start. Cancel any time.
           </p>
           {error && (
-            <div className="mt-4 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm inline-block">
+            <div className="mt-4 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm inline-block max-w-2xl">
               {error}
             </div>
           )}
