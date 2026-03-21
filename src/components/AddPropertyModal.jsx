@@ -17,7 +17,8 @@ export default function AddPropertyModal({ onClose, onSave, userId }) {
     bedrooms: '',
     bathrooms: '',
     land_size: '',
-    garages: ''
+    garages: '',
+    lease_expiry_date: ''
   })
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
@@ -40,6 +41,7 @@ export default function AddPropertyModal({ onClose, onSave, userId }) {
       bathrooms: form.bathrooms ? Number(form.bathrooms) : null,
       land_size: form.land_size ? Number(form.land_size) : null,
       garages: form.garages ? Number(form.garages) : null,
+      lease_expiry_date: form.lease_expiry_date || null,
       user_id: userId,
     }])
 
@@ -58,7 +60,6 @@ export default function AddPropertyModal({ onClose, onSave, userId }) {
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">{error}</div>}
 
-          {/* Property Use Toggle */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Property Use</label>
             <div className="grid grid-cols-2 gap-2">
@@ -154,6 +155,16 @@ export default function AddPropertyModal({ onClose, onSave, userId }) {
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
             </div>
           </div>
+
+          {form.property_use === 'investment' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Lease Expiry Date <span className="text-gray-400 font-normal">optional</span>
+              </label>
+              <input name="lease_expiry_date" value={form.lease_expiry_date} onChange={handleChange} type="date"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+            </div>
+          )}
 
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose}

@@ -10,6 +10,7 @@ import EditPropertyModal from '../components/EditPropertyModal'
 import EditLoanModal from '../components/EditLoanModal'
 import CashFlowModal from '../components/CashFlowModal'
 import EditTransactionModal from '../components/EditTransactionModal'
+import AlertsDropdown from '../components/AlertsDropdown'
 import UpgradeModal from '../components/UpgradeModal'
 
 const PLAN_LIMITS = { starter: 3, investor: 10, premium: Infinity }
@@ -130,13 +131,14 @@ export default function Dashboard({ session,subscription }) {
             </div>
             <span className="font-bold text-gray-900 text-lg">Equifolio</span>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-500">{session.user.email}</span>
-            <button onClick={() => supabase.auth.signOut()}
-              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700">
-              <LogOut size={16} /> Sign out
-            </button>
-          </div>
+          <div className="flex items-center gap-3">
+  <span className="text-sm text-gray-500 hidden md:block">{session.user.email}</span>
+  <AlertsDropdown properties={properties} loans={loans} />
+  <button onClick={() => supabase.auth.signOut()}
+    className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700">
+    <LogOut size={16} /> Sign out
+  </button>
+</div>
         </div>
       </header>
 
@@ -168,18 +170,7 @@ export default function Dashboard({ session,subscription }) {
         </div>
 
         {/* Fixed rate alert */}
-        {expiringLoans.length > 0 && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex items-start gap-3">
-            <AlertCircle className="text-amber-500 mt-0.5 flex-shrink-0" size={18} />
-            <div>
-              <p className="text-sm font-medium text-amber-800">Fixed rate expiring soon</p>
-              <p className="text-sm text-amber-700 mt-0.5">
-                {expiringLoans.length} {expiringLoans.length === 1 ? 'loan has' : 'loans have'} a fixed rate expiring within 90 days.
-                Review your options before the bank reverts to a higher variable rate.
-              </p>
-            </div>
-          </div>
-        )}
+
 
         {/* 5 metric cards */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
