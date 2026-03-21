@@ -67,8 +67,14 @@ export default function Pricing({ session, existingPlan }) {
     try {
       const { data: { session: authSession } } = await supabase.auth.getSession()
 
+      if (!authSession) {
+        setError('Not logged in. Please refresh and try again.')
+        setLoading(null)
+        return
+      }
+
       const res = await fetch(
-        `https://fcawdtlcimytvohivhfq.supabase.co/functions/v1/create-checkout-session`,
+        'https://fcawdtlcimytvohivhfq.supabase.co/functions/v1/create-checkout-session',
         {
           method: 'POST',
           headers: {
@@ -80,10 +86,26 @@ export default function Pricing({ session, existingPlan }) {
         }
       )
 
-      const data = await res.json()
+      const text = await res.text()
+      console.log('Edge function response:', text)
+
+      let data
+      try {
+        data = JSON.parse(text)
+      } catch {
+        setError(`Server error: ${text}`)
+        setLoading(null)
+        return
+      }
 
       if (data.error) {
-        setError(data.error)
+        setError(`Error: ${data.error}`)
+        setLoading(null)
+        return
+      }
+
+      if (!data.url) {
+        setError('No checkout URL returned. Please try again.')
         setLoading(null)
         return
       }
@@ -91,7 +113,7 @@ export default function Pricing({ session, existingPlan }) {
       window.location.href = data.url
 
     } catch (err) {
-      setError('Something went wrong. Please try again.')
+      setError(`Network error: ${err.message}`)
       setLoading(null)
     }
   }
