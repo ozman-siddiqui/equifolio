@@ -10,6 +10,7 @@ import {
   DollarSign,
   Home,
   ChevronRight,
+  ShieldAlert,
 } from 'lucide-react'
 
 import AddPropertyModal from '../components/AddPropertyModal'
@@ -33,7 +34,7 @@ const toMonthly = (amount, frequency) => {
     Quarterly: 1 / 3,
     Annual: 1 / 12,
   }
-  return Number(amount) * (map[frequency] || 1)
+  return Number(amount || 0) * (map[frequency] || 1)
 }
 
 export default function Dashboard({ session, subscription }) {
@@ -106,8 +107,75 @@ export default function Dashboard({ session, subscription }) {
   }, [properties, loans, thisMonthTxns])
 
   const alerts = useMemo(() => buildAlerts(properties, loans), [properties, loans])
-  const urgentAlerts = alerts.filter((a) => a.urgent)
-  const nonUrgentAlerts = alerts.filter((a) => !a.urgent)
+
+  const fallbackAlerts = useMemo(() => {
+    const derived = []
+
+    const fixedExpiringSoon = loans.filter((loan) => {
+      if (loan.loan_type !== 'Fixed' || !loan.fixed_rate_expiry) return false
+      const days = Math.ceil(
+        (new Date(loan.fixed_rate_expiry) - new Date()) / (1000 * 60 * 60 * 24)
+      )
+      return days > 0 && days <= 90
+    })
+
+    if (fixedExpiringSoon.length > 0) {
+      derived.push({
+        id: 'fallback-fixed-expiry',
+        title: 'Fixed-rate expiry approaching',
+        description: `${fixedExpiringSoon.length} mortgage${
+          fixedExpiringSoon.length === 1 ? '' : 's'
+        } expire within 90 days.`,
+        urgent: fixedExpiringSoon.some((loan) => {
+          const days = Math.ceil(
+            (new Date(loan.fixed_rate_expiry) - new Date()) / (1000 * 60 * 60 * 24)
+          )
+          return days <= 30
+        }),
+      })
+    }
+
+    if (portfolioMetrics.netMonthlyCashFlow < 0) {
+      derived.push({
+        id: 'fallback-negative-cashflow',
+        title: 'Negative monthly cash flow',
+        description: `Portfolio is currently running at ${formatCurrency(
+          portfolioMetrics.netMonthlyCashFlow
+        )} this month.`,
+        urgent: false,
+      })
+    }
+
+    const highLvrProperties = properties.filter((property) => {
+      const propertyLoans = loans.filter(
+        (loan) => String(loan.property_id) === String(property.id)
+      )
+      const debt = propertyLoans.reduce(
+        (sum, loan) => sum + Number(loan.current_balance || 0),
+        0
+      )
+      const currentValue = Number(property.current_value || 0)
+      const lvr = currentValue > 0 ? (debt / currentValue) * 100 : 0
+      return lvr >= 80
+    })
+
+    if (highLvrProperties.length > 0) {
+      derived.push({
+        id: 'fallback-high-lvr',
+        title: 'High leverage detected',
+        description: `${highLvrProperties.length} propert${
+          highLvrProperties.length === 1 ? 'y is' : 'ies are'
+        } at or above 80% LVR.`,
+        urgent: false,
+      })
+    }
+
+    return derived
+  }, [loans, properties, portfolioMetrics.netMonthlyCashFlow])
+
+  const effectiveAlerts = alerts.length > 0 ? alerts : fallbackAlerts
+  const urgentAlerts = effectiveAlerts.filter((a) => a.urgent)
+  const nonUrgentAlerts = effectiveAlerts.filter((a) => !a.urgent)
 
   const topProperties = useMemo(() => {
     return [...properties]
@@ -222,7 +290,7 @@ export default function Dashboard({ session, subscription }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 xl:grid-cols-5 gap-4 p-6 md:p-8 bg-gray-50/70">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-4 p-6 md:p-8 bg-gray-50/70">
             <KpiCard
               label="Portfolio Value"
               value={formatCurrency(portfolioMetrics.totalValue)}
@@ -494,10 +562,11 @@ export default function Dashboard({ session, subscription }) {
                 </h2>
               </div>
 
-              {alerts.length === 0 ? (
+              {effectiveAlerts.length === 0 ? (
                 <EmptyMiniState
                   title="No alerts right now"
-                  description="Your portfolio currently has no active mortgage alerts."
+                  description="No current lending or portfolio risk signals detected."
+                  icon={<ShieldAlert size={18} className="text-green-600" />}
                 />
               ) : (
                 <div className="space-y-3">
@@ -604,12 +673,22 @@ function KpiCard({
   valueClassName = 'text-gray-900',
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-5">
-      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+    <div className="bg-white rounded-xl border border-gray-100 p-5 min-h-[190px] flex flex-col">
+      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide leading-5 min-h-[2.75rem]">
         {label}
       </p>
-      <p className={`text-2xl font-bold ${valueClassName}`}>{value}</p>
-      <p className="text-xs text-gray-400 mt-1">{helper}</p>
+
+      <div className="flex-1 flex items-center min-h-[72px]">
+        <p
+          className={`text-[clamp(2rem,2.2vw,3rem)] leading-[0.95] font-bold tracking-tight break-words ${valueClassName}`}
+        >
+          {value}
+        </p>
+      </div>
+
+      <p className="text-sm text-gray-400 leading-6 min-h-[3rem] mt-3">
+        {helper}
+      </p>
     </div>
   )
 }
@@ -692,9 +771,14 @@ function AlertRow({ alert, urgent = false }) {
   )
 }
 
-function EmptyMiniState({ title, description }) {
+function EmptyMiniState({ title, description, icon = null }) {
   return (
     <div className="rounded-xl border border-dashed border-gray-200 p-5 text-center">
+      {icon ? (
+        <div className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-3">
+          {icon}
+        </div>
+      ) : null}
       <p className="text-sm font-medium text-gray-900">{title}</p>
       <p className="text-sm text-gray-500 mt-1">{description}</p>
     </div>
