@@ -1,8 +1,17 @@
 import { useState, useEffect } from 'react'
+import { Routes, Route } from 'react-router-dom'
 import { supabase } from './supabase'
+
 import Auth from './pages/Auth'
 import Dashboard from './pages/Dashboard'
 import Pricing from './pages/Pricing'
+import Properties from './pages/Properties'
+import PropertyDetail from './pages/PropertyDetail'
+import CashFlow from './pages/CashFlow'
+import Mortgages from './pages/Mortgages'
+import Alerts from './pages/Alerts'
+import Settings from './pages/Settings'
+import Layout from './components/Layout'
 
 export default function App() {
   const [session, setSession] = useState(null)
@@ -11,7 +20,9 @@ export default function App() {
   const [subscriptionReady, setSubscriptionReady] = useState(false)
 
   const signOut = async () => {
-    try { await supabase.auth.signOut() } catch (e) {}
+    try {
+      await supabase.auth.signOut()
+    } catch (e) {}
     localStorage.clear()
     sessionStorage.clear()
     window.location.reload()
@@ -39,8 +50,12 @@ export default function App() {
 
     const init = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+
         if (!isMounted) return
+
         if (session) {
           setSession(session)
           fetchSubscription(session.user.id)
@@ -56,19 +71,20 @@ export default function App() {
 
     init()
 
-    const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESH_FAILED') {
-          setSession(null)
-          setSubscription(null)
-          setSubscriptionReady(true)
-        }
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          setSession(session)
-          if (session) fetchSubscription(session.user.id)
-        }
+    const {
+      data: { subscription: authSub },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESH_FAILED') {
+        setSession(null)
+        setSubscription(null)
+        setSubscriptionReady(true)
       }
-    )
+
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        setSession(session)
+        if (session) fetchSubscription(session.user.id)
+      }
+    })
 
     return () => {
       isMounted = false
@@ -84,26 +100,48 @@ export default function App() {
     }
   }, [session])
 
-  // Show loading until both session AND subscription are checked
-  if (!ready || !subscriptionReady) return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center mx-auto mb-4">
-          <span className="text-white text-sm font-bold">E</span>
+  if (!ready || !subscriptionReady) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+            <span className="text-white text-sm font-bold">E</span>
+          </div>
+          <div className="text-gray-400 text-sm">Loading...</div>
+          <button
+            onClick={signOut}
+            className="mt-6 text-xs text-gray-400 hover:text-gray-600 underline"
+          >
+            Taking too long? Click here
+          </button>
         </div>
-        <div className="text-gray-400 text-sm">Loading...</div>
-        <button onClick={signOut}
-          className="mt-6 text-xs text-gray-400 hover:text-gray-600 underline">
-          Taking too long? Click here
-        </button>
       </div>
-    </div>
-  )
+    )
+  }
 
   if (!session) return <Auth />
 
-  const isActive = subscription?.status === 'active' || subscription?.status === 'trialing'
-  if (!isActive) return <Pricing session={session} existingPlan={null} />
+  const isActive =
+    subscription?.status === 'active' || subscription?.status === 'trialing'
 
-  return <Dashboard session={session} subscription={subscription} />
+  if (!isActive) {
+    return <Pricing session={session} existingPlan={null} />
+  }
+
+return (
+  <Routes>
+    <Route path="/" element={<Layout session={session} />}>
+      <Route
+        index
+        element={<Dashboard session={session} subscription={subscription} />}
+      />
+      <Route path="properties" element={<Properties />} />
+      <Route path="property/:id" element={<PropertyDetail />} />
+      <Route path="cashflow" element={<CashFlow />} />
+      <Route path="mortgages" element={<Mortgages />} />
+      <Route path="alerts" element={<Alerts />} />
+      <Route path="settings" element={<Settings />} />
+    </Route>
+  </Routes>
+)
 }
