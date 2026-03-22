@@ -12,6 +12,7 @@ import CashFlowModal from '../components/CashFlowModal'
 import EditTransactionModal from '../components/EditTransactionModal'
 import AlertsDropdown, { buildAlerts } from '../components/AlertsDropdown'
 import AIScorePanel from '../components/AIScorePanel'
+import RefinanceModal from '../components/RefinanceModal'
 import UpgradeModal from '../components/UpgradeModal'
 
 const PLAN_LIMITS = { starter: 3, investor: 10, premium: Infinity }
@@ -40,6 +41,7 @@ export default function Dashboard({ session,subscription }) {
   const [editingTransaction, setEditingTransaction] = useState(null)
   const [expandedCashFlow, setExpandedCashFlow] = useState(new Set())
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [refinancingLoan, setRefinancingLoan] = useState(null)
 
   useEffect(() => { fetchData() }, [])
 
@@ -506,10 +508,16 @@ export default function Dashboard({ session,subscription }) {
                               </span>
                               <div className="flex items-center gap-3">
                                 <span className="font-medium text-gray-900">{formatCurrency(loan.current_balance)}</span>
-                                <button onClick={() => setEditingLoan(loan)}
-                                  className="text-gray-400 hover:text-primary-600 transition-colors">
-                                  <Pencil size={14} />
-                                </button>
+                                <button
+  onClick={() => setRefinancingLoan({ loan, property })}
+  className="text-xs text-gray-400 hover:text-primary-600 font-medium transition-colors"
+  title="Model refinance">
+  Refinance
+</button>
+<button onClick={() => setEditingLoan(loan)}
+  className="text-gray-400 hover:text-primary-600 transition-colors">
+  <Pencil size={14} />
+</button>
                               </div>
                             </div>
                           )
@@ -570,6 +578,14 @@ export default function Dashboard({ session,subscription }) {
     currentPlan={subscription?.plan || 'starter'}
     currentCount={properties.length}
     onClose={() => setShowUpgradeModal(false)}
+  />
+)}
+
+{refinancingLoan && (
+  <RefinanceModal
+    loan={refinancingLoan.loan}
+    property={refinancingLoan.property}
+    onClose={() => setRefinancingLoan(null)}
   />
 )}
 
