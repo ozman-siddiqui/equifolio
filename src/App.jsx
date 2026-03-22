@@ -128,20 +128,23 @@ export default function App() {
     return <Pricing session={session} existingPlan={null} />
   }
 
-return (
-  <Routes>
-    <Route path="/" element={<Layout session={session} />}>
+  return (
+    <Routes>
       <Route
-        index
-        element={<Dashboard session={session} subscription={subscription} />}
-      />
-      <Route path="properties" element={<Properties />} />
-      <Route path="property/:id" element={<PropertyDetail />} />
-      <Route path="cashflow" element={<CashFlow />} />
-      <Route path="mortgages" element={<Mortgages />} />
-      <Route path="alerts" element={<Alerts />} />
-      <Route path="settings" element={<Settings />} />
-    </Route>
-  </Routes>
-)
+        path="/"
+        element={<Layout session={session} subscription={subscription} onSignOut={signOut} />}
+      >
+        <Route
+          index
+          element={<Dashboard session={session} subscription={subscription} />}
+        />
+        <Route path="properties" element={<Properties />} />
+        <Route path="property/:id" element={<PropertyDetail />} />
+        <Route path="cashflow" element={<CashFlow />} />
+        <Route path="mortgages" element={<Mortgages />} />
+        <Route path="alerts" element={<Alerts />} />
+        <Route path="settings" element={<Settings />} />
+      </Route>
+    </Routes>
+  )
 }
