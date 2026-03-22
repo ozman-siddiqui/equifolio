@@ -143,7 +143,8 @@ export default function App() {
         <Route path="cashflow" element={<CashFlow />} />
         <Route path="mortgages" element={<Mortgages />} />
         <Route path="alerts" element={<Alerts />} />
-        <Route path="settings" element={<Settings />} />
+        <Route path="pricing" element={<Pricing session={session} existingPlan={subscription?.plan || null} />} />
+        <Route path="settings" element={<Settings session={session} subscription={subscription} />} />
       </Route>
     </Routes>
   )
