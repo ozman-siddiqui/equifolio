@@ -13,6 +13,7 @@ import EditTransactionModal from '../components/EditTransactionModal'
 import AlertsDropdown, { buildAlerts } from '../components/AlertsDropdown'
 import AIScorePanel from '../components/AIScorePanel'
 import RefinanceModal from '../components/RefinanceModal'
+import { PortfolioCashFlowChart, PropertyCashFlowTable } from '../components/CashFlowProjection'
 import UpgradeModal from '../components/UpgradeModal'
 
 const PLAN_LIMITS = { starter: 3, investor: 10, premium: Infinity }
@@ -27,7 +28,7 @@ const formatFrequency = (f) => {
   return map[f] || 'mo'
 }
 
-export default function Dashboard({ session,subscription }) {
+export default function Dashboard({ session, subscription }) {
   const [properties, setProperties] = useState([])
   const [loans, setLoans] = useState([])
   const [transactions, setTransactions] = useState([])
@@ -78,7 +79,6 @@ export default function Dashboard({ session,subscription }) {
     return d.getMonth() === currentMonth && d.getFullYear() === currentYear
   })
 
-  // Portfolio metrics
   const totalValue = properties.reduce((sum, p) => sum + Number(p.current_value), 0)
   const totalDebt = loans.reduce((sum, l) => sum + Number(l.current_balance), 0)
   const totalEquity = totalValue - totalDebt
@@ -92,12 +92,6 @@ export default function Dashboard({ session,subscription }) {
     .filter(t => t.type === 'expense')
     .reduce((sum, t) => sum + toMonthly(t.amount, t.frequency), 0)
   const netMonthlyCashFlow = totalMonthlyIncome - totalMonthlyExpenses
-
-  const expiringLoans = loans.filter(loan => {
-    if (!loan.fixed_rate_expiry) return false
-    const days = Math.ceil((new Date(loan.fixed_rate_expiry) - new Date()) / (1000 * 60 * 60 * 24))
-    return days <= 90 && days > 0
-  })
 
   const getDaysUntilExpiry = (dateStr) => {
     if (!dateStr) return null
@@ -135,13 +129,13 @@ export default function Dashboard({ session,subscription }) {
             <span className="font-bold text-gray-900 text-lg">Equifolio</span>
           </div>
           <div className="flex items-center gap-3">
-  <span className="text-sm text-gray-500 hidden md:block">{session.user.email}</span>
-  <AlertsDropdown properties={properties} loans={loans} />
-  <button onClick={() => supabase.auth.signOut()}
-    className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700">
-    <LogOut size={16} /> Sign out
-  </button>
-</div>
+            <span className="text-sm text-gray-500 hidden md:block">{session.user.email}</span>
+            <AlertsDropdown properties={properties} loans={loans} />
+            <button onClick={() => supabase.auth.signOut()}
+              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700">
+              <LogOut size={16} /> Sign out
+            </button>
+          </div>
         </div>
       </header>
 
@@ -158,45 +152,44 @@ export default function Dashboard({ session,subscription }) {
             </p>
           </div>
           <button
-  onClick={() => {
-    const plan = subscription?.plan || 'starter'
-    const limit = PLAN_LIMITS[plan] || 3
-    if (properties.length >= limit) {
-      setShowUpgradeModal(true)
-    } else {
-      setShowAddProperty(true)
-    }
-  }}
-  className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-  <Plus size={16} /> Add Property
-</button>
+            onClick={() => {
+              const plan = (subscription?.plan || 'starter').toLowerCase()
+              const limit = PLAN_LIMITS[plan] || 3
+              if (properties.length >= limit) {
+                setShowUpgradeModal(true)
+              } else {
+                setShowAddProperty(true)
+              }
+            }}
+            className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+            <Plus size={16} /> Add Property
+          </button>
         </div>
 
-  {/* Fixed rate alert */}
-{(() => {
-  const urgentAlerts = buildAlerts(properties, loans).filter(a => a.urgent)
-  if (urgentAlerts.length === 0) return null
-  return (
-    <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
-      <div className="flex items-start gap-3">
-        <div className="w-2 h-2 bg-red-500 rounded-full mt-1.5 animate-pulse flex-shrink-0" />
-        <div>
-          <p className="text-sm font-semibold text-red-800">
-            {urgentAlerts.length === 1 ? '1 urgent alert' : `${urgentAlerts.length} urgent alerts`} — action required within 30 days
-          </p>
-          <div className="mt-1 space-y-0.5">
-            {urgentAlerts.map(a => (
-              <p key={a.id} className="text-xs text-red-600">
-                · {a.title}: {a.description} ({a.days} days)
-              </p>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-})()}
-
+        {/* Urgent alerts banner */}
+        {(() => {
+          const urgentAlerts = buildAlerts(properties, loans).filter(a => a.urgent)
+          if (urgentAlerts.length === 0) return null
+          return (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+              <div className="flex items-start gap-3">
+                <div className="w-2 h-2 bg-red-500 rounded-full mt-1.5 animate-pulse flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-red-800">
+                    {urgentAlerts.length === 1 ? '1 urgent alert' : `${urgentAlerts.length} urgent alerts`} — action required within 30 days
+                  </p>
+                  <div className="mt-1 space-y-0.5">
+                    {urgentAlerts.map(a => (
+                      <p key={a.id} className="text-xs text-red-600">
+                        · {a.title}: {a.description} ({a.days} days)
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
 
         {/* 5 metric cards */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
@@ -231,6 +224,9 @@ export default function Dashboard({ session,subscription }) {
           </div>
         </div>
 
+        {/* Portfolio 12-month cash flow projection */}
+        <PortfolioCashFlowChart transactions={transactions} />
+
         {/* Properties list */}
         <div className="bg-white rounded-xl border border-gray-100">
           <div className="p-6 border-b border-gray-100">
@@ -244,19 +240,19 @@ export default function Dashboard({ session,subscription }) {
               </div>
               <h3 className="font-medium text-gray-900 mb-1">No properties yet</h3>
               <p className="text-sm text-gray-500 mb-4">Add your first investment property to start tracking your portfolio</p>
-<button
-  onClick={() => {
-    const plan = (subscription?.plan || 'starter').toLowerCase()
-    const limit = PLAN_LIMITS[plan] || 3
-    if (properties.length >= limit) {
-      setShowUpgradeModal(true)
-    } else {
-      setShowAddProperty(true)
-    }
-  }}
-  className="bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors">
-  Add your first property
-</button>
+              <button
+                onClick={() => {
+                  const plan = (subscription?.plan || 'starter').toLowerCase()
+                  const limit = PLAN_LIMITS[plan] || 3
+                  if (properties.length >= limit) {
+                    setShowUpgradeModal(true)
+                  } else {
+                    setShowAddProperty(true)
+                  }
+                }}
+                className="bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors">
+                Add your first property
+              </button>
             </div>
           ) : (
             <div className="divide-y divide-gray-50">
@@ -269,10 +265,8 @@ export default function Dashboard({ session,subscription }) {
                 const growth = Number(property.current_value) - Number(property.purchase_price)
                 const growthPct = ((growth / Number(property.purchase_price)) * 100).toFixed(1)
 
-                // All transactions for this property
                 const allPropTxns = transactions.filter(t => t.property_id === property.id)
 
-                // This month only
                 const propThisMonth = thisMonthTxns.filter(t => t.property_id === property.id)
                 const propIncome = propThisMonth.filter(t => t.type === 'income')
                   .reduce((sum, t) => sum + toMonthly(t.amount, t.frequency), 0)
@@ -280,7 +274,6 @@ export default function Dashboard({ session,subscription }) {
                   .reduce((sum, t) => sum + toMonthly(t.amount, t.frequency), 0)
                 const propNet = propIncome - propExpenses
 
-                // Yield calculations
                 const allIncome = allPropTxns.filter(t => t.type === 'income')
                   .reduce((sum, t) => sum + toMonthly(t.amount, t.frequency), 0)
                 const allExpenses = allPropTxns.filter(t => t.type === 'expense')
@@ -296,7 +289,6 @@ export default function Dashboard({ session,subscription }) {
                 const isExpanded = expandedCashFlow.has(property.id)
                 const isOwnerOccupied = property.property_use === 'owner_occupied'
 
-                // Sort transactions: income first, then expenses, both by date desc
                 const sortedTxns = [...allPropTxns].sort((a, b) => {
                   if (a.type !== b.type) return a.type === 'income' ? -1 : 1
                   return new Date(b.date) - new Date(a.date)
@@ -350,17 +342,15 @@ export default function Dashboard({ session,subscription }) {
                       </div>
                     </div>
 
-                    {/* ── Collapsible cash flow section ── */}
+                    {/* Collapsible cash flow section */}
                     <div className="mt-4 pt-4 border-t border-gray-50">
 
-                      {/* Clickable header row */}
                       <button type="button" onClick={() => toggleCashFlow(property.id)}
                         className="w-full flex items-center justify-between group">
                         <div className="flex items-center gap-3">
                           <span className="text-xs font-medium text-gray-500">
                             Cash Flow — {now.toLocaleString('en-AU', { month: 'long', year: 'numeric' })}
                           </span>
-                          {/* Collapsed summary */}
                           {!isExpanded && propThisMonth.length > 0 && (
                             <div className="flex items-center gap-2 text-xs text-gray-400">
                               <span className="text-green-600">{formatCurrency(propIncome)}</span>
@@ -391,11 +381,9 @@ export default function Dashboard({ session,subscription }) {
                         </div>
                       </button>
 
-                      {/* Expanded content */}
                       {isExpanded && (
                         <div className="mt-3 space-y-3">
 
-                          {/* This month summary */}
                           {propThisMonth.length > 0 && (
                             <div className="grid grid-cols-3 gap-4 pb-3 border-b border-gray-50">
                               <div>
@@ -415,7 +403,6 @@ export default function Dashboard({ session,subscription }) {
                             </div>
                           )}
 
-                          {/* Transaction list */}
                           {sortedTxns.length === 0 ? (
                             <p className="text-xs text-gray-400 italic py-2">
                               No transactions yet. Click Add Transaction below to start tracking.
@@ -428,7 +415,6 @@ export default function Dashboard({ session,subscription }) {
                                   <div key={txn.id}
                                     className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-gray-50 group/txn">
                                     <div className="flex items-center gap-3 min-w-0">
-                                      {/* Income/expense dot */}
                                       <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
                                         txn.type === 'income' ? 'bg-green-500' : 'bg-red-400'
                                       }`} />
@@ -458,7 +444,6 @@ export default function Dashboard({ session,subscription }) {
                                           </p>
                                         )}
                                       </div>
-                                      {/* Edit + delete buttons — visible on row hover */}
                                       <div className="flex items-center gap-1 opacity-0 group-hover/txn:opacity-100 transition-opacity">
                                         <button
                                           onClick={() => setEditingTransaction({ ...txn, propertyUse: property.property_use })}
@@ -479,6 +464,13 @@ export default function Dashboard({ session,subscription }) {
                               </div>
                             </div>
                           )}
+
+                          {/* 12-month projection table */}
+                          <PropertyCashFlowTable
+                            transactions={transactions}
+                            propertyId={property.id}
+                          />
+
                         </div>
                       )}
                     </div>
@@ -508,29 +500,29 @@ export default function Dashboard({ session,subscription }) {
                               </span>
                               <div className="flex items-center gap-3">
                                 <span className="font-medium text-gray-900">{formatCurrency(loan.current_balance)}</span>
-<button
-  onClick={() => setRefinancingLoan({ loan, property })}
-  className="flex items-center gap-1 text-xs bg-primary-50 hover:bg-primary-100 text-primary-600 font-medium px-2 py-1 rounded-md transition-colors">
-  Refinance
-</button>
-<button onClick={() => setEditingLoan(loan)}
-  className="text-gray-400 hover:text-primary-600 transition-colors">
-  <Pencil size={14} />
-</button>
+                                <button
+                                  onClick={() => setRefinancingLoan({ loan, property })}
+                                  className="flex items-center gap-1 text-xs bg-primary-50 hover:bg-primary-100 text-primary-600 font-medium px-2 py-1 rounded-md transition-colors">
+                                  Refinance
+                                </button>
+                                <button onClick={() => setEditingLoan(loan)}
+                                  className="text-gray-400 hover:text-primary-600 transition-colors">
+                                  <Pencil size={14} />
+                                </button>
                               </div>
                             </div>
                           )
                         })}
                       </div>
-                
                     )}
 
                     {/* AI Score Panel */}
                     <AIScorePanel
-                    property={property}
-                    loans={propertyLoans}
-                    transactions={allPropTxns}
+                      property={property}
+                      loans={propertyLoans}
+                      transactions={allPropTxns}
                     />
+
                     {/* Action buttons */}
                     <div className="flex items-center gap-3 mt-4 pt-3 border-t border-gray-50">
                       <button onClick={() => setCashFlowPropertyId(property.id)}
@@ -572,23 +564,20 @@ export default function Dashboard({ session,subscription }) {
       {editingLoan && (
         <EditLoanModal loan={editingLoan} onClose={() => setEditingLoan(null)} onSave={fetchData} />
       )}
-{showUpgradeModal && (
-  <UpgradeModal
-    currentPlan={subscription?.plan || 'starter'}
-    currentCount={properties.length}
-    onClose={() => setShowUpgradeModal(false)}
-  />
-)}
-
-{refinancingLoan && (
-  <RefinanceModal
-    loan={refinancingLoan.loan}
-    property={refinancingLoan.property}
-    onClose={() => setRefinancingLoan(null)}
-  />
-)}
-
-
+      {showUpgradeModal && (
+        <UpgradeModal
+          currentPlan={subscription?.plan || 'starter'}
+          currentCount={properties.length}
+          onClose={() => setShowUpgradeModal(false)}
+        />
+      )}
+      {refinancingLoan && (
+        <RefinanceModal
+          loan={refinancingLoan.loan}
+          property={refinancingLoan.property}
+          onClose={() => setRefinancingLoan(null)}
+        />
+      )}
       {cashFlowPropertyId && (
         <CashFlowModal userId={session.user.id} propertyId={cashFlowPropertyId} properties={properties}
           onClose={() => setCashFlowPropertyId(null)} onSave={fetchData} />
@@ -604,3 +593,4 @@ export default function Dashboard({ session,subscription }) {
     </div>
   )
 }
+
