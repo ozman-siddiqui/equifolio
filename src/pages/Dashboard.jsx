@@ -680,7 +680,7 @@ function KpiCard({
 
       <div className="flex-1 flex items-center min-h-[72px]">
         <p
-          className={`text-[clamp(2rem,2.2vw,3rem)] leading-[0.95] font-bold tracking-tight break-words ${valueClassName}`}
+          className={`text-2xl md:text-3xl lg:text-4xl leading-tight font-bold tracking-tight break-words max-w-full ${valueClassName}`}
         >
           {value}
         </p>

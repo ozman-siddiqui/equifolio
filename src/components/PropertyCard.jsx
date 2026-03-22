@@ -1,4 +1,13 @@
-import { ChevronRight, Home, Building2, CreditCard, TrendingUp } from 'lucide-react'
+import {
+  Bath,
+  BedDouble,
+  Building2,
+  CarFront,
+  ChevronRight,
+  CreditCard,
+  Home,
+  Ruler,
+} from 'lucide-react'
 
 export default function PropertyCard({
   property,
@@ -19,6 +28,7 @@ export default function PropertyCard({
   const growthPct =
     purchasePrice > 0 ? ((growth / purchasePrice) * 100).toFixed(1) : '0.0'
   const lvr = currentValue > 0 ? ((totalDebt / currentValue) * 100).toFixed(1) : '0.0'
+  const features = getPropertyFeatures(property)
 
   return (
     <div className="bg-white border border-gray-100 rounded-2xl p-5 hover:shadow-md hover:border-gray-200 transition-all">
@@ -42,12 +52,36 @@ export default function PropertyCard({
 
           <p className="text-sm text-gray-500 mt-1">
             {property.suburb}, {property.state}
-            {property.property_type ? ` · ${property.property_type}` : ''}
+            {property.property_type ? ` - ${property.property_type}` : ''}
           </p>
 
+          {features.length > 0 ? (
+            <div className="flex flex-wrap gap-x-3 gap-y-2 mt-3">
+              {features.map((feature) => {
+                const Icon = feature.icon
+
+                return (
+                  <span
+                    key={feature.label}
+                    className="inline-flex items-center gap-1.5 text-sm text-gray-600"
+                  >
+                    <Icon size={14} className="text-gray-400" />
+                    <span>{feature.label}</span>
+                  </span>
+                )
+              })}
+            </div>
+          ) : null}
+
           <div className="flex flex-wrap gap-2 mt-4">
-            <Chip icon={<Building2 size={12} />} label={`${propertyLoans.length} mortgage${propertyLoans.length === 1 ? '' : 's'}`} />
-            <Chip icon={<CreditCard size={12} />} label={`${propertyTransactions.length} transaction${propertyTransactions.length === 1 ? '' : 's'}`} />
+            <Chip
+              icon={<Building2 size={12} />}
+              label={`${propertyLoans.length} mortgage${propertyLoans.length === 1 ? '' : 's'}`}
+            />
+            <Chip
+              icon={<CreditCard size={12} />}
+              label={`${propertyTransactions.length} transaction${propertyTransactions.length === 1 ? '' : 's'}`}
+            />
             <Chip icon={<Home size={12} />} label={`LVR ${lvr}%`} />
           </div>
 
@@ -69,7 +103,10 @@ export default function PropertyCard({
 
           <div className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-primary-600">
             View property workspace
-            <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+            <ChevronRight
+              size={16}
+              className="group-hover:translate-x-0.5 transition-transform"
+            />
           </div>
         </button>
 
@@ -104,4 +141,26 @@ function Metric({ label, value, subValue, valueClassName = 'text-gray-900' }) {
       {subValue ? <p className="text-xs text-gray-400 mt-0.5">{subValue}</p> : null}
     </div>
   )
+}
+
+function getPropertyFeatures(property) {
+  const features = []
+
+  if (property.bedrooms) {
+    features.push({ icon: BedDouble, label: `${property.bedrooms} bed` })
+  }
+
+  if (property.bathrooms) {
+    features.push({ icon: Bath, label: `${property.bathrooms} bath` })
+  }
+
+  if (property.garages) {
+    features.push({ icon: CarFront, label: `${property.garages} car` })
+  }
+
+  if (property.land_size) {
+    features.push({ icon: Ruler, label: `${property.land_size} sqm` })
+  }
+
+  return features
 }

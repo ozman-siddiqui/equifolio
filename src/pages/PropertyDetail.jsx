@@ -1,11 +1,15 @@
 import { useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import {
+  Bath,
+  BedDouble,
+  CarFront,
   Home,
   DollarSign,
   CreditCard,
   Pencil,
   Plus,
+  Ruler,
   TrendingUp,
   TrendingDown,
   Building2,
@@ -70,6 +74,8 @@ export default function PropertyDetail() {
       .filter((t) => String(t.property_id) === String(id))
       .sort((a, b) => new Date(b.date) - new Date(a.date))
   }, [transactions, id])
+
+  const propertyFeatures = useMemo(() => getPropertyFeatures(property), [property])
 
   const metrics = useMemo(() => {
     if (!property) return null
@@ -301,6 +307,24 @@ export default function PropertyDetail() {
                   {property.suburb}, {property.state}
                   {property.property_type ? ` · ${property.property_type}` : ''}
                 </p>
+
+                {propertyFeatures.length > 0 ? (
+                  <div className="flex flex-wrap gap-x-4 gap-y-2 mt-3">
+                    {propertyFeatures.map((feature) => {
+                      const Icon = feature.icon
+
+                      return (
+                        <span
+                          key={feature.label}
+                          className="inline-flex items-center gap-1.5 text-sm text-gray-600"
+                        >
+                          <Icon size={14} className="text-gray-400" />
+                          <span>{feature.label}</span>
+                        </span>
+                      )
+                    })}
+                  </div>
+                ) : null}
               </div>
 
               <div className="flex gap-3 flex-wrap">
@@ -701,6 +725,30 @@ export default function PropertyDetail() {
 function getDaysUntilExpiry(dateStr) {
   if (!dateStr) return null
   return Math.ceil((new Date(dateStr) - new Date()) / (1000 * 60 * 60 * 24))
+}
+
+function getPropertyFeatures(property) {
+  if (!property) return []
+
+  const features = []
+
+  if (property.bedrooms) {
+    features.push({ icon: BedDouble, label: `${property.bedrooms} bed` })
+  }
+
+  if (property.bathrooms) {
+    features.push({ icon: Bath, label: `${property.bathrooms} bath` })
+  }
+
+  if (property.garages) {
+    features.push({ icon: CarFront, label: `${property.garages} car` })
+  }
+
+  if (property.land_size) {
+    features.push({ icon: Ruler, label: `${property.land_size} sqm` })
+  }
+
+  return features
 }
 
 function Metric({ label, value, valueClassName = 'text-gray-900' }) {
