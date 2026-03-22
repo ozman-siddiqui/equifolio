@@ -13,8 +13,10 @@ import {
   SlidersHorizontal,
   Sparkles,
   User,
+  LockKeyhole,
 } from 'lucide-react'
 
+import { supabase } from '../supabase'
 import usePortfolioData from '../hooks/usePortfolioData'
 
 const PLAN_LIMITS = { starter: 3, investor: 10, premium: Infinity }
@@ -53,6 +55,16 @@ export default function Settings({ session = null, subscription = null }) {
 
   const [settings, setSettings] = useState(getInitialSettings)
   const [saveState, setSaveState] = useState('idle')
+  const [showPasswordForm, setShowPasswordForm] = useState(false)
+  const [passwordForm, setPasswordForm] = useState({
+    password: '',
+    confirmPassword: '',
+  })
+  const [passwordState, setPasswordState] = useState({
+    loading: false,
+    error: '',
+    success: '',
+  })
 
   useEffect(() => {
     if (saveState !== 'saved') return undefined
@@ -123,6 +135,61 @@ export default function Settings({ session = null, subscription = null }) {
   const handleSave = () => {
     window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings))
     setSaveState('saved')
+  }
+
+  const handlePasswordChange = async (event) => {
+    event.preventDefault()
+
+    const nextPassword = passwordForm.password
+    const confirmPassword = passwordForm.confirmPassword
+
+    if (!session?.user) {
+      setPasswordState({
+        loading: false,
+        error: 'No active session available for password updates.',
+        success: '',
+      })
+      return
+    }
+
+    if (nextPassword.length < 8) {
+      setPasswordState({
+        loading: false,
+        error: 'Use at least 8 characters for the new password.',
+        success: '',
+      })
+      return
+    }
+
+    if (nextPassword !== confirmPassword) {
+      setPasswordState({
+        loading: false,
+        error: 'Password confirmation does not match.',
+        success: '',
+      })
+      return
+    }
+
+    setPasswordState({ loading: true, error: '', success: '' })
+
+    const { error } = await supabase.auth.updateUser({ password: nextPassword })
+
+    if (error) {
+      setPasswordState({
+        loading: false,
+        error: error.message || 'Password update failed.',
+        success: '',
+      })
+      return
+    }
+
+    setPasswordForm({ password: '', confirmPassword: '' })
+    setPasswordState({
+      loading: false,
+      error: '',
+      success: 'Password updated successfully.',
+    })
+    setShowPasswordForm(false)
   }
 
   if (loading) {
@@ -220,6 +287,105 @@ export default function Settings({ session = null, subscription = null }) {
               <p className="text-sm text-gray-500 mt-1">
                 Use this account to manage subscription access, portfolio data, and saved local preferences.
               </p>
+            </div>
+
+            <div className="rounded-2xl border border-gray-100 p-4">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <LockKeyhole size={16} className="text-primary-600" />
+                    <p className="text-sm font-semibold text-gray-900">Account & Security</p>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Email is read-only here. Use a direct password update flow for account security.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPasswordForm((prev) => !prev)
+                    setPasswordState((prev) => ({ ...prev, error: '', success: '' }))
+                  }}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-sm font-medium text-gray-700 transition-colors"
+                >
+                  Change Password
+                </button>
+              </div>
+
+              <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
+                <p className="text-xs uppercase tracking-wide text-gray-400">Email</p>
+                <p className="text-sm font-medium text-gray-900 mt-2 break-words">
+                  {accountEmail}
+                </p>
+              </div>
+
+              {showPasswordForm ? (
+                <form onSubmit={handlePasswordChange} className="space-y-4 mt-4">
+                  <FieldRow label="New password">
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      value={passwordForm.password}
+                      onChange={(e) =>
+                        setPasswordForm((prev) => ({ ...prev, password: e.target.value }))
+                      }
+                      className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      placeholder="At least 8 characters"
+                    />
+                  </FieldRow>
+
+                  <FieldRow label="Confirm new password">
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      value={passwordForm.confirmPassword}
+                      onChange={(e) =>
+                        setPasswordForm((prev) => ({
+                          ...prev,
+                          confirmPassword: e.target.value,
+                        }))
+                      }
+                      className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      placeholder="Re-enter new password"
+                    />
+                  </FieldRow>
+
+                  {passwordState.error ? (
+                    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                      {passwordState.error}
+                    </div>
+                  ) : null}
+
+                  {passwordState.success ? (
+                    <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                      {passwordState.success}
+                    </div>
+                  ) : null}
+
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="submit"
+                      disabled={passwordState.loading}
+                      className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
+                    >
+                      {passwordState.loading ? 'Updating...' : 'Update Password'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowPasswordForm(false)
+                        setPasswordForm({ password: '', confirmPassword: '' })
+                        setPasswordState({ loading: false, error: '', success: '' })
+                      }}
+                      className="inline-flex items-center gap-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : null}
             </div>
           </SettingsCard>
 
