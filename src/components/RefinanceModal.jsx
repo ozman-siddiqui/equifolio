@@ -24,7 +24,7 @@ export default function RefinanceModal({ loan, property, onClose }) {
   const [applicationFee, setApplicationFee] = useState(500)
   const [valuationFee, setValuationFee] = useState(300)
 
-  const newRateNum = Number(newRate)
+  const newRateNum = newRate === '' ? 0 : Number(newRate)
   const totalSwitchCost = Number(dischargeFee) + Number(applicationFee) + Number(valuationFee)
 
   // Current monthly (use recorded repayment)
@@ -91,15 +91,16 @@ export default function RefinanceModal({ loan, property, onClose }) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">New Interest Rate (%)</label>
-                <input
-                  type="number"
-                  value={newRate}
-                  onChange={e => setNewRate(e.target.value)}
-                  step="0.05"
-                  min="0"
-                  max="20"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
+<input
+  type="text"
+  inputMode="decimal"
+  value={newRate}
+  onChange={e => {
+    const val = e.target.value
+    if (val === '' || /^\d*\.?\d*$/.test(val)) setNewRate(val)
+  }}
+  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+/>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Loan Term (years)</label>
