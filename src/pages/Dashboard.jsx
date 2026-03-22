@@ -508,10 +508,9 @@ export default function Dashboard({ session,subscription }) {
                               </span>
                               <div className="flex items-center gap-3">
                                 <span className="font-medium text-gray-900">{formatCurrency(loan.current_balance)}</span>
-                                <button
+<button
   onClick={() => setRefinancingLoan({ loan, property })}
-  className="text-xs text-gray-400 hover:text-primary-600 font-medium transition-colors"
-  title="Model refinance">
+  className="flex items-center gap-1 text-xs bg-primary-50 hover:bg-primary-100 text-primary-600 font-medium px-2 py-1 rounded-md transition-colors">
   Refinance
 </button>
 <button onClick={() => setEditingLoan(loan)}
