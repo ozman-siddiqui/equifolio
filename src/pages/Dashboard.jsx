@@ -224,9 +224,7 @@ export default function Dashboard({ session, subscription }) {
           </div>
         </div>
 
-        {/* Portfolio 12-month cash flow projection */}
-        <PortfolioCashFlowChart transactions={transactions} />
-
+    
         {/* Properties list */}
         <div className="bg-white rounded-xl border border-gray-100">
           <div className="p-6 border-b border-gray-100">
@@ -465,11 +463,7 @@ export default function Dashboard({ session, subscription }) {
                             </div>
                           )}
 
-                          {/* 12-month projection table */}
-                          <PropertyCashFlowTable
-                            transactions={transactions}
-                            propertyId={property.id}
-                          />
+
 
                         </div>
                       )}
