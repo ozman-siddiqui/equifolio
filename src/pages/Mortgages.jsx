@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowRight,
@@ -22,6 +22,7 @@ import {
 } from '../components/CardPrimitives'
 import usePortfolioData from '../hooks/usePortfolioData'
 import { buildPortfolioRefinanceRanking } from '../lib/refinanceEngine'
+import { supabase } from '../supabase'
 
 const formatCurrency = (amount) =>
   new Intl.NumberFormat('en-AU', {
@@ -79,6 +80,67 @@ export default function Mortgages({ session = null }) {
   const [refinancingLoan, setRefinancingLoan] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [loanTypeFilter, setLoanTypeFilter] = useState('all')
+  const [financialPrompt, setFinancialPrompt] = useState(null)
+
+  useEffect(() => {
+    let active = true
+
+    const loadFinancialPrompt = async () => {
+      try {
+        if (!session?.user?.id) {
+          if (active) setFinancialPrompt(null)
+          return
+        }
+
+        const [{ data: profile, error: profileError }, { count, error: liabilitiesError }] =
+          await Promise.all([
+            supabase
+              .from('user_financial_profiles')
+              .select('user_id')
+              .eq('user_id', session.user.id)
+              .maybeSingle(),
+            supabase
+              .from('liabilities')
+              .select('id', { count: 'exact', head: true })
+              .eq('user_id', session.user.id),
+          ])
+
+        if (profileError || liabilitiesError) {
+          throw profileError || liabilitiesError
+        }
+
+        if (!active) return
+
+        if (!profile) {
+          setFinancialPrompt({
+            tone: 'primary',
+            message: 'Add your financial profile to unlock more accurate refinance and borrowing insights',
+            cta: 'Complete Financials',
+          })
+          return
+        }
+
+        if (!count) {
+          setFinancialPrompt({
+            tone: 'secondary',
+            message: 'Add liabilities to improve serviceability and borrowing accuracy',
+            cta: 'Add liabilities',
+          })
+          return
+        }
+
+        setFinancialPrompt(null)
+      } catch {
+        if (active) setFinancialPrompt(null)
+      }
+    }
+
+    loadFinancialPrompt()
+
+    return () => {
+      active = false
+    }
+  }, [session])
 
   const refinanceAnalyses = useMemo(
     () => buildPortfolioRefinanceRanking(loans, properties),
@@ -155,6 +217,40 @@ export default function Mortgages({ session = null }) {
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-8">
+        {financialPrompt ? (
+          <section
+            className={`rounded-2xl border p-5 md:p-6 ${
+              financialPrompt.tone === 'primary'
+                ? 'border-primary-200 bg-primary-50/70'
+                : 'border-amber-200 bg-amber-50/70'
+            }`}
+          >
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <p
+                className={`text-sm font-medium ${
+                  financialPrompt.tone === 'primary'
+                    ? 'text-primary-800'
+                    : 'text-amber-800'
+                }`}
+              >
+                {financialPrompt.message}
+              </p>
+
+              <button
+                type="button"
+                onClick={() => navigate('/financials')}
+                className={
+                  financialPrompt.tone === 'primary'
+                    ? utilityPrimaryButtonClass
+                    : utilitySecondaryButtonClass
+                }
+              >
+                {financialPrompt.cta}
+              </button>
+            </div>
+          </section>
+        ) : null}
+
         <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
           <div className="border-b border-gray-100 p-6 md:p-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">

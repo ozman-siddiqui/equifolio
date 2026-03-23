@@ -21,7 +21,8 @@ export default function EditLoanModal({ loan, onClose, onSave }) {
         ? String(Number(loan.remaining_term_months) / 12)
         : '',
     offset_balance: loan.offset_balance ?? '',
-    refinance_cost_estimate: loan.refinance_cost_estimate ?? ''
+    refinance_cost_estimate: loan.refinance_cost_estimate ?? '',
+    benchmark_rate: loan.benchmark_rate ?? '',
   })
 
   const handleChange = (e) => {
@@ -44,6 +45,7 @@ export default function EditLoanModal({ loan, onClose, onSave }) {
     const offsetBalance = form.offset_balance === '' ? null : Number(form.offset_balance)
     const refinanceCostEstimate =
       form.refinance_cost_estimate === '' ? null : Number(form.refinance_cost_estimate)
+    const benchmarkRate = form.benchmark_rate === '' ? null : Number(form.benchmark_rate)
 
     if (!Number.isFinite(remainingTermYears) || remainingTermYears <= 0) {
       setError('Remaining term must be greater than 0 years.')
@@ -63,6 +65,12 @@ export default function EditLoanModal({ loan, onClose, onSave }) {
       return
     }
 
+    if (benchmarkRate !== null && benchmarkRate < 0) {
+      setError('Benchmark rate must be 0 or greater.')
+      setLoading(false)
+      return
+    }
+
     const { error } = await supabase.from('loans').update({
       lender: form.lender,
       loan_amount: Number(form.loan_amount),
@@ -77,6 +85,7 @@ export default function EditLoanModal({ loan, onClose, onSave }) {
       remaining_term_months: Math.round(remainingTermYears * 12),
       offset_balance: offsetBalance,
       refinance_cost_estimate: refinanceCostEstimate,
+      benchmark_rate: benchmarkRate,
     }).eq('id', loan.id)
 
     if (error) { setError(error.message); setLoading(false) }
@@ -199,10 +208,10 @@ export default function EditLoanModal({ loan, onClose, onSave }) {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Refinance Cost ($)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Benchmark Rate (%)</label>
               <input
-                name="refinance_cost_estimate"
-                value={form.refinance_cost_estimate}
+                name="benchmark_rate"
+                value={form.benchmark_rate}
                 onChange={handleChange}
                 type="number"
                 min="0"
@@ -210,6 +219,19 @@ export default function EditLoanModal({ loan, onClose, onSave }) {
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Refinance Cost ($)</label>
+            <input
+              name="refinance_cost_estimate"
+              value={form.refinance_cost_estimate}
+              onChange={handleChange}
+              type="number"
+              min="0"
+              step="0.01"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
           </div>
 
           {isFixed && (

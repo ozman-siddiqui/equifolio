@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import {
   Bath,
   BedDouble,
@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../supabase'
 
+import useFinancialData from '../hooks/useFinancialData'
 import usePortfolioData from '../hooks/usePortfolioData'
 import AddLoanModal from '../components/AddLoanModal'
 import EditLoanModal from '../components/EditLoanModal'
@@ -66,7 +67,9 @@ const formatCurrency = (amount) =>
 
 export default function PropertyDetail() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const { properties, loans, transactions, loading, fetchData } = usePortfolioData()
+  const { financialProfile, liabilities, loading: financialsLoading } = useFinancialData()
 
   const [showAddLoan, setShowAddLoan] = useState(false)
   const [editingLoan, setEditingLoan] = useState(null)
@@ -276,13 +279,14 @@ export default function PropertyDetail() {
   const borrowingPowerAnalysis = useMemo(
     () =>
       buildBorrowingPowerAnalysis({
-        properties,
-        loans,
-        transactions,
+        financialProfile,
+        liabilities,
+        loans: propertyLoans,
+        transactions: propertyTransactions,
         propertyId: property?.id ?? null,
       }),
-    [properties, loans, transactions, property?.id]
-  )
+      [financialProfile, liabilities, property?.id, propertyLoans, propertyTransactions]
+    )
 
   const handleDeleteTransaction = async (txnId) => {
     if (!window.confirm('Delete this transaction?')) return
@@ -684,8 +688,10 @@ export default function PropertyDetail() {
 
             <BorrowingPowerCard
               analysis={borrowingPowerAnalysis}
+              loading={financialsLoading}
               title="Borrowing Power Contribution"
               onExplore={() => mortgageSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              onCompleteFinancials={() => navigate('/financials')}
             />
           </div>
         </section>

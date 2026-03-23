@@ -18,12 +18,54 @@ const LIABILITY_TYPES = [
   { value: 'other', label: 'Other' },
 ]
 
+const EXPENSE_CATEGORY_FIELDS = [
+  {
+    key: 'groceries_household_monthly',
+    label: 'Groceries & household ($ / month)',
+  },
+  {
+    key: 'utilities_phone_internet_monthly',
+    label: 'Utilities, phone & internet ($ / month)',
+  },
+  {
+    key: 'transport_monthly',
+    label: 'Transport ($ / month)',
+  },
+  {
+    key: 'insurance_monthly',
+    label: 'Insurance ($ / month)',
+  },
+  {
+    key: 'childcare_education_monthly',
+    label: 'Childcare & education ($ / month)',
+  },
+  {
+    key: 'medical_monthly',
+    label: 'Medical ($ / month)',
+  },
+  {
+    key: 'entertainment_lifestyle_monthly',
+    label: 'Entertainment & lifestyle ($ / month)',
+  },
+  {
+    key: 'other_non_debt_monthly',
+    label: 'Other non-debt costs ($ / month)',
+  },
+]
+
 function defaultProfileForm() {
   return {
     employment_income_annual: '',
     partner_income_annual: '',
     other_income_annual: '',
-    living_expenses_monthly: '',
+    groceries_household_monthly: '',
+    utilities_phone_internet_monthly: '',
+    transport_monthly: '',
+    insurance_monthly: '',
+    childcare_education_monthly: '',
+    medical_monthly: '',
+    entertainment_lifestyle_monthly: '',
+    other_non_debt_monthly: '',
     dependants: '0',
     borrower_count: '1',
   }
@@ -49,6 +91,31 @@ function parseMoney(value) {
   return Number.isFinite(parsed) ? parsed : Number.NaN
 }
 
+function sumMoney(values) {
+  return values.reduce((sum, value) => sum + Number(value || 0), 0)
+}
+
+function hasExpenseBreakdown(profile) {
+  return EXPENSE_CATEGORY_FIELDS.some(({ key }) => profile?.[key] != null)
+}
+
+function derivePartnerIncome(profile) {
+  if (profile?.partner_income_annual != null) {
+    return profile.partner_income_annual
+  }
+
+  if (profile?.household_income_annual == null) {
+    return ''
+  }
+
+  return Math.max(
+    Number(profile.household_income_annual || 0) -
+      Number(profile.employment_income_annual || 0) -
+      Number(profile.other_income_annual || 0),
+    0
+  )
+}
+
 function formatCurrency(amount) {
   return new Intl.NumberFormat('en-AU', {
     style: 'currency',
@@ -61,6 +128,7 @@ export default function Financials({ session = null }) {
   const { financialProfile, loading, error, fetchFinancialData } = useFinancialData()
 
   const [profileForm, setProfileForm] = useState(defaultProfileForm)
+  const [profileDirty, setProfileDirty] = useState(false)
   const [profileState, setProfileState] = useState({
     loading: false,
     error: '',
@@ -100,32 +168,51 @@ export default function Financials({ session = null }) {
     }
   }, [liabilities])
 
+  const livingExpenseCategories = useMemo(
+    () =>
+      EXPENSE_CATEGORY_FIELDS.map(({ key }) => parseMoney(profileForm[key])).filter(
+        (value) => value !== null
+      ),
+    [profileForm]
+  )
+
+  const totalLivingExpenses = useMemo(
+    () => sumMoney(livingExpenseCategories),
+    [livingExpenseCategories]
+  )
+
   useEffect(() => {
+    if (profileDirty) return
+
+    const usesCategoryBreakdown = hasExpenseBreakdown(financialProfile)
+    const legacyLivingExpenses =
+      !usesCategoryBreakdown && financialProfile?.living_expenses_monthly != null
+        ? financialProfile.living_expenses_monthly
+        : ''
+
     const nextForm = !financialProfile
       ? defaultProfileForm()
       : {
           employment_income_annual: financialProfile.employment_income_annual ?? '',
-          partner_income_annual:
-            financialProfile.household_income_annual != null
-              ? Math.max(
-                  Number(financialProfile.household_income_annual || 0) -
-                    Number(financialProfile.employment_income_annual || 0) -
-                    Number(financialProfile.other_income_annual || 0),
-                  0
-                )
-              : '',
+          partner_income_annual: derivePartnerIncome(financialProfile),
           other_income_annual: financialProfile.other_income_annual ?? '',
-          living_expenses_monthly: financialProfile.living_expenses_monthly ?? '',
+          groceries_household_monthly: financialProfile.groceries_household_monthly ?? '',
+          utilities_phone_internet_monthly:
+            financialProfile.utilities_phone_internet_monthly ?? '',
+          transport_monthly: financialProfile.transport_monthly ?? '',
+          insurance_monthly: financialProfile.insurance_monthly ?? '',
+          childcare_education_monthly: financialProfile.childcare_education_monthly ?? '',
+          medical_monthly: financialProfile.medical_monthly ?? '',
+          entertainment_lifestyle_monthly:
+            financialProfile.entertainment_lifestyle_monthly ?? '',
+          other_non_debt_monthly:
+            financialProfile.other_non_debt_monthly ?? legacyLivingExpenses,
           dependants: financialProfile.dependants ?? '0',
           borrower_count: financialProfile.borrower_count ?? '1',
         }
 
-    const timeoutId = window.setTimeout(() => {
-      setProfileForm(nextForm)
-    }, 0)
-
-    return () => window.clearTimeout(timeoutId)
-  }, [financialProfile])
+    setProfileForm(nextForm)
+  }, [financialProfile, profileDirty])
 
   useEffect(() => {
     let active = true
@@ -172,6 +259,12 @@ export default function Financials({ session = null }) {
   }, [session])
 
   const handleProfileChange = (field, value) => {
+    setProfileDirty(true)
+    setProfileState((prev) => ({
+      ...prev,
+      error: '',
+      success: '',
+    }))
     setProfileForm((prev) => ({ ...prev, [field]: value }))
   }
 
@@ -223,11 +316,11 @@ export default function Financials({ session = null }) {
     const income = parseMoney(profileForm.employment_income_annual)
     const partnerIncome = parseMoney(profileForm.partner_income_annual)
     const otherIncome = parseMoney(profileForm.other_income_annual)
-    const livingExpenses = parseMoney(profileForm.living_expenses_monthly)
+    const expenseCategoryValues = EXPENSE_CATEGORY_FIELDS.map(({ key }) => parseMoney(profileForm[key]))
     const dependants = Number(profileForm.dependants)
     const borrowerCount = Number(profileForm.borrower_count)
 
-    const nonNegativeMoneyFields = [income, partnerIncome, otherIncome, livingExpenses]
+    const nonNegativeMoneyFields = [income, partnerIncome, otherIncome, ...expenseCategoryValues]
     const hasInvalidMoney = nonNegativeMoneyFields.some(
       (value) => value !== null && (!Number.isFinite(value) || value < 0)
     )
@@ -270,13 +363,23 @@ export default function Financials({ session = null }) {
 
     const householdIncome =
       Number(income || 0) + Number(partnerIncome || 0) + Number(otherIncome || 0)
+    const livingExpenses = sumMoney(expenseCategoryValues)
 
     const { error: saveError } = await supabase.from('user_financial_profiles').upsert(
       {
         user_id: session.user.id,
         household_income_annual: householdIncome || null,
         employment_income_annual: income,
+        partner_income_annual: partnerIncome,
         other_income_annual: otherIncome,
+        groceries_household_monthly: expenseCategoryValues[0],
+        utilities_phone_internet_monthly: expenseCategoryValues[1],
+        transport_monthly: expenseCategoryValues[2],
+        insurance_monthly: expenseCategoryValues[3],
+        childcare_education_monthly: expenseCategoryValues[4],
+        medical_monthly: expenseCategoryValues[5],
+        entertainment_lifestyle_monthly: expenseCategoryValues[6],
+        other_non_debt_monthly: expenseCategoryValues[7],
         living_expenses_monthly: livingExpenses,
         dependants,
         borrower_count: borrowerCount,
@@ -294,6 +397,7 @@ export default function Financials({ session = null }) {
     }
 
     await fetchFinancialData()
+    setProfileDirty(false)
     setProfileState({
       loading: false,
       error: '',
@@ -524,7 +628,10 @@ export default function Financials({ session = null }) {
                   />
                 </Field>
 
-                <Field label="Other income ($ / year)">
+                <Field
+                  label="Other income ($ / year)"
+                  helper="Include non-salary income such as bonuses, dividends, trust distributions, or side income. Do not include rent from investment properties already tracked in Equifolio, so it is not counted twice."
+                >
                   <input
                     type="number"
                     min="0"
@@ -533,6 +640,7 @@ export default function Financials({ session = null }) {
                     onChange={(event) =>
                       handleProfileChange('other_income_annual', event.target.value)
                     }
+                    placeholder="e.g. bonus, dividends, trust distribution"
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
                 </Field>
@@ -564,21 +672,59 @@ export default function Financials({ session = null }) {
 
               <FinancialCard
                 title="Expenses"
-                description="Living costs are required for future borrowing analysis."
+                description="Category-based living costs are saved as a compatibility total for future analysis."
                 nested
               >
-                <Field label="Living expenses ($ / month)">
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={profileForm.living_expenses_monthly}
-                    onChange={(event) =>
-                      handleProfileChange('living_expenses_monthly', event.target.value)
-                    }
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                </Field>
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-500">
+                    Include only personal and household living costs such as groceries, utilities,
+                    transport, insurance, childcare, and lifestyle expenses.
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Do NOT include:
+                    <br />
+                    - mortgage repayments
+                    <br />
+                    - personal loans or car loans
+                    <br />
+                    - credit card repayments
+                    <br />
+                    - investment property expenses
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Equifolio accounts for debts and investment property costs separately.
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    Do not include investment property costs here - they are already accounted for
+                    in rental income adjustments.
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {EXPENSE_CATEGORY_FIELDS.map((field) => (
+                      <Field key={field.key} label={field.label}>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={profileForm[field.key]}
+                          onChange={(event) =>
+                            handleProfileChange(field.key, event.target.value)
+                          }
+                          className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        />
+                      </Field>
+                    ))}
+                  </div>
+
+                  <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+                    <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                      Total monthly living expenses
+                    </p>
+                    <p className="mt-1 text-lg font-semibold text-gray-900">
+                      {formatCurrency(totalLivingExpenses)}
+                    </p>
+                  </div>
+                </div>
               </FinancialCard>
 
               {profileState.error ? (
@@ -855,10 +1001,11 @@ function FinancialCard({ title, description, children, className = '', nested = 
   )
 }
 
-function Field({ label, children }) {
+function Field({ label, helper = '', children }) {
   return (
     <div>
       <p className="text-sm font-medium text-gray-700 mb-2">{label}</p>
+      {helper ? <p className="mb-2 text-xs text-gray-500">{helper}</p> : null}
       {children}
     </div>
   )

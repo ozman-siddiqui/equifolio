@@ -24,6 +24,7 @@ import BorrowingPowerCard from '../components/BorrowingPowerCard'
 import PortfolioInsightsPanel from '../components/PortfolioInsightsPanel'
 import RefinanceModal from '../components/RefinanceModal'
 import UpgradeModal from '../components/UpgradeModal'
+import useFinancialData from '../hooks/useFinancialData'
 import usePortfolioData from '../hooks/usePortfolioData'
 import buildBorrowingPowerAnalysis from '../lib/borrowingPowerEngine'
 import buildPortfolioInsights from '../utils/buildPortfolioInsights'
@@ -45,6 +46,7 @@ const toMonthly = (amount, frequency) => {
 export default function Dashboard({ session, subscription }) {
   const navigate = useNavigate()
   const { properties, loans, transactions, loading, fetchData } = usePortfolioData()
+  const { financialProfile, liabilities, loading: financialsLoading } = useFinancialData()
 
   const [showAddProperty, setShowAddProperty] = useState(false)
   const [showAddLoan, setShowAddLoan] = useState(false)
@@ -196,12 +198,13 @@ export default function Dashboard({ session, subscription }) {
   const borrowingPowerAnalysis = useMemo(
     () =>
       buildBorrowingPowerAnalysis({
-        properties,
+        financialProfile,
+        liabilities,
         loans,
         transactions,
       }),
-    [properties, loans, transactions]
-  )
+      [financialProfile, liabilities, loans, transactions]
+    )
 
   const topProperties = useMemo(() => {
     return [...properties]
@@ -534,7 +537,9 @@ export default function Dashboard({ session, subscription }) {
           <div className="space-y-6">
             <BorrowingPowerCard
               analysis={borrowingPowerAnalysis}
+              loading={financialsLoading}
               onExplore={() => navigate('/mortgages')}
+              onCompleteFinancials={() => navigate('/financials')}
             />
 
             <section className="bg-white rounded-2xl border border-gray-100 p-6">

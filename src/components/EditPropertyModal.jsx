@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { supabase } from '../supabase'
 import { X } from 'lucide-react'
 
+const RENT_FREQUENCIES = ['weekly', 'fortnightly', 'monthly', 'annual']
+
 export default function EditPropertyModal({ property, onClose, onSave }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -18,7 +20,9 @@ export default function EditPropertyModal({ property, onClose, onSave }) {
     bathrooms: property.bathrooms || '',
     land_size: property.land_size || '',
     garages: property.garages || '',
-    lease_expiry_date: property.lease_expiry_date || ''
+    lease_expiry_date: property.lease_expiry_date || '',
+    current_rent_amount: property.current_rent_amount ?? '',
+    current_rent_frequency: property.current_rent_frequency || 'weekly',
   })
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
@@ -42,6 +46,14 @@ export default function EditPropertyModal({ property, onClose, onSave }) {
       land_size: form.land_size ? Number(form.land_size) : null,
       garages: form.garages ? Number(form.garages) : null,
       lease_expiry_date: form.lease_expiry_date || null,
+      current_rent_amount:
+        form.property_use === 'investment' && form.current_rent_amount !== ''
+          ? Number(form.current_rent_amount)
+          : null,
+      current_rent_frequency:
+        form.property_use === 'investment' && form.current_rent_amount !== ''
+          ? form.current_rent_frequency
+          : null,
     }).eq('id', property.id)
 
     if (error) { setError(error.message); setLoading(false) }
@@ -163,12 +175,48 @@ export default function EditPropertyModal({ property, onClose, onSave }) {
           </div>
 
           {form.property_use === 'investment' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Lease Expiry Date <span className="text-gray-400 font-normal">optional</span>
-              </label>
-              <input name="lease_expiry_date" value={form.lease_expiry_date} onChange={handleChange} type="date"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Current Rent <span className="text-gray-400 font-normal">optional</span>
+                  </label>
+                  <input
+                    name="current_rent_amount"
+                    value={form.current_rent_amount}
+                    onChange={handleChange}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Rent Frequency
+                  </label>
+                  <select
+                    name="current_rent_frequency"
+                    value={form.current_rent_frequency}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    {RENT_FREQUENCIES.map((frequency) => (
+                      <option key={frequency} value={frequency}>
+                        {frequency.charAt(0).toUpperCase() + frequency.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Lease Expiry Date <span className="text-gray-400 font-normal">optional</span>
+                </label>
+                <input name="lease_expiry_date" value={form.lease_expiry_date} onChange={handleChange} type="date"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+              </div>
             </div>
           )}
 

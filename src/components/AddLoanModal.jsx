@@ -19,7 +19,8 @@ export default function AddLoanModal({ onClose, onSave, userId, properties, pres
     interest_only_expiry: '',
     remaining_term_years: '',
     offset_balance: '',
-    refinance_cost_estimate: ''
+    refinance_cost_estimate: '',
+    benchmark_rate: '',
   })
 
   const handleChange = (e) => {
@@ -42,6 +43,7 @@ export default function AddLoanModal({ onClose, onSave, userId, properties, pres
     const offsetBalance = form.offset_balance === '' ? null : Number(form.offset_balance)
     const refinanceCostEstimate =
       form.refinance_cost_estimate === '' ? null : Number(form.refinance_cost_estimate)
+    const benchmarkRate = form.benchmark_rate === '' ? null : Number(form.benchmark_rate)
 
     if (!Number.isFinite(remainingTermYears) || remainingTermYears <= 0) {
       setError('Remaining term must be greater than 0 years.')
@@ -61,6 +63,12 @@ export default function AddLoanModal({ onClose, onSave, userId, properties, pres
       return
     }
 
+    if (benchmarkRate !== null && benchmarkRate < 0) {
+      setError('Benchmark rate must be 0 or greater.')
+      setLoading(false)
+      return
+    }
+
     const { error } = await supabase.from('loans').insert([{
       ...form,
       user_id: userId,
@@ -74,6 +82,7 @@ export default function AddLoanModal({ onClose, onSave, userId, properties, pres
       remaining_term_months: Math.round(remainingTermYears * 12),
       offset_balance: offsetBalance,
       refinance_cost_estimate: refinanceCostEstimate,
+      benchmark_rate: benchmarkRate,
     }])
 
     if (error) {
@@ -208,18 +217,32 @@ export default function AddLoanModal({ onClose, onSave, userId, properties, pres
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Refinance Cost ($)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Benchmark Rate (%)</label>
               <input
-                name="refinance_cost_estimate"
-                value={form.refinance_cost_estimate}
+                name="benchmark_rate"
+                value={form.benchmark_rate}
                 onChange={handleChange}
                 type="number"
                 min="0"
                 step="0.01"
-                placeholder="1200"
+                placeholder="5.59"
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Refinance Cost ($)</label>
+            <input
+              name="refinance_cost_estimate"
+              value={form.refinance_cost_estimate}
+              onChange={handleChange}
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="1200"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
           </div>
 
           {isFixed && (
