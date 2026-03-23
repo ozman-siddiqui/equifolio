@@ -20,10 +20,12 @@ import EditLoanModal from '../components/EditLoanModal'
 import CashFlowModal from '../components/CashFlowModal'
 import EditTransactionModal from '../components/EditTransactionModal'
 import { buildAlerts } from '../components/AlertsDropdown'
+import BorrowingPowerCard from '../components/BorrowingPowerCard'
 import PortfolioInsightsPanel from '../components/PortfolioInsightsPanel'
 import RefinanceModal from '../components/RefinanceModal'
 import UpgradeModal from '../components/UpgradeModal'
 import usePortfolioData from '../hooks/usePortfolioData'
+import buildBorrowingPowerAnalysis from '../lib/borrowingPowerEngine'
 import buildPortfolioInsights from '../utils/buildPortfolioInsights'
 import { utilityPrimaryButtonClass } from '../components/CardPrimitives'
 
@@ -189,6 +191,16 @@ export default function Dashboard({ session, subscription }) {
         alerts: effectiveAlerts,
       }),
     [properties, loans, transactions, effectiveAlerts]
+  )
+
+  const borrowingPowerAnalysis = useMemo(
+    () =>
+      buildBorrowingPowerAnalysis({
+        properties,
+        loans,
+        transactions,
+      }),
+    [properties, loans, transactions]
   )
 
   const topProperties = useMemo(() => {
@@ -520,6 +532,11 @@ export default function Dashboard({ session, subscription }) {
           </div>
 
           <div className="space-y-6">
+            <BorrowingPowerCard
+              analysis={borrowingPowerAnalysis}
+              onExplore={() => navigate('/mortgages')}
+            />
+
             <section className="bg-white rounded-2xl border border-gray-100 p-6">
               <div className="flex items-center gap-2 mb-4">
                 <TrendingUp size={18} className="text-primary-600" />

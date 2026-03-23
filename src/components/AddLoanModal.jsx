@@ -12,10 +12,14 @@ export default function AddLoanModal({ onClose, onSave, userId, properties, pres
     current_balance: '',
     interest_rate: '',
     loan_type: 'Variable',
+    fixed_variable: 'Variable',
     repayment_type: 'Principal and Interest',
     fixed_rate_expiry: '',
     monthly_repayment: '',
-    interest_only_expiry: ''
+    interest_only_expiry: '',
+    remaining_term_years: '',
+    offset_balance: '',
+    refinance_cost_estimate: ''
   })
 
   const handleChange = (e) => {
@@ -34,6 +38,29 @@ export default function AddLoanModal({ onClose, onSave, userId, properties, pres
     setLoading(true)
     setError(null)
 
+    const remainingTermYears = Number(form.remaining_term_years)
+    const offsetBalance = form.offset_balance === '' ? null : Number(form.offset_balance)
+    const refinanceCostEstimate =
+      form.refinance_cost_estimate === '' ? null : Number(form.refinance_cost_estimate)
+
+    if (!Number.isFinite(remainingTermYears) || remainingTermYears <= 0) {
+      setError('Remaining term must be greater than 0 years.')
+      setLoading(false)
+      return
+    }
+
+    if (offsetBalance !== null && offsetBalance < 0) {
+      setError('Offset balance must be 0 or greater.')
+      setLoading(false)
+      return
+    }
+
+    if (refinanceCostEstimate !== null && refinanceCostEstimate < 0) {
+      setError('Estimated refinance cost must be 0 or greater.')
+      setLoading(false)
+      return
+    }
+
     const { error } = await supabase.from('loans').insert([{
       ...form,
       user_id: userId,
@@ -43,6 +70,10 @@ export default function AddLoanModal({ onClose, onSave, userId, properties, pres
       monthly_repayment: Number(form.monthly_repayment),
       fixed_rate_expiry: form.loan_type === 'Fixed' && form.fixed_rate_expiry ? form.fixed_rate_expiry : null,
       interest_only_expiry: form.repayment_type === 'Interest Only' && form.interest_only_expiry ? form.interest_only_expiry : null,
+      fixed_variable: form.fixed_variable,
+      remaining_term_months: Math.round(remainingTermYears * 12),
+      offset_balance: offsetBalance,
+      refinance_cost_estimate: refinanceCostEstimate,
     }])
 
     if (error) {
@@ -129,6 +160,65 @@ export default function AddLoanModal({ onClose, onSave, userId, properties, pres
                 <option>Principal and Interest</option>
                 <option>Interest Only</option>
               </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Rate Type</label>
+              <select
+                name="fixed_variable"
+                value={form.fixed_variable}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option>Variable</option>
+                <option>Fixed</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Remaining Term (Years)</label>
+              <input
+                name="remaining_term_years"
+                value={form.remaining_term_years}
+                onChange={handleChange}
+                required
+                type="number"
+                min="0.1"
+                step="0.1"
+                placeholder="25"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Offset Balance ($)</label>
+              <input
+                name="offset_balance"
+                value={form.offset_balance}
+                onChange={handleChange}
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Refinance Cost ($)</label>
+              <input
+                name="refinance_cost_estimate"
+                value={form.refinance_cost_estimate}
+                onChange={handleChange}
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="1200"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
             </div>
           </div>
 

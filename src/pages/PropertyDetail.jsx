@@ -28,7 +28,9 @@ import CashFlowModal from '../components/CashFlowModal'
 import EditTransactionModal from '../components/EditTransactionModal'
 import RefinanceModal from '../components/RefinanceModal'
 import AIScorePanel from '../components/AIScorePanel'
+import BorrowingPowerCard from '../components/BorrowingPowerCard'
 import OptimisationModal from '../components/OptimisationModal'
+import buildBorrowingPowerAnalysis from '../lib/borrowingPowerEngine'
 import {
   utilityPrimaryButtonClass,
   utilitySecondaryButtonClass,
@@ -270,6 +272,17 @@ export default function PropertyDetail() {
 
     return actions.slice(0, 4)
   }, [property, metrics, propertyLoans])
+
+  const borrowingPowerAnalysis = useMemo(
+    () =>
+      buildBorrowingPowerAnalysis({
+        properties,
+        loans,
+        transactions,
+        propertyId: property?.id ?? null,
+      }),
+    [properties, loans, transactions, property?.id]
+  )
 
   const handleDeleteTransaction = async (txnId) => {
     if (!window.confirm('Delete this transaction?')) return
@@ -668,6 +681,12 @@ export default function PropertyDetail() {
                 transactions={propertyTransactions}
               />
             </div>
+
+            <BorrowingPowerCard
+              analysis={borrowingPowerAnalysis}
+              title="Borrowing Power Contribution"
+              onExplore={() => mortgageSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            />
           </div>
         </section>
       </main>
