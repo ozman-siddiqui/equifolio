@@ -34,15 +34,25 @@ import {
   utilitySecondaryButtonClass,
 } from '../components/CardPrimitives'
 
-const toMonthly = (amount, frequency) => {
-  const map = {
-    Weekly: 52 / 12,
-    Fortnightly: 26 / 12,
-    Monthly: 1,
-    Quarterly: 1 / 3,
-    Annual: 1 / 12,
+function getMonthlyAmount(amount, frequency) {
+  const safeAmount = Number(amount || 0)
+  const normalizedFrequency = String(frequency || '').trim().toLowerCase()
+
+  switch (normalizedFrequency) {
+    case 'weekly':
+      return (safeAmount * 52) / 12
+    case 'fortnightly':
+      return (safeAmount * 26) / 12
+    case 'monthly':
+      return safeAmount
+    case 'quarterly':
+      return safeAmount / 3
+    case 'yearly':
+    case 'annual':
+      return safeAmount / 12
+    default:
+      return safeAmount
   }
-  return Number(amount || 0) * (map[frequency] || 1)
 }
 
 const formatCurrency = (amount) =>
@@ -99,11 +109,11 @@ export default function PropertyDetail() {
 
     const income = propertyTransactions
       .filter((t) => t.type === 'income')
-      .reduce((sum, t) => sum + toMonthly(t.amount, t.frequency), 0)
+      .reduce((sum, t) => sum + getMonthlyAmount(t.amount, t.frequency), 0)
 
     const expenses = propertyTransactions
       .filter((t) => t.type === 'expense')
-      .reduce((sum, t) => sum + toMonthly(t.amount, t.frequency), 0)
+      .reduce((sum, t) => sum + getMonthlyAmount(t.amount, t.frequency), 0)
 
     const net = income - expenses
 
@@ -485,13 +495,12 @@ export default function PropertyDetail() {
                               />
                               <Field
                                 label="Amount"
-                                value={`${txn.type === 'income' ? '+' : '-'}${formatCurrency(
-                                  Math.abs(txn.amount)
-                                )}`}
-                                valueClassName={
-                                  txn.type === 'income'
-                                    ? 'text-green-600'
-                                    : 'text-red-500'
+                                value={
+                                  <TransactionAmount
+                                    amount={txn.amount}
+                                    type={txn.type}
+                                    frequency={txn.frequency}
+                                  />
                                 }
                               />
                             </div>
@@ -818,7 +827,34 @@ function Field({ label, value, valueClassName = 'text-gray-900' }) {
   return (
     <div>
       <p className="text-xs text-gray-400">{label}</p>
-      <p className={`text-sm font-medium mt-1 break-words ${valueClassName}`}>{value}</p>
+      <div className={`text-sm font-medium mt-1 break-words ${valueClassName}`}>{value}</div>
+    </div>
+  )
+}
+
+function TransactionAmount({ amount, type, frequency }) {
+  const signedAmount = `${type === 'income' ? '+' : '-'}${formatCurrency(Math.abs(amount))}`
+  const normalizedFrequency = String(frequency || '').trim().toLowerCase()
+  const frequencyLabel = normalizedFrequency
+    ? `${normalizedFrequency.charAt(0).toUpperCase()}${normalizedFrequency.slice(1)}`
+    : ''
+  const monthlyEquivalent = normalizedFrequency
+    ? getMonthlyAmount(Math.abs(amount), normalizedFrequency)
+    : null
+  const toneClass = type === 'income' ? 'text-green-600' : 'text-red-500'
+  const secondaryToneClass = type === 'income' ? 'text-green-500/80' : 'text-red-400'
+
+  return (
+    <div className="space-y-0.5">
+      <p className={toneClass}>{signedAmount}</p>
+      {frequencyLabel ? (
+        <p className="text-xs text-gray-400">{frequencyLabel}</p>
+      ) : null}
+      {monthlyEquivalent !== null && normalizedFrequency !== 'monthly' ? (
+        <p className={`text-xs ${secondaryToneClass}`}>
+          ≈ {formatCurrency(monthlyEquivalent)} / month
+        </p>
+      ) : null}
     </div>
   )
 }
