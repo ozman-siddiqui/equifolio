@@ -7,6 +7,7 @@ import AddPropertyModal from '../components/AddPropertyModal'
 import EditPropertyModal from '../components/EditPropertyModal'
 import UpgradeModal from '../components/UpgradeModal'
 import PropertyCard from '../components/PropertyCard'
+import { utilityPrimaryButtonClass } from '../components/CardPrimitives'
 import usePortfolioData from '../hooks/usePortfolioData'
 
 const PLAN_LIMITS = { starter: 3, investor: 10, premium: Infinity }
@@ -137,9 +138,9 @@ export default function Properties() {
 
               <button
                 onClick={handleOpenAddProperty}
-                className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
+                className={utilityPrimaryButtonClass}
               >
-                <Plus size={16} />
+                <Plus size={15} />
                 Add Property
               </button>
             </div>

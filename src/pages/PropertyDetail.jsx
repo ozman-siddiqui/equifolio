@@ -29,16 +29,30 @@ import EditTransactionModal from '../components/EditTransactionModal'
 import RefinanceModal from '../components/RefinanceModal'
 import AIScorePanel from '../components/AIScorePanel'
 import OptimisationModal from '../components/OptimisationModal'
+import {
+  utilityPrimaryButtonClass,
+  utilitySecondaryButtonClass,
+} from '../components/CardPrimitives'
 
-const toMonthly = (amount, frequency) => {
-  const map = {
-    Weekly: 52 / 12,
-    Fortnightly: 26 / 12,
-    Monthly: 1,
-    Quarterly: 1 / 3,
-    Annual: 1 / 12,
+function getMonthlyAmount(amount, frequency) {
+  const safeAmount = Number(amount || 0)
+  const normalizedFrequency = String(frequency || '').trim().toLowerCase()
+
+  switch (normalizedFrequency) {
+    case 'weekly':
+      return (safeAmount * 52) / 12
+    case 'fortnightly':
+      return (safeAmount * 26) / 12
+    case 'monthly':
+      return safeAmount
+    case 'quarterly':
+      return safeAmount / 3
+    case 'yearly':
+    case 'annual':
+      return safeAmount / 12
+    default:
+      return safeAmount
   }
-  return Number(amount || 0) * (map[frequency] || 1)
 }
 
 const formatCurrency = (amount) =>
@@ -95,11 +109,11 @@ export default function PropertyDetail() {
 
     const income = propertyTransactions
       .filter((t) => t.type === 'income')
-      .reduce((sum, t) => sum + toMonthly(t.amount, t.frequency), 0)
+      .reduce((sum, t) => sum + getMonthlyAmount(t.amount, t.frequency), 0)
 
     const expenses = propertyTransactions
       .filter((t) => t.type === 'expense')
-      .reduce((sum, t) => sum + toMonthly(t.amount, t.frequency), 0)
+      .reduce((sum, t) => sum + getMonthlyAmount(t.amount, t.frequency), 0)
 
     const net = income - expenses
 
@@ -291,7 +305,7 @@ export default function PropertyDetail() {
         <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
           <div className="p-6 md:p-8">
             <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-6">
-              <div>
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap mb-3">
                   <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
                     {property.address}
@@ -327,27 +341,27 @@ export default function PropertyDetail() {
                 ) : null}
               </div>
 
-              <div className="flex gap-3 flex-wrap">
+              <div className="flex gap-3 flex-wrap shrink-0 items-start">
                 <button
                   onClick={() => setCashFlowPropertyId(property.id)}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium"
+                  className={utilityPrimaryButtonClass}
                 >
-                  <DollarSign size={15} />
-                  Add Transaction
+                  <DollarSign size={15} className="shrink-0" />
+                  <span className="whitespace-nowrap">Add Transaction</span>
                 </button>
                 <button
                   onClick={() => setShowAddLoan(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-sm font-medium text-gray-700"
+                  className={utilitySecondaryButtonClass}
                 >
-                  <Plus size={15} />
-                  Add Mortgage
+                  <Plus size={15} className="shrink-0" />
+                  <span className="whitespace-nowrap">Add Mortgage</span>
                 </button>
                 <button
                   onClick={() => setEditingProperty(property)}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-sm font-medium text-gray-700"
+                  className={utilitySecondaryButtonClass}
                 >
-                  <Pencil size={15} />
-                  Edit Property
+                  <Pencil size={15} className="shrink-0" />
+                  <span className="whitespace-nowrap">Edit Property</span>
                 </button>
               </div>
             </div>
@@ -481,13 +495,12 @@ export default function PropertyDetail() {
                               />
                               <Field
                                 label="Amount"
-                                value={`${txn.type === 'income' ? '+' : '-'}${formatCurrency(
-                                  Math.abs(txn.amount)
-                                )}`}
-                                valueClassName={
-                                  txn.type === 'income'
-                                    ? 'text-green-600'
-                                    : 'text-red-500'
+                                value={
+                                  <TransactionAmount
+                                    amount={txn.amount}
+                                    type={txn.type}
+                                    frequency={txn.frequency}
+                                  />
                                 }
                               />
                             </div>
@@ -814,7 +827,34 @@ function Field({ label, value, valueClassName = 'text-gray-900' }) {
   return (
     <div>
       <p className="text-xs text-gray-400">{label}</p>
-      <p className={`text-sm font-medium mt-1 break-words ${valueClassName}`}>{value}</p>
+      <div className={`text-sm font-medium mt-1 break-words ${valueClassName}`}>{value}</div>
+    </div>
+  )
+}
+
+function TransactionAmount({ amount, type, frequency }) {
+  const signedAmount = `${type === 'income' ? '+' : '-'}${formatCurrency(Math.abs(amount))}`
+  const normalizedFrequency = String(frequency || '').trim().toLowerCase()
+  const frequencyLabel = normalizedFrequency
+    ? `${normalizedFrequency.charAt(0).toUpperCase()}${normalizedFrequency.slice(1)}`
+    : ''
+  const monthlyEquivalent = normalizedFrequency
+    ? getMonthlyAmount(Math.abs(amount), normalizedFrequency)
+    : null
+  const toneClass = type === 'income' ? 'text-green-600' : 'text-red-500'
+  const secondaryToneClass = type === 'income' ? 'text-green-500/80' : 'text-red-400'
+
+  return (
+    <div className="space-y-0.5">
+      <p className={toneClass}>{signedAmount}</p>
+      {frequencyLabel ? (
+        <p className="text-xs text-gray-400">{frequencyLabel}</p>
+      ) : null}
+      {monthlyEquivalent !== null && normalizedFrequency !== 'monthly' ? (
+        <p className={`text-xs ${secondaryToneClass}`}>
+          ≈ {formatCurrency(monthlyEquivalent)} / month
+        </p>
+      ) : null}
     </div>
   )
 }

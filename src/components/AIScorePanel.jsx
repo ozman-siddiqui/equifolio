@@ -1,23 +1,15 @@
 import { useMemo } from 'react'
 import {
-  Sparkles,
-  TrendingUp,
-  TrendingDown,
-  ShieldAlert,
-  Scale,
+  Brain,
   ChevronRight,
+  ShieldAlert,
+  Target,
+  TrendingDown,
+  TrendingUp,
+  Wallet,
 } from 'lucide-react'
 
-const toMonthly = (amount, frequency) => {
-  const map = {
-    Weekly: 52 / 12,
-    Fortnightly: 26 / 12,
-    Monthly: 1,
-    Quarterly: 1 / 3,
-    Annual: 1 / 12,
-  }
-  return Number(amount || 0) * (map[frequency] || 1)
-}
+import calculateAIDScore from '../utils/calculateAIDScore'
 
 const formatCurrency = (amount) =>
   new Intl.NumberFormat('en-AU', {
@@ -27,224 +19,133 @@ const formatCurrency = (amount) =>
   }).format(Number(amount || 0))
 
 export default function AIScorePanel({ property, loans = [], transactions = [] }) {
-  const aid = useMemo(() => {
-    if (!property) return null
-
-    const currentValue = Number(property.current_value || 0)
-    const purchasePrice = Number(property.purchase_price || 0)
-    const debt = loans.reduce((sum, loan) => sum + Number(loan.current_balance || 0), 0)
-    const equity = currentValue - debt
-    const lvr = currentValue > 0 ? (debt / currentValue) * 100 : 0
-    const growthPct =
-      purchasePrice > 0 ? ((currentValue - purchasePrice) / purchasePrice) * 100 : 0
-
-    const monthlyIncome = transactions
-      .filter((t) => t.type === 'income')
-      .reduce((sum, t) => sum + toMonthly(t.amount, t.frequency), 0)
-
-    const monthlyExpenses = transactions
-      .filter((t) => t.type === 'expense')
-      .reduce((sum, t) => sum + toMonthly(t.amount, t.frequency), 0)
-
-    const monthlyNet = monthlyIncome - monthlyExpenses
-
-    const netYield =
-      currentValue > 0 ? ((monthlyNet * 12) / currentValue) * 100 : 0
-
-    const fixedLoans = loans.filter((loan) => loan.loan_type === 'Fixed')
-    const fixedExpiringSoon = fixedLoans.some((loan) => {
-      if (!loan.fixed_rate_expiry) return false
-      const days = Math.ceil(
-        (new Date(loan.fixed_rate_expiry) - new Date()) / (1000 * 60 * 60 * 24)
-      )
-      return days > 0 && days <= 90
-    })
-
-    let score = 50
-
-    if (monthlyNet > 0) score += 18
-    else if (monthlyNet < 0) score -= 18
-
-    if (netYield > 3) score += 10
-    else if (netYield > 1) score += 6
-    else if (netYield < 0) score -= 10
-
-    if (lvr < 60) score += 12
-    else if (lvr < 70) score += 8
-    else if (lvr < 80) score += 2
-    else score -= 12
-
-    if (growthPct > 20) score += 10
-    else if (growthPct > 10) score += 6
-    else if (growthPct < 0) score -= 8
-
-    if (fixedExpiringSoon) score -= 6
-
-    if (transactions.length === 0) score -= 8
-
-    score = Math.max(0, Math.min(100, Math.round(score)))
-
-    let decision = 'Hold'
-    if (score >= 75) decision = 'Strong Hold'
-    else if (score >= 60) decision = 'Hold'
-    else if (score >= 45) decision = 'Review'
-    else decision = 'Action Needed'
-
-    const rating =
-      score >= 75
-        ? { label: 'Strong', tone: 'green' }
-        : score >= 60
-        ? { label: 'Healthy', tone: 'green' }
-        : score >= 45
-        ? { label: 'Mixed', tone: 'amber' }
-        : { label: 'Weak', tone: 'red' }
-
-    const reasons = []
-
-    reasons.push({
-      label: 'Cash Flow',
-      value: monthlyNet >= 0 ? 'Positive' : 'Negative',
-      tone: monthlyNet >= 0 ? 'green' : 'red',
-      detail: formatCurrency(monthlyNet),
-      icon: monthlyNet >= 0 ? 'up' : 'down',
-    })
-
-    reasons.push({
-      label: 'Leverage',
-      value: `${lvr.toFixed(1)}% LVR`,
-      tone: lvr < 70 ? 'green' : lvr < 80 ? 'amber' : 'red',
-      detail: formatCurrency(equity) + ' equity',
-      icon: 'scale',
-    })
-
-    reasons.push({
-      label: 'Capital Growth',
-      value: `${growthPct.toFixed(1)}%`,
-      tone: growthPct >= 0 ? 'green' : 'red',
-      detail: formatCurrency(currentValue - purchasePrice),
-      icon: growthPct >= 0 ? 'up' : 'down',
-    })
-
-    if (fixedExpiringSoon) {
-      reasons.push({
-        label: 'Rate Risk',
-        value: 'Expiry Soon',
-        tone: 'amber',
-        detail: 'Fixed rate review needed',
-        icon: 'risk',
-      })
-    }
-
-    const actions = []
-
-    if (monthlyNet < 0) {
-      actions.push('Review recurring expenses and mortgage burden.')
-    }
-
-    if (lvr >= 80) {
-      actions.push('High leverage may reduce flexibility for equity release or refinancing.')
-    }
-
-    if (fixedExpiringSoon) {
-      actions.push('Start refinance review before the fixed rate expires.')
-    }
-
-    if (monthlyNet > 0 && lvr < 70 && growthPct > 10) {
-      actions.push('This asset looks resilient. Consider hold or optimise strategy.')
-    }
-
-    if (actions.length === 0) {
-      actions.push('This property is relatively balanced. Monitor performance monthly.')
-    }
-
-    return {
-      score,
-      decision,
-      rating,
-      monthlyNet,
-      lvr,
-      netYield,
-      growthPct,
-      reasons,
-      actions: actions.slice(0, 3),
-    }
-  }, [property, loans, transactions])
+  const aid = useMemo(
+    () => (property ? calculateAIDScore(property, loans, transactions) : null),
+    [property, loans, transactions]
+  )
 
   if (!aid) return null
 
   const toneClasses = {
-    green: {
+    positive: {
       text: 'text-green-700',
       bg: 'bg-green-50',
       border: 'border-green-100',
+      badge: 'bg-green-100 text-green-700',
     },
-    amber: {
+    neutral: {
+      text: 'text-primary-700',
+      bg: 'bg-primary-50',
+      border: 'border-primary-100',
+      badge: 'bg-primary-100 text-primary-700',
+    },
+    warning: {
       text: 'text-amber-700',
       bg: 'bg-amber-50',
       border: 'border-amber-100',
+      badge: 'bg-amber-100 text-amber-700',
     },
-    red: {
+    danger: {
       text: 'text-red-600',
       bg: 'bg-red-50',
       border: 'border-red-100',
+      badge: 'bg-red-100 text-red-700',
     },
   }
 
-  const ratingTone = toneClasses[aid.rating.tone]
+  const ratingTone =
+    aid.label === 'Strong Buy'
+      ? toneClasses.positive
+      : aid.label === 'Hold'
+      ? toneClasses.neutral
+      : aid.label === 'Review'
+      ? toneClasses.warning
+      : toneClasses.danger
+
+  const pillars = [
+    {
+      key: 'growth',
+      title: 'Capital Growth',
+      value: `${aid.metrics.annualGrowthPct.toFixed(1)}%`,
+      score: aid.breakdown.growth,
+      explanation: aid.explanations.growth,
+      icon: TrendingUp,
+      tone:
+        aid.breakdown.growth >= 75 ? 'green' : aid.breakdown.growth >= 50 ? 'amber' : 'red',
+    },
+    {
+      key: 'cashflow',
+      title: 'Cashflow Health',
+      value: formatCurrency(aid.metrics.monthlyNet),
+      score: aid.breakdown.cashflow,
+      explanation: aid.explanations.cashflow,
+      icon: Wallet,
+      tone:
+        aid.breakdown.cashflow >= 75 ? 'green' : aid.breakdown.cashflow >= 50 ? 'amber' : 'red',
+    },
+    {
+      key: 'yield',
+      title: 'Yield Efficiency',
+      value: `${aid.metrics.yieldPct.toFixed(2)}%`,
+      score: aid.breakdown.yield,
+      explanation: aid.explanations.yield,
+      icon: Target,
+      tone:
+        aid.breakdown.yield >= 75 ? 'green' : aid.breakdown.yield >= 50 ? 'amber' : 'red',
+    },
+    {
+      key: 'risk',
+      title: 'Leverage & Risk',
+      value: `${aid.metrics.lvr.toFixed(1)}% LVR`,
+      score: aid.breakdown.risk,
+      explanation: aid.explanations.risk,
+      icon: ShieldAlert,
+      tone:
+        aid.breakdown.risk >= 75 ? 'green' : aid.breakdown.risk >= 50 ? 'amber' : 'red',
+    },
+  ]
 
   return (
     <div className="p-6">
       <div className="flex items-center gap-2 mb-4">
-        <Sparkles className="text-primary-600" size={18} />
+        <Brain className="text-primary-600" size={18} />
         <h3 className="font-semibold text-gray-900">AI Decision Engine</h3>
       </div>
 
-      <div className={`rounded-2xl border p-4 ${ratingTone.bg} ${ratingTone.border}`}>
+      <div className={`rounded-2xl border p-5 ${ratingTone.bg} ${ratingTone.border}`}>
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              AID V2 Score
+              AID Score
             </p>
             <p className={`text-3xl font-bold mt-1 ${ratingTone.text}`}>{aid.score}/100</p>
           </div>
 
-          <div className={`text-xs font-semibold px-2.5 py-1 rounded-full ${ratingTone.bg} ${ratingTone.text}`}>
-            {aid.rating.label}
+          <div className={`text-xs font-semibold px-2.5 py-1 rounded-full ${ratingTone.badge}`}>
+            {aid.label}
           </div>
         </div>
 
-        <div className="mt-3">
-          <p className="text-sm text-gray-700">
-            Recommended stance: <span className="font-semibold">{aid.decision}</span>
-          </p>
-        </div>
+        <p className="text-sm text-gray-700 mt-3">{aid.explanations.summary}</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 mt-4">
-        <MiniMetric
-          label="Cash Flow"
-          value={formatCurrency(aid.monthlyNet)}
-          valueClassName={aid.monthlyNet >= 0 ? 'text-green-600' : 'text-red-500'}
-        />
-        <MiniMetric
-          label="LVR"
-          value={`${aid.lvr.toFixed(1)}%`}
-          valueClassName={
-            aid.lvr < 70 ? 'text-green-600' : aid.lvr < 80 ? 'text-amber-600' : 'text-red-500'
-          }
-        />
-        <MiniMetric
-          label="Net Yield"
-          value={`${aid.netYield.toFixed(2)}%`}
-          valueClassName={aid.netYield >= 0 ? 'text-green-600' : 'text-red-500'}
-        />
+      <div className="grid grid-cols-2 gap-3 mt-4">
+        {pillars.map((pillar) => (
+          <MiniMetric
+            key={pillar.key}
+            label={pillar.title}
+            value={pillar.value}
+            score={pillar.score}
+            tone={pillar.tone}
+          />
+        ))}
       </div>
 
       <div className="mt-5">
-        <h4 className="text-sm font-semibold text-gray-900 mb-3">Drivers</h4>
-        <div className="space-y-2">
-          {aid.reasons.map((reason) => (
-            <ReasonRow key={reason.label} reason={reason} />
+        <h4 className="text-sm font-semibold text-gray-900 mb-3">Weighted Breakdown</h4>
+        <div className="space-y-3">
+          {pillars.map((pillar) => (
+            <ReasonRow key={pillar.key} pillar={pillar} />
           ))}
         </div>
       </div>
@@ -252,64 +153,69 @@ export default function AIScorePanel({ property, loans = [], transactions = [] }
       <div className="mt-5">
         <h4 className="text-sm font-semibold text-gray-900 mb-3">Suggested Focus</h4>
         <div className="space-y-2">
-          {aid.actions.map((action, index) => (
-            <div
-              key={index}
-              className="flex items-start gap-2 rounded-xl border border-gray-100 bg-gray-50 p-3"
-            >
-              <ChevronRight size={14} className="text-primary-600 mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-gray-700">{action}</p>
-            </div>
-          ))}
+          {pillars
+            .slice()
+            .sort((a, b) => a.score - b.score)
+            .slice(0, 2)
+            .map((pillar) => (
+              <div
+                key={pillar.key}
+                className="flex items-start gap-2 rounded-xl border border-gray-100 bg-gray-50 p-3"
+              >
+                <ChevronRight size={14} className="text-primary-600 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-gray-700">{pillar.explanation}</p>
+              </div>
+            ))}
         </div>
       </div>
     </div>
   )
 }
 
-function MiniMetric({ label, value, valueClassName = 'text-gray-900' }) {
+function MiniMetric({ label, value, score, tone }) {
+  const toneClass =
+    tone === 'green'
+      ? 'text-green-600'
+      : tone === 'amber'
+      ? 'text-amber-600'
+      : 'text-red-500'
+
   return (
     <div className="bg-gray-50 rounded-xl p-3">
       <p className="text-xs text-gray-400">{label}</p>
-      <p className={`text-sm font-semibold mt-1 ${valueClassName}`}>{value}</p>
+      <p className={`text-sm font-semibold mt-1 ${toneClass}`}>{value}</p>
+      <p className="text-xs text-gray-400 mt-1">Sub-score {score}/100</p>
     </div>
   )
 }
 
-function ReasonRow({ reason }) {
+function ReasonRow({ pillar }) {
   const toneMap = {
     green: 'text-green-600 bg-green-50 border-green-100',
     amber: 'text-amber-600 bg-amber-50 border-amber-100',
     red: 'text-red-500 bg-red-50 border-red-100',
   }
 
-  const icon =
-    reason.icon === 'up' ? (
-      <TrendingUp size={14} />
-    ) : reason.icon === 'down' ? (
-      <TrendingDown size={14} />
-    ) : reason.icon === 'risk' ? (
-      <ShieldAlert size={14} />
-    ) : (
-      <Scale size={14} />
-    )
+  const Icon = pillar.icon || TrendingDown
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 p-3">
-      <div className="flex items-center gap-3 min-w-0">
-        <div className={`p-2 rounded-lg border ${toneMap[reason.tone]}`}>
-          {icon}
+    <div className="rounded-xl border border-gray-100 p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className={`p-2 rounded-lg border ${toneMap[pillar.tone]}`}>
+            <Icon size={14} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-gray-900">{pillar.title}</p>
+            <p className="text-xs text-gray-500 mt-1">{pillar.explanation}</p>
+          </div>
         </div>
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-gray-900">{reason.label}</p>
-          <p className="text-xs text-gray-500 truncate">{reason.detail}</p>
-        </div>
-      </div>
 
-      <div
-        className={`text-xs font-semibold px-2.5 py-1 rounded-full border whitespace-nowrap ${toneMap[reason.tone]}`}
-      >
-        {reason.value}
+        <div
+          className={`text-xs font-semibold px-2.5 py-1 rounded-full border whitespace-nowrap ${toneMap[pillar.tone]}`}
+        >
+          {pillar.score}/100
+        </div>
       </div>
     </div>
   )
