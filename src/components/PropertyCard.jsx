@@ -47,11 +47,10 @@ export default function PropertyCard({
           onClick?.()
         }
       }}
-      className="group bg-white border border-gray-100 rounded-xl p-5 shadow-sm transition-all hover:border-primary-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer"
+      className="group bg-white border border-gray-100 rounded-xl p-4 shadow-sm transition-all hover:border-primary-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer h-full flex flex-col"
     >
-      <div className="space-y-3.5 h-full">
-        <div className="min-h-[3.25rem] flex flex-col justify-start">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+      <div className="space-y-3 flex-1 flex flex-col">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2.5">
           <div className="min-w-0">
             <h3 className="text-lg font-semibold text-gray-900">
               {property.address}
@@ -81,16 +80,13 @@ export default function PropertyCard({
             ) : null}
           </div>
         </div>
-        </div>
 
-        <div className="min-h-[2.75rem] flex items-start">
-          <p className="text-sm text-gray-500">
-            {property.suburb}, {property.state}
-            {property.property_type ? ` - ${property.property_type}` : ''}
-          </p>
-        </div>
+        <p className="text-sm text-gray-500">
+          {property.suburb}, {property.state}
+          {property.property_type ? ` - ${property.property_type}` : ''}
+        </p>
 
-        <div className="min-h-[2.75rem] flex items-start">
+        {(property.property_use === 'owner_occupied' || features.length > 0) ? (
           <div className="flex flex-wrap gap-x-4 gap-y-2 opacity-100">
             {property.property_use === 'owner_occupied' && (
               <span className="text-xs font-medium px-2 py-1 rounded-full bg-blue-50 text-blue-700 whitespace-nowrap">
@@ -111,17 +107,10 @@ export default function PropertyCard({
                 </span>
               )
             })}
-
-            {property.property_use !== 'owner_occupied' && features.length === 0 ? (
-              <span className="invisible inline-flex items-center gap-1.5 text-sm">
-                <span className="text-xs font-medium px-2 py-1 rounded-full">Placeholder</span>
-              </span>
-            ) : null}
           </div>
-        </div>
+        ) : null}
 
-        <div className="min-h-[10rem] flex items-start">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <MetricTile label="Value" value={formatCurrency(currentValue)} />
           <MetricTile label="Loan" value={formatCurrency(totalDebt)} />
           <MetricTile
@@ -140,11 +129,9 @@ export default function PropertyCard({
               : 'text-red-500'
             }
           />
-          </div>
         </div>
 
-        <div className="min-h-[8rem] flex items-start">
-          <div className={`rounded-xl border p-4 w-full ${scoreTone.container}`}>
+        <div className={`rounded-xl border p-3 w-full ${scoreTone.container}`}>
           <div className="flex items-center gap-2">
             <Sparkles size={14} className={scoreTone.icon} />
             <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
@@ -165,22 +152,17 @@ export default function PropertyCard({
 
           <p className="text-sm text-gray-600 mt-3">{signalLine}</p>
         </div>
+
+        <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-2.5">
+          <p className="text-sm text-gray-700">{insightLine}</p>
         </div>
 
-        <div className="min-h-[4rem] flex items-start">
-          <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 w-full min-h-[4rem] flex items-center">
-            <p className="text-sm text-gray-700">{insightLine}</p>
-          </div>
-        </div>
-
-        <div className="min-h-[1.75rem] flex items-center">
-          <span
-            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold whitespace-nowrap ${growthTone}`}
-          >
-            Growth {aid.metrics.annualGrowthPct >= 0 ? '+' : ''}
-            {aid.metrics.annualGrowthPct.toFixed(1)}% p.a.
-          </span>
-        </div>
+        <span
+          className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold whitespace-nowrap mt-auto self-start ${growthTone}`}
+        >
+          Growth {aid.metrics.annualGrowthPct >= 0 ? '+' : ''}
+          {aid.metrics.annualGrowthPct.toFixed(1)}% p.a.
+        </span>
       </div>
     </div>
   )
