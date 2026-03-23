@@ -1,26 +1,31 @@
 import { useMemo, useState } from 'react'
 import {
-  DollarSign,
-  Search,
-  TrendingUp,
-  TrendingDown,
-  Calendar,
-  Building2,
-  ChevronDown,
-  ChevronUp,
-  Lightbulb,
-  AlertTriangle,
   Activity,
-  ArrowUpRight,
   ArrowDownRight,
+  ArrowUpRight,
+  Building2,
+  Calendar,
+  DollarSign,
   Pencil,
   Trash2,
+  TrendingDown,
+  TrendingUp,
 } from 'lucide-react'
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
+
+import { MetricTile, utilityPrimaryButtonClass } from '../components/CardPrimitives'
 import { supabase } from '../supabase'
 import usePortfolioData from '../hooks/usePortfolioData'
 import CashFlowModal from '../components/CashFlowModal'
 import EditTransactionModal from '../components/EditTransactionModal'
-import OptimisationModal from '../components/OptimisationModal'
 
 const toMonthly = (amount, frequency) => {
   const map = {
@@ -40,76 +45,147 @@ const formatCurrency = (amount) =>
     maximumFractionDigits: 0,
   }).format(Number(amount || 0))
 
+const formatMonthLabel = (monthKey) => {
+  if (!monthKey) return 'Unknown'
+  const [year, month] = String(monthKey).split('-')
+  const date = new Date(Number(year), Number(month) - 1, 1)
+  return date.toLocaleDateString('en-AU', { month: 'short', year: '2-digit' })
+}
+
 export default function CashFlow() {
   const { properties, transactions, loading, fetchData } = usePortfolioData()
 
   const [cashFlowPropertyId, setCashFlowPropertyId] = useState(null)
   const [editingTransaction, setEditingTransaction] = useState(null)
-  const [expandedProperties, setExpandedProperties] = useState(new Set())
-  const [showOptimisationModal, setShowOptimisationModal] = useState(false)
+  const [selectedDetailPropertyId, setSelectedDetailPropertyId] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
 
-  const currentMonthDefault = new Date().toISOString().slice(0, 7)
-
-  const [searchTerm, setSearchTerm] = useState('')
-  const [propertyFilter, setPropertyFilter] = useState('all')
-  const [typeFilter, setTypeFilter] = useState('all')
-  const [monthFilter, setMonthFilter] = useState(currentMonthDefault)
+  const effectiveDetailPropertyId =
+    selectedDetailPropertyId || String(properties[0]?.id || 'portfolio')
 
   const propertyMap = useMemo(
-    () => Object.fromEntries(properties.map((p) => [String(p.id), p])),
+    () => Object.fromEntries(properties.map((property) => [String(property.id), property])),
     [properties]
   )
 
-  const monthOptions = useMemo(() => {
-    const months = [
-      ...new Set(
-        transactions.map((t) => String(t.date || '').slice(0, 7)).filter(Boolean)
-      ),
-    ]
-    return months.sort((a, b) => b.localeCompare(a))
-  }, [transactions])
+  const propertyBreakdown = useMemo(() => {
+    return properties
+      .map((property) => {
+        const propertyTransactions = transactions.filter(
+          (transaction) => String(transaction.property_id) === String(property.id)
+        )
+
+        const income = propertyTransactions
+          .filter((transaction) => transaction.type === 'income')
+          .reduce(
+            (sum, transaction) => sum + toMonthly(transaction.amount, transaction.frequency),
+            0
+          )
+
+        const expenses = propertyTransactions
+          .filter((transaction) => transaction.type === 'expense')
+          .reduce(
+            (sum, transaction) => sum + toMonthly(transaction.amount, transaction.frequency),
+            0
+          )
+
+        const latestDate = propertyTransactions
+          .map((transaction) => transaction.date)
+          .filter(Boolean)
+          .sort((a, b) => new Date(b) - new Date(a))[0]
+
+        return {
+          propertyId: String(property.id),
+          property,
+          income,
+          expenses,
+          net: income - expenses,
+          transactionCount: propertyTransactions.length,
+          latestDate,
+        }
+      })
+      .sort((a, b) => b.net - a.net)
+  }, [properties, transactions])
+
+  const portfolioSummary = useMemo(() => {
+    const income = propertyBreakdown.reduce((sum, property) => sum + property.income, 0)
+    const expenses = propertyBreakdown.reduce((sum, property) => sum + property.expenses, 0)
+
+    return {
+      income,
+      expenses,
+      net: income - expenses,
+    }
+  }, [propertyBreakdown])
+
+  const trendScopeTransactions = useMemo(() => {
+    if (effectiveDetailPropertyId === 'portfolio') return transactions
+
+    return transactions.filter(
+      (transaction) => String(transaction.property_id) === String(effectiveDetailPropertyId)
+    )
+  }, [transactions, effectiveDetailPropertyId])
+
+  const monthlyTrendData = useMemo(() => {
+    const grouped = new Map()
+
+    trendScopeTransactions.forEach((transaction) => {
+      const monthKey = String(transaction.date || '').slice(0, 7)
+      if (!monthKey) return
+
+      if (!grouped.has(monthKey)) {
+        grouped.set(monthKey, { month: monthKey, income: 0, expenses: 0, net: 0 })
+      }
+
+      const entry = grouped.get(monthKey)
+      const monthlyAmount = toMonthly(transaction.amount, transaction.frequency)
+
+      if (transaction.type === 'income') entry.income += monthlyAmount
+      else entry.expenses += monthlyAmount
+
+      entry.net = entry.income - entry.expenses
+    })
+
+    const ordered = Array.from(grouped.values()).sort((a, b) =>
+      a.month.localeCompare(b.month)
+    )
+
+    return ordered.slice(-6).map((entry) => ({
+      ...entry,
+      label: formatMonthLabel(entry.month),
+    }))
+  }, [trendScopeTransactions])
 
   const filteredTransactions = useMemo(() => {
-    const q = searchTerm.trim().toLowerCase()
-
     return transactions
-      .filter((txn) => {
-        const property = propertyMap[String(txn.property_id)]
-
-        const matchesSearch =
-          q === '' ||
-          [
-            txn.category,
-            txn.description,
-            property?.address,
-            property?.suburb,
-            property?.state,
-          ]
-            .filter(Boolean)
-            .some((v) => String(v).toLowerCase().includes(q))
-
+      .filter((transaction) => {
         const matchesProperty =
-          propertyFilter === 'all' ||
-          String(txn.property_id) === String(propertyFilter)
+          selectedDetailPropertyId === 'portfolio' ||
+          String(transaction.property_id) === String(effectiveDetailPropertyId)
 
-        const matchesType = typeFilter === 'all' || txn.type === typeFilter
+        const matchesStart = !startDate || transaction.date >= startDate
+        const matchesEnd = !endDate || transaction.date <= endDate
 
-        const matchesMonth =
-          monthFilter === 'all' || String(txn.date).slice(0, 7) === monthFilter
-
-        return matchesSearch && matchesProperty && matchesType && matchesMonth
+        return matchesProperty && matchesStart && matchesEnd
       })
       .sort((a, b) => new Date(b.date) - new Date(a.date))
-  }, [transactions, propertyMap, searchTerm, propertyFilter, typeFilter, monthFilter])
+  }, [transactions, selectedDetailPropertyId, effectiveDetailPropertyId, startDate, endDate])
 
-  const metrics = useMemo(() => {
+  const filteredSummary = useMemo(() => {
     const income = filteredTransactions
-      .filter((t) => t.type === 'income')
-      .reduce((sum, t) => sum + toMonthly(t.amount, t.frequency), 0)
+      .filter((transaction) => transaction.type === 'income')
+      .reduce(
+        (sum, transaction) => sum + toMonthly(transaction.amount, transaction.frequency),
+        0
+      )
 
     const expenses = filteredTransactions
-      .filter((t) => t.type === 'expense')
-      .reduce((sum, t) => sum + toMonthly(t.amount, t.frequency), 0)
+      .filter((transaction) => transaction.type === 'expense')
+      .reduce(
+        (sum, transaction) => sum + toMonthly(transaction.amount, transaction.frequency),
+        0
+      )
 
     return {
       income,
@@ -118,206 +194,9 @@ export default function CashFlow() {
     }
   }, [filteredTransactions])
 
-  const propertySummaries = useMemo(() => {
-    const grouped = new Map()
-
-    filteredTransactions.forEach((txn) => {
-      const propertyId = String(txn.property_id)
-      const property = propertyMap[propertyId]
-
-      if (!grouped.has(propertyId)) {
-        grouped.set(propertyId, {
-          propertyId,
-          property,
-          income: 0,
-          expenses: 0,
-          transactionCount: 0,
-          latestDate: txn.date,
-          transactions: [],
-        })
-      }
-
-      const entry = grouped.get(propertyId)
-      const monthlyAmount = toMonthly(txn.amount, txn.frequency)
-
-      if (txn.type === 'income') entry.income += monthlyAmount
-      else entry.expenses += monthlyAmount
-
-      entry.transactionCount += 1
-      entry.transactions.push(txn)
-
-      if (new Date(txn.date) > new Date(entry.latestDate)) {
-        entry.latestDate = txn.date
-      }
-    })
-
-    return Array.from(grouped.values())
-      .map((entry) => ({
-        ...entry,
-        net: entry.income - entry.expenses,
-        transactions: entry.transactions.sort(
-          (a, b) => new Date(b.date) - new Date(a.date)
-        ),
-      }))
-      .sort((a, b) => {
-        const aAddress = a.property?.address || ''
-        const bAddress = b.property?.address || ''
-        return aAddress.localeCompare(bAddress)
-      })
-  }, [filteredTransactions, propertyMap])
-
-  const latestActivity = useMemo(
-    () => filteredTransactions.slice(0, 6),
-    [filteredTransactions]
-  )
-
-  const aiInsights = useMemo(() => {
-    if (!propertySummaries.length) return []
-
-    const insights = []
-
-    const worst = [...propertySummaries].sort((a, b) => a.net - b.net)[0]
-    const best = [...propertySummaries].sort((a, b) => b.net - a.net)[0]
-
-    if (worst && worst.net < 0) {
-      insights.push({
-        type: 'negative',
-        text: `${worst.property?.address || 'One property'} is negative ${formatCurrency(
-          worst.net
-        )}. Review mortgage structure or recurring costs.`,
-      })
-    }
-
-    if (best && best.net > 0) {
-      insights.push({
-        type: 'positive',
-        text: `${best.property?.address || 'One property'} is your strongest performer at ${formatCurrency(
-          best.net
-        )}.`,
-      })
-    }
-
-    const totalIncome = propertySummaries.reduce((sum, s) => sum + s.income, 0)
-    const topIncome = [...propertySummaries].sort((a, b) => b.income - a.income)[0]
-
-    if (topIncome && totalIncome > 0) {
-      const share = Math.round((topIncome.income / totalIncome) * 100)
-      if (share >= 70) {
-        insights.push({
-          type: 'warning',
-          text: `${share}% of income comes from ${
-            topIncome.property?.address || 'one property'
-          }. This creates income concentration risk.`,
-        })
-      }
-    }
-
-    if (metrics.net < 0) {
-      insights.push({
-        type: 'negative',
-        text: `Portfolio cash flow is negative ${formatCurrency(
-          metrics.net
-        )} for the selected filters.`,
-      })
-    }
-
-    const noIncomeProperties = propertySummaries.filter(
-      (p) => p.income === 0 && p.expenses > 0
-    )
-    if (noIncomeProperties.length > 0) {
-      insights.push({
-        type: 'warning',
-        text: `${noIncomeProperties.length} propert${
-          noIncomeProperties.length === 1 ? 'y has' : 'ies have'
-        } expenses recorded but no income in this period.`,
-      })
-    }
-
-    return insights.slice(0, 4)
-  }, [propertySummaries, metrics.net])
-
-  const optimisationActions = useMemo(() => {
-    const actions = []
-
-    const negativeProperties = propertySummaries.filter((p) => p.net < 0)
-    const expenseOnlyProperties = propertySummaries.filter(
-      (p) => p.income === 0 && p.expenses > 0
-    )
-
-    if (negativeProperties.length > 0) {
-      const worst = [...negativeProperties].sort((a, b) => a.net - b.net)[0]
-
-      actions.push({
-        icon: 'cashflow',
-        title: 'Review weakest cash-flow property',
-        description: `${worst.property?.address || 'Property'} is currently the weakest performer at ${formatCurrency(
-          worst.net
-        )}.`,
-        tone: { bg: 'bg-red-50', text: 'text-red-500' },
-        onClick: () => {
-          setExpandedProperties((prev) => {
-            const next = new Set(prev)
-            next.add(worst.propertyId)
-            return next
-          })
-          setShowOptimisationModal(false)
-        },
-      })
-    }
-
-    if (expenseOnlyProperties.length > 0) {
-      const target = expenseOnlyProperties[0]
-      actions.push({
-        icon: 'risk',
-        title: 'Inspect properties with expenses but no income',
-        description: `${target.property?.address || 'A property'} has expenses recorded without income in the selected period.`,
-        tone: { bg: 'bg-amber-50', text: 'text-amber-600' },
-        onClick: () => {
-          setExpandedProperties((prev) => {
-            const next = new Set(prev)
-            next.add(target.propertyId)
-            return next
-          })
-          setShowOptimisationModal(false)
-        },
-      })
-    }
-
-    if (propertySummaries.length > 0) {
-      const best = [...propertySummaries].sort((a, b) => b.net - a.net)[0]
-      actions.push({
-        icon: 'property',
-        title: 'Review strongest performer',
-        description: `${best.property?.address || 'Property'} is your strongest cash-flow asset at ${formatCurrency(
-          best.net
-        )}.`,
-        tone: { bg: 'bg-green-50', text: 'text-green-600' },
-        onClick: () => {
-          setExpandedProperties((prev) => {
-            const next = new Set(prev)
-            next.add(best.propertyId)
-            return next
-          })
-          setShowOptimisationModal(false)
-        },
-      })
-    }
-
-    return actions.slice(0, 4)
-  }, [propertySummaries])
-
-  const toggleProperty = (propertyId) => {
-    setExpandedProperties((prev) => {
-      const next = new Set(prev)
-      if (next.has(propertyId)) next.delete(propertyId)
-      else next.add(propertyId)
-      return next
-    })
-  }
-
-  const handleDeleteTransaction = async (txnId) => {
+  const handleDeleteTransaction = async (transactionId) => {
     if (!window.confirm('Delete this transaction?')) return
-    await supabase.from('transactions').delete().eq('id', txnId)
+    await supabase.from('transactions').delete().eq('id', transactionId)
     fetchData()
   }
 
@@ -331,84 +210,83 @@ export default function CashFlow() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-4 py-8 space-y-6">
         <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
           <div className="p-6 md:p-8 border-b border-gray-100">
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-              <div>
+              <div className="min-w-0 flex-1">
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
                   Cash Flow
                 </h1>
                 <p className="text-gray-500 mt-2 max-w-2xl">
-                  Portfolio-wide cash flow workspace. Review property performance
-                  first, then inspect transaction-level detail only when needed.
+                  Start with the portfolio picture, compare property-level performance,
+                  then drill into filtered transaction detail only when you need it.
                 </p>
               </div>
 
-              <button
-                onClick={() => setCashFlowPropertyId(properties[0]?.id || null)}
-                disabled={properties.length === 0}
-                className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
-              >
-                <DollarSign size={16} />
-                Add Transaction
-              </button>
+              <div className="shrink-0 flex items-start">
+                <button
+                  onClick={() =>
+                    setCashFlowPropertyId(
+                      effectiveDetailPropertyId === 'portfolio'
+                        ? properties[0]?.id || null
+                        : effectiveDetailPropertyId
+                    )
+                  }
+                  disabled={properties.length === 0}
+                  className={`${utilityPrimaryButtonClass} disabled:bg-gray-300 disabled:shadow-none`}
+                >
+                  <DollarSign size={15} className="shrink-0" />
+                  <span className="whitespace-nowrap">Add Transaction</span>
+                </button>
+              </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-6 md:p-8 bg-gray-50/70">
             <MetricCard
               icon={<TrendingUp size={16} />}
-              label="Income"
-              value={formatCurrency(metrics.income)}
+              label="Total Income"
+              value={formatCurrency(portfolioSummary.income)}
               valueClassName="text-green-600"
             />
             <MetricCard
               icon={<TrendingDown size={16} />}
-              label="Expenses"
-              value={formatCurrency(metrics.expenses)}
+              label="Total Expenses"
+              value={formatCurrency(portfolioSummary.expenses)}
               valueClassName="text-red-500"
             />
             <MetricCard
               icon={<DollarSign size={16} />}
-              label="Net"
-              value={formatCurrency(metrics.net)}
-              valueClassName={metrics.net >= 0 ? 'text-green-600' : 'text-red-500'}
+              label="Net Cash Flow"
+              value={formatCurrency(portfolioSummary.net)}
+              valueClassName={
+                portfolioSummary.net >= 0 ? 'text-green-600' : 'text-red-500'
+              }
             />
           </div>
         </section>
 
-        <section className="mt-6 bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
           <div className="p-6 border-b border-gray-100">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-              <div className="lg:col-span-4">
-                <label className="block text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
-                  Search
-                </label>
-                <div className="relative">
-                  <Search
-                    size={16}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  />
-                  <input
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search category, note, or address"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Trend</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Monthly cash flow trend for the selected detail scope.
+                </p>
               </div>
 
-              <div className="lg:col-span-3">
+              <div className="w-full lg:w-[280px]">
                 <label className="block text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
-                  Property
+                  Scope
                 </label>
                 <select
-                  value={propertyFilter}
-                  onChange={(e) => setPropertyFilter(e.target.value)}
+                  value={effectiveDetailPropertyId}
+                  onChange={(event) => setSelectedDetailPropertyId(event.target.value)}
                   className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
-                  <option value="all">All Properties</option>
+                  <option value="portfolio">Portfolio summary</option>
                   {properties.map((property) => (
                     <option key={property.id} value={property.id}>
                       {property.address}
@@ -416,311 +294,292 @@ export default function CashFlow() {
                   ))}
                 </select>
               </div>
+            </div>
+          </div>
 
-              <div className="lg:col-span-2">
-                <label className="block text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
-                  Type
-                </label>
-                <select
-                  value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+          <div className="p-6">
+            {monthlyTrendData.length === 0 ? (
+              <EmptyState
+                icon={<Activity size={20} className="text-gray-300" />}
+                title="No trend data yet"
+                description="Add transactions to start seeing monthly cash flow movement."
+              />
+            ) : (
+              <div className="h-[260px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={monthlyTrendData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+                    <XAxis
+                      dataKey="label"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: '#94A3B8' }}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: '#94A3B8' }}
+                      tickFormatter={(value) => `$${Math.abs(value / 1000).toFixed(0)}k`}
+                      width={42}
+                    />
+                    <Tooltip content={<TrendTooltip />} />
+                    <Bar dataKey="income" fill="#22C55E" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="expenses" fill="#F87171" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-100">
+            <h2 className="text-lg font-semibold text-gray-900">Property Breakdown</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Compare each property at a glance before drilling into detailed transactions.
+            </p>
+          </div>
+
+          <div className="p-6 grid grid-cols-1 xl:grid-cols-2 gap-4">
+            {propertyBreakdown.length === 0 ? (
+              <div className="xl:col-span-2">
+                <EmptyState
+                  icon={<Building2 size={20} className="text-gray-300" />}
+                  title="No property cash flow yet"
+                  description="Add transactions to start building property-level cash flow views."
+                />
+              </div>
+            ) : (
+              propertyBreakdown.map((entry) => (
+                <button
+                  key={entry.propertyId}
+                  type="button"
+                  onClick={() => setSelectedDetailPropertyId(entry.propertyId)}
+                  className={`text-left rounded-2xl border p-5 transition-colors ${
+                    String(effectiveDetailPropertyId) === String(entry.propertyId)
+                      ? 'border-primary-200 bg-primary-50/60 shadow-sm shadow-primary-100/60'
+                      : 'border-gray-100 bg-white hover:bg-gray-50 hover:border-gray-200 hover:shadow-sm'
+                  }`}
                 >
-                  <option value="all">All Types</option>
-                  <option value="income">Income</option>
-                  <option value="expense">Expense</option>
-                </select>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Building2 size={16} className="text-gray-400 shrink-0" />
+                        <h3 className="text-base font-semibold text-gray-900 break-words">
+                          {entry.property.address}
+                        </h3>
+                      </div>
+
+                      <p className="text-sm text-gray-500 mt-1">
+                        {entry.property.suburb}, {entry.property.state}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400">
+                      <span className="whitespace-nowrap">
+                        {entry.transactionCount} transaction
+                        {entry.transactionCount === 1 ? '' : 's'}
+                      </span>
+                      {entry.latestDate ? (
+                        <span className="whitespace-nowrap">
+                          Latest {new Date(entry.latestDate).toLocaleDateString('en-AU')}
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <MetricTile
+                        label="Income"
+                        value={formatCurrency(entry.income)}
+                        valueClassName="text-green-600"
+                      />
+                      <MetricTile
+                        label="Expenses"
+                        value={formatCurrency(entry.expenses)}
+                        valueClassName="text-red-500"
+                      />
+                      <MetricTile
+                        label="Net"
+                        value={formatCurrency(entry.net)}
+                        valueClassName={entry.net >= 0 ? 'text-green-600' : 'text-red-500'}
+                      />
+                    </div>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-100">
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Transactions</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Filter to one property or stay at portfolio level, then narrow by date range.
+                </p>
               </div>
 
-              <div className="lg:col-span-3">
-                <label className="block text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
-                  Month
-                </label>
-                <select
-                  value={monthFilter}
-                  onChange={(e) => setMonthFilter(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="all">All Months</option>
-                  {monthOptions.map((month) => (
-                    <option key={month} value={month}>
-                      {month}
-                    </option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full lg:max-w-3xl">
+                <div>
+                  <label className="block text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
+                    Property
+                  </label>
+                  <select
+                    value={effectiveDetailPropertyId}
+                    onChange={(event) => setSelectedDetailPropertyId(event.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="portfolio">Portfolio summary</option>
+                    {properties.map((property) => (
+                      <option key={property.id} value={property.id}>
+                        {property.address}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
+                    Start date
+                  </label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(event) => setStartDate(event.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
+                    End date
+                  </label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(event) => setEndDate(event.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          {propertySummaries.length === 0 ? (
-            <div className="p-12 text-center">
-              <Calendar className="mx-auto text-gray-300 mb-3" size={26} />
-              <h3 className="text-lg font-semibold text-gray-900">
-                No transactions found
-              </h3>
-              <p className="text-sm text-gray-500 mt-2">
-                Try changing filters or add a new transaction.
-              </p>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <MetricCard
+                icon={<TrendingUp size={16} />}
+                label="Filtered Income"
+                value={formatCurrency(filteredSummary.income)}
+                valueClassName="text-green-600"
+              />
+              <MetricCard
+                icon={<TrendingDown size={16} />}
+                label="Filtered Expenses"
+                value={formatCurrency(filteredSummary.expenses)}
+                valueClassName="text-red-500"
+              />
+              <MetricCard
+                icon={<DollarSign size={16} />}
+                label="Filtered Net"
+                value={formatCurrency(filteredSummary.net)}
+                valueClassName={filteredSummary.net >= 0 ? 'text-green-600' : 'text-red-500'}
+              />
             </div>
-          ) : (
-            <>
-              <div className="p-6 border-b border-gray-100 bg-gray-50/40">
-                <div className="mb-4 flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900">
-                      Property Performance
-                    </h2>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Grouped portfolio cash flow by property.
-                    </p>
-                  </div>
 
-                  <button
-                    onClick={() => setShowOptimisationModal(true)}
-                    className="text-sm text-primary-600 font-medium hover:underline"
-                    type="button"
-                  >
-                    Explore optimisation options →
-                  </button>
-                </div>
+            {filteredTransactions.length === 0 ? (
+              <EmptyState
+                icon={<Calendar size={20} className="text-gray-300" />}
+                title="No transactions found"
+                description="Adjust the property or date filters, or add a new transaction."
+              />
+            ) : (
+              <div className="space-y-3">
+                {filteredTransactions.map((transaction) => {
+                  const property = propertyMap[String(transaction.property_id)]
 
-                <div className="space-y-4">
-                  {propertySummaries.map((entry) => {
-                    const isExpanded = expandedProperties.has(entry.propertyId)
-
-                    return (
-                      <div
-                        key={entry.propertyId}
-                        className="bg-white rounded-2xl border border-gray-100 overflow-hidden"
-                      >
-                        <div className="p-5">
-                          <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <Building2 size={16} className="text-gray-400" />
-                                <h3 className="font-semibold text-gray-900 truncate">
-                                  {entry.property?.address || 'Unknown property'}
-                                </h3>
-                              </div>
-
-                              <p className="text-sm text-gray-500 mt-1">
-                                {entry.property?.suburb && entry.property?.state
-                                  ? `${entry.property.suburb}, ${entry.property.state}`
-                                  : 'No suburb/state available'}
-                              </p>
-
-                              <p className="text-xs text-gray-400 mt-4">
-                                Latest activity:{' '}
-                                {entry.latestDate
-                                  ? new Date(entry.latestDate).toLocaleDateString('en-AU')
-                                  : '—'}
-                              </p>
-                            </div>
-
-                            <div className="flex flex-col items-stretch xl:items-end gap-4 xl:min-w-[560px]">
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full">
-                                <MiniStat
-                                  label="Income"
-                                  value={formatCurrency(entry.income)}
-                                  valueClassName="text-green-600"
-                                />
-                                <MiniStat
-                                  label="Expenses"
-                                  value={formatCurrency(entry.expenses)}
-                                  valueClassName="text-red-500"
-                                />
-                                <MiniStat
-                                  label="Net"
-                                  value={formatCurrency(entry.net)}
-                                  valueClassName={
-                                    entry.net >= 0 ? 'text-green-600' : 'text-red-500'
-                                  }
-                                />
-                                <MiniStat label="Entries" value={entry.transactionCount} />
-                              </div>
-
-                              <button
-                                onClick={() => toggleProperty(entry.propertyId)}
-                                className="inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700 self-end"
-                              >
-                                {isExpanded ? 'Hide entries' : 'View entries'}
-                                {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        {isExpanded && (
-                          <div className="border-t border-gray-100 p-4 md:p-5 bg-white">
-                            <div className="space-y-3">
-                              {entry.transactions.map((txn) => (
-                                <div
-                                  key={txn.id}
-                                  className="rounded-2xl border border-gray-100 p-4"
-                                >
-                                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                                    <div className="min-w-0 flex-1">
-                                      <div className="flex items-center gap-2 flex-wrap">
-                                        <span
-                                          className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
-                                            txn.type === 'income'
-                                              ? 'bg-green-50 text-green-700'
-                                              : 'bg-red-50 text-red-700'
-                                          }`}
-                                        >
-                                          {txn.type}
-                                        </span>
-                                        <span className="text-sm font-semibold text-gray-900">
-                                          {txn.category}
-                                        </span>
-                                      </div>
-
-                                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
-                                        <Field
-                                          label="Date"
-                                          value={new Date(txn.date).toLocaleDateString('en-AU')}
-                                        />
-                                        <Field
-                                          label="Description"
-                                          value={txn.description || '—'}
-                                        />
-                                        <Field
-                                          label="Amount"
-                                          value={`${txn.type === 'income' ? '+' : '-'}${formatCurrency(
-                                            Math.abs(txn.amount)
-                                          )}`}
-                                          valueClassName={
-                                            txn.type === 'income'
-                                              ? 'text-green-600'
-                                              : 'text-red-500'
-                                          }
-                                        />
-                                      </div>
-                                    </div>
-
-                                    <div className="flex items-center justify-end gap-2 shrink-0">
-                                      <button
-                                        onClick={() =>
-                                          setEditingTransaction({
-                                            ...txn,
-                                            propertyUse: entry.property?.property_use,
-                                          })
-                                        }
-                                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 text-sm font-medium"
-                                        type="button"
-                                      >
-                                        <Pencil size={14} />
-                                        Edit
-                                      </button>
-
-                                      <button
-                                        onClick={() => handleDeleteTransaction(txn.id)}
-                                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-red-500 hover:bg-gray-50 text-sm font-medium"
-                                        type="button"
-                                      >
-                                        <Trash2 size={14} />
-                                        Delete
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-
-              <div className="p-6">
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                  <div className="bg-white border border-gray-100 rounded-2xl p-6">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Lightbulb className="text-primary-600" size={18} />
-                      <h3 className="font-semibold text-gray-900">AI Insights</h3>
-                    </div>
-
-                    <div className="space-y-3">
-                      {aiInsights.length === 0 ? (
-                        <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">
-                          No insights available for the selected filters yet.
-                        </div>
-                      ) : (
-                        aiInsights.map((insight, i) => (
-                          <InsightItem key={i} insight={insight} />
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="xl:col-span-2 bg-white border border-gray-100 rounded-2xl p-6">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Activity size={18} className="text-gray-500" />
-                      <h3 className="font-semibold text-gray-900">
-                        Latest Activity
-                      </h3>
-                    </div>
-
-                    <div className="space-y-3">
-                      {latestActivity.length === 0 ? (
-                        <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">
-                          No recent activity for the selected filters.
-                        </div>
-                      ) : (
-                        latestActivity.map((txn) => {
-                          const property = propertyMap[String(txn.property_id)]
-
-                          return (
-                            <div
-                              key={txn.id}
-                              className="flex items-center gap-3 rounded-xl border border-gray-100 p-3"
+                  return (
+                    <div
+                      key={transaction.id}
+                      className="rounded-2xl border border-gray-100 p-4"
+                    >
+                      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span
+                              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
+                                transaction.type === 'income'
+                                  ? 'bg-green-50 text-green-700'
+                                  : 'bg-red-50 text-red-700'
+                              }`}
                             >
-                              <div
-                                className={`p-2 rounded-lg ${
-                                  txn.type === 'income'
-                                    ? 'bg-green-50 text-green-600'
-                                    : 'bg-red-50 text-red-500'
-                                }`}
-                              >
-                                {txn.type === 'income' ? (
-                                  <ArrowUpRight size={14} />
-                                ) : (
-                                  <ArrowDownRight size={14} />
-                                )}
-                              </div>
+                              {transaction.type}
+                            </span>
+                            <span className="text-sm font-semibold text-gray-900">
+                              {transaction.category}
+                            </span>
+                          </div>
 
-                              <div className="min-w-0 flex-1">
-                                <p className="text-sm text-gray-700">
-                                  <span className="font-medium">{txn.category}</span> —{' '}
-                                  {property?.address || 'Unknown property'}
-                                </p>
-                                <p className="text-xs text-gray-400 mt-1">
-                                  {new Date(txn.date).toLocaleDateString('en-AU')}
-                                </p>
-                              </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mt-3">
+                            <Field
+                              label="Property"
+                              value={property?.address || 'Unknown property'}
+                            />
+                            <Field
+                              label="Date"
+                              value={new Date(transaction.date).toLocaleDateString('en-AU')}
+                            />
+                            <Field
+                              label="Description"
+                              value={transaction.description || '—'}
+                            />
+                            <Field
+                              label="Amount"
+                              value={`${transaction.type === 'income' ? '+' : '-'}${formatCurrency(
+                                Math.abs(transaction.amount)
+                              )}`}
+                              valueClassName={
+                                transaction.type === 'income'
+                                  ? 'text-green-600'
+                                  : 'text-red-500'
+                              }
+                            />
+                          </div>
+                        </div>
 
-                              <div
-                                className={`text-sm font-semibold whitespace-nowrap ${
-                                  txn.type === 'income'
-                                    ? 'text-green-600'
-                                    : 'text-red-500'
-                                }`}
-                              >
-                                {txn.type === 'income' ? '+' : '-'}
-                                {formatCurrency(Math.abs(txn.amount))}
-                              </div>
-                            </div>
-                          )
-                        })
-                      )}
+                        <div className="flex items-center justify-end gap-2 shrink-0">
+                          <button
+                            onClick={() =>
+                              setEditingTransaction({
+                                ...transaction,
+                                propertyUse: property?.property_use,
+                              })
+                            }
+                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 text-sm font-medium"
+                            type="button"
+                          >
+                            <Pencil size={14} />
+                            Edit
+                          </button>
+
+                          <button
+                            onClick={() => handleDeleteTransaction(transaction.id)}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-red-500 hover:bg-gray-50 text-sm font-medium"
+                            type="button"
+                          >
+                            <Trash2 size={14} />
+                            Delete
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  )
+                })}
               </div>
-            </>
-          )}
+            )}
+          </div>
         </section>
       </main>
 
@@ -741,15 +600,25 @@ export default function CashFlow() {
           onSave={fetchData}
         />
       )}
+    </div>
+  )
+}
 
-      {showOptimisationModal && (
-        <OptimisationModal
-          title="Portfolio Optimisation Options"
-          subtitle="Recommended next actions based on filtered cash flow performance."
-          actions={optimisationActions}
-          onClose={() => setShowOptimisationModal(false)}
-        />
-      )}
+function TrendTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null
+
+  const income = payload.find((item) => item.dataKey === 'income')?.value || 0
+  const expenses = payload.find((item) => item.dataKey === 'expenses')?.value || 0
+  const net = income - expenses
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-3 shadow-lg text-xs">
+      <p className="font-semibold text-gray-700 mb-2">{label}</p>
+      <p className="text-green-600">Income: {formatCurrency(income)}</p>
+      <p className="text-red-500">Expenses: {formatCurrency(expenses)}</p>
+      <p className={`font-semibold mt-1 ${net >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+        Net: {formatCurrency(net)}
+      </p>
     </div>
   )
 }
@@ -766,49 +635,23 @@ function MetricCard({ icon, label, value, valueClassName = 'text-gray-900' }) {
   )
 }
 
-function MiniStat({ label, value, valueClassName = 'text-gray-900' }) {
-  return (
-    <div className="bg-gray-50 rounded-xl p-3">
-      <p className="text-xs text-gray-400">{label}</p>
-      <p className={`text-sm font-semibold mt-1 ${valueClassName}`}>{value}</p>
-    </div>
-  )
-}
-
-function InsightItem({ insight }) {
-  const config = {
-    positive: {
-      icon: <TrendingUp size={14} />,
-      color: 'text-green-600',
-      bg: 'bg-green-50',
-    },
-    negative: {
-      icon: <TrendingDown size={14} />,
-      color: 'text-red-500',
-      bg: 'bg-red-50',
-    },
-    warning: {
-      icon: <AlertTriangle size={14} />,
-      color: 'text-amber-600',
-      bg: 'bg-amber-50',
-    },
-  }
-
-  const c = config[insight.type] || config.warning
-
-  return (
-    <div className={`flex items-start gap-3 p-3 rounded-xl ${c.bg}`}>
-      <div className={`${c.color} mt-0.5`}>{c.icon}</div>
-      <p className="text-sm text-gray-700">{insight.text}</p>
-    </div>
-  )
-}
-
 function Field({ label, value, valueClassName = 'text-gray-900' }) {
   return (
     <div>
       <p className="text-xs text-gray-400">{label}</p>
       <p className={`text-sm font-medium mt-1 break-words ${valueClassName}`}>{value}</p>
+    </div>
+  )
+}
+
+function EmptyState({ icon, title, description }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-gray-200 p-10 text-center">
+      <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-3">
+        {icon}
+      </div>
+      <p className="text-sm font-semibold text-gray-900">{title}</p>
+      <p className="text-sm text-gray-500 mt-1">{description}</p>
     </div>
   )
 }

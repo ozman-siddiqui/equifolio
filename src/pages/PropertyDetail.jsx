@@ -29,6 +29,10 @@ import EditTransactionModal from '../components/EditTransactionModal'
 import RefinanceModal from '../components/RefinanceModal'
 import AIScorePanel from '../components/AIScorePanel'
 import OptimisationModal from '../components/OptimisationModal'
+import {
+  utilityPrimaryButtonClass,
+  utilitySecondaryButtonClass,
+} from '../components/CardPrimitives'
 
 const toMonthly = (amount, frequency) => {
   const map = {
@@ -291,7 +295,7 @@ export default function PropertyDetail() {
         <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
           <div className="p-6 md:p-8">
             <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-6">
-              <div>
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap mb-3">
                   <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
                     {property.address}
@@ -327,27 +331,27 @@ export default function PropertyDetail() {
                 ) : null}
               </div>
 
-              <div className="flex gap-3 flex-wrap">
+              <div className="flex gap-3 flex-wrap shrink-0 items-start">
                 <button
                   onClick={() => setCashFlowPropertyId(property.id)}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium"
+                  className={utilityPrimaryButtonClass}
                 >
-                  <DollarSign size={15} />
-                  Add Transaction
+                  <DollarSign size={15} className="shrink-0" />
+                  <span className="whitespace-nowrap">Add Transaction</span>
                 </button>
                 <button
                   onClick={() => setShowAddLoan(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-sm font-medium text-gray-700"
+                  className={utilitySecondaryButtonClass}
                 >
-                  <Plus size={15} />
-                  Add Mortgage
+                  <Plus size={15} className="shrink-0" />
+                  <span className="whitespace-nowrap">Add Mortgage</span>
                 </button>
                 <button
                   onClick={() => setEditingProperty(property)}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-sm font-medium text-gray-700"
+                  className={utilitySecondaryButtonClass}
                 >
-                  <Pencil size={15} />
-                  Edit Property
+                  <Pencil size={15} className="shrink-0" />
+                  <span className="whitespace-nowrap">Edit Property</span>
                 </button>
               </div>
             </div>

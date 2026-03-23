@@ -141,7 +141,7 @@ export default function App() {
         <Route path="properties" element={<Properties />} />
         <Route path="property/:id" element={<PropertyDetail />} />
         <Route path="cashflow" element={<CashFlow />} />
-        <Route path="mortgages" element={<Mortgages />} />
+        <Route path="mortgages" element={<Mortgages session={session} />} />
         <Route path="alerts" element={<Alerts />} />
         <Route path="pricing" element={<Pricing session={session} existingPlan={subscription?.plan || null} />} />
         <Route path="settings" element={<Settings session={session} subscription={subscription} />} />

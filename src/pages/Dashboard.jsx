@@ -20,9 +20,12 @@ import EditLoanModal from '../components/EditLoanModal'
 import CashFlowModal from '../components/CashFlowModal'
 import EditTransactionModal from '../components/EditTransactionModal'
 import { buildAlerts } from '../components/AlertsDropdown'
+import PortfolioInsightsPanel from '../components/PortfolioInsightsPanel'
 import RefinanceModal from '../components/RefinanceModal'
 import UpgradeModal from '../components/UpgradeModal'
 import usePortfolioData from '../hooks/usePortfolioData'
+import buildPortfolioInsights from '../utils/buildPortfolioInsights'
+import { utilityPrimaryButtonClass } from '../components/CardPrimitives'
 
 const PLAN_LIMITS = { starter: 3, investor: 10, premium: Infinity }
 
@@ -177,6 +180,17 @@ export default function Dashboard({ session, subscription }) {
   const urgentAlerts = effectiveAlerts.filter((a) => a.urgent)
   const nonUrgentAlerts = effectiveAlerts.filter((a) => !a.urgent)
 
+  const portfolioInsights = useMemo(
+    () =>
+      buildPortfolioInsights({
+        properties,
+        loans,
+        transactions,
+        alerts: effectiveAlerts,
+      }),
+    [properties, loans, transactions, effectiveAlerts]
+  )
+
   const topProperties = useMemo(() => {
     return [...properties]
       .map((property) => {
@@ -281,9 +295,9 @@ export default function Dashboard({ session, subscription }) {
 
                 <button
                   onClick={handleOpenAddProperty}
-                  className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
+                  className={utilityPrimaryButtonClass}
                 >
-                  <Plus size={16} />
+                  <Plus size={15} />
                   Add Property
                 </button>
               </div>
@@ -420,6 +434,11 @@ export default function Dashboard({ session, subscription }) {
                 />
               </div>
             </section>
+
+            <PortfolioInsightsPanel
+              insights={portfolioInsights}
+              onNavigate={(to) => navigate(to)}
+            />
 
             <section className="bg-white rounded-2xl border border-gray-100 p-6">
               <div className="flex items-center justify-between gap-4 mb-5">
