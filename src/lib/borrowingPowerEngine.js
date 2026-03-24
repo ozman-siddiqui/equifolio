@@ -230,12 +230,30 @@ function getLoanCommitmentMeta(loan) {
     loan,
     BORROWING_POWER_CONFIG.assessmentTermYears * 12
   )
-  const assessedRepayment = estimateRepayment({
+  const rawAssessedRepayment = estimateRepayment({
     principal: balance,
     annualRate: BORROWING_POWER_CONFIG.assessmentRatePct,
     repaymentType,
     remainingTermMonths: months,
   })
+  const hasValidAssessedRepayment =
+    Number.isFinite(rawAssessedRepayment) && rawAssessedRepayment >= 0
+
+  if (!hasValidAssessedRepayment) {
+    return {
+      monthlyCommitment: hasCurrentRepayment ? currentRepayment : 0,
+      actualRepayment: hasCurrentRepayment ? currentRepayment : 0,
+      assessedRepayment: 0,
+      basis: hasCurrentRepayment ? 'actual_fallback' : 'none',
+      hasCommitmentData: false,
+      usedFallbackRepayment: hasCurrentRepayment,
+      usedAssessedRepayment: false,
+      usedAssumedTerm: assumed,
+      outstandingBalance: balance,
+    }
+  }
+
+  const assessedRepayment = rawAssessedRepayment
 
   return {
     monthlyCommitment: assessedRepayment,
@@ -608,6 +626,17 @@ export function buildBorrowingPowerAnalysis({
   const confidenceLabel = getConfidenceLabel(confidenceScore)
   const serviceabilityStatus = getServiceabilityStatus(netMonthlySurplus)
   const topConstraint = constraints[0] || null
+  const loanDiagnostics = loanCommitmentMeta.map((loanMeta, index) => ({
+    loanIndex: index,
+    basis: loanMeta.basis,
+    actualRepayment: roundCurrency(loanMeta.actualRepayment),
+    assessedRepayment: roundCurrency(loanMeta.assessedRepayment),
+    monthlyCommitment: roundCurrency(loanMeta.monthlyCommitment),
+    outstandingBalance: roundCurrency(loanMeta.outstandingBalance),
+    usedFallbackRepayment: loanMeta.usedFallbackRepayment,
+    usedAssumedTerm: loanMeta.usedAssumedTerm,
+    hasCommitmentData: loanMeta.hasCommitmentData,
+  }))
   const inputs = {
     salary_annual:
       Number.isFinite(annualEmploymentIncome) && annualEmploymentIncome >= 0
@@ -711,6 +740,12 @@ export function buildBorrowingPowerAnalysis({
     inputs,
     assumptions_detail: assumptionsDetail,
     derived,
+    debug: {
+      loan_count: totalLoanCount,
+      loan_diagnostics: loanDiagnostics,
+      total_mortgage_commitments_monthly: totalMonthlyLoanCommitments,
+      borrowing_status: status,
+    },
     flags: {
       usedExpenseFloor: usedFloor,
       liabilitiesIncluded: liabilitiesProvided && hasLiabilities,

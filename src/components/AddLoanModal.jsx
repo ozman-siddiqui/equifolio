@@ -69,21 +69,32 @@ export default function AddLoanModal({ onClose, onSave, userId, properties, pres
       return
     }
 
-    const { error } = await supabase.from('loans').insert([{
-      ...form,
+    const loanPayload = {
       user_id: userId,
+      property_id: form.property_id,
+      lender: form.lender,
       loan_amount: Number(form.loan_amount),
       current_balance: Number(form.current_balance),
       interest_rate: Number(form.interest_rate),
+      loan_type: form.loan_type,
+      repayment_type: form.repayment_type,
       monthly_repayment: Number(form.monthly_repayment),
-      fixed_rate_expiry: form.loan_type === 'Fixed' && form.fixed_rate_expiry ? form.fixed_rate_expiry : null,
-      interest_only_expiry: form.repayment_type === 'Interest Only' && form.interest_only_expiry ? form.interest_only_expiry : null,
       fixed_variable: form.fixed_variable,
+      fixed_rate_expiry:
+        form.loan_type === 'Fixed' && form.fixed_rate_expiry
+          ? form.fixed_rate_expiry
+          : null,
+      interest_only_expiry:
+        form.repayment_type === 'Interest Only' && form.interest_only_expiry
+          ? form.interest_only_expiry
+          : null,
       remaining_term_months: Math.round(remainingTermYears * 12),
       offset_balance: offsetBalance,
       refinance_cost_estimate: refinanceCostEstimate,
       benchmark_rate: benchmarkRate,
-    }])
+    }
+
+    const { error } = await supabase.from('loans').insert([loanPayload])
 
     if (error) {
       setError(error.message)

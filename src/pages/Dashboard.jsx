@@ -27,6 +27,7 @@ import UpgradeModal from '../components/UpgradeModal'
 import useFinancialData from '../hooks/useFinancialData'
 import usePortfolioData from '../hooks/usePortfolioData'
 import buildBorrowingPowerAnalysis from '../lib/borrowingPowerEngine'
+import buildDashboardCompleteness from '../lib/dashboardCompleteness'
 import buildPortfolioInsights from '../utils/buildPortfolioInsights'
 import { utilityPrimaryButtonClass } from '../components/CardPrimitives'
 
@@ -113,6 +114,18 @@ export default function Dashboard({ session, subscription }) {
     }
   }, [properties, loans, thisMonthTxns])
 
+  const propertiesMissingLoanCoverage = useMemo(
+    () =>
+      properties.filter(
+        (property) =>
+          !loans.some((loan) => String(loan.property_id) === String(property.id))
+      ),
+    [properties, loans]
+  )
+
+  const hasIncompleteLoanCoverage =
+    properties.length > 0 && propertiesMissingLoanCoverage.length > 0
+
   const alerts = useMemo(() => buildAlerts(properties, loans), [properties, loans])
 
   const fallbackAlerts = useMemo(() => {
@@ -196,15 +209,57 @@ export default function Dashboard({ session, subscription }) {
   )
 
   const borrowingPowerAnalysis = useMemo(
+    () => {
+      try {
+        return buildBorrowingPowerAnalysis({
+          financialProfile,
+          liabilities,
+          loans,
+          transactions,
+        })
+      } catch (error) {
+        console.error('Borrowing power analysis failed', {
+          error,
+          loanCount: Array.isArray(loans) ? loans.length : 0,
+          loanSummaries: Array.isArray(loans)
+            ? loans.map((loan, index) => ({
+                index,
+                current_balance: loan?.current_balance,
+                interest_rate: loan?.interest_rate,
+                monthly_repayment: loan?.monthly_repayment,
+                remaining_term_months: loan?.remaining_term_months,
+                repayment_type: loan?.repayment_type,
+                offset_balance: loan?.offset_balance,
+              }))
+            : [],
+        })
+
+        return {
+          status: 'error',
+          isBlocked: true,
+          error: true,
+          missing_inputs: ['mortgage details'],
+          missingInputs: ['mortgage details'],
+          confidenceScore: 0,
+          confidenceLabel: 'Low',
+          blockedReason: 'Borrowing power is temporarily unavailable',
+          blockedActionLabel: 'Review Mortgages',
+        }
+      }
+    },
+    [financialProfile, liabilities, loans, transactions]
+  )
+
+  const dashboardCompleteness = useMemo(
     () =>
-      buildBorrowingPowerAnalysis({
+      buildDashboardCompleteness({
+        properties,
+        loans,
         financialProfile,
         liabilities,
-        loans,
-        transactions,
       }),
-      [financialProfile, liabilities, loans, transactions]
-    )
+    [properties, loans, financialProfile, liabilities]
+  )
 
   const topProperties = useMemo(() => {
     return [...properties]
@@ -279,7 +334,12 @@ export default function Dashboard({ session, subscription }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main
+        className="max-w-7xl mx-auto px-4 py-8"
+        data-completeness-level={dashboardCompleteness.completenessLevel}
+        data-borrowing-ready={dashboardCompleteness.borrowingReady}
+        data-refinance-ready={dashboardCompleteness.refinanceReady}
+      >
         <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
           <div className="p-6 md:p-8 border-b border-gray-100">
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
@@ -329,35 +389,68 @@ export default function Dashboard({ session, subscription }) {
             />
             <KpiCard
               label="Total Equity"
-              value={formatCurrency(portfolioMetrics.totalEquity)}
-              helper="Value minus debt"
+              value={
+                hasIncompleteLoanCoverage
+                  ? '—'
+                  : formatCurrency(portfolioMetrics.totalEquity)
+              }
+              helper={
+                hasIncompleteLoanCoverage
+                  ? 'Add mortgage details for all properties to calculate portfolio equity and LVR accurately.'
+                  : 'Value minus debt'
+              }
               valueClassName={
-                portfolioMetrics.totalEquity >= 0 ? 'text-green-600' : 'text-red-500'
+                hasIncompleteLoanCoverage
+                  ? 'text-gray-400'
+                  : portfolioMetrics.totalEquity >= 0
+                    ? 'text-green-600'
+                    : 'text-red-500'
               }
             />
             <KpiCard
               label="Portfolio LVR"
-              value={`${portfolioMetrics.portfolioLVR}%`}
-              helper="Loan to value ratio"
-            />
-            <KpiCard
-              label="Usable Equity"
-              value={formatCurrency(Math.max(0, portfolioMetrics.usableEquity))}
-              helper="Available at 80% LVR"
+              value={
+                hasIncompleteLoanCoverage ? '—' : `${portfolioMetrics.portfolioLVR}%`
+              }
+              helper={
+                hasIncompleteLoanCoverage
+                  ? 'Add mortgage details for all properties to calculate portfolio equity and LVR accurately.'
+                  : 'Loan to value ratio'
+              }
               valueClassName={
-                portfolioMetrics.usableEquity >= 0
-                  ? 'text-primary-600'
-                  : 'text-red-500'
+                hasIncompleteLoanCoverage ? 'text-gray-400' : 'text-gray-900'
               }
             />
             <KpiCard
-              label="Monthly Cash Flow"
+              label="Usable Equity"
+              value={
+                hasIncompleteLoanCoverage
+                  ? '—'
+                  : formatCurrency(Math.max(0, portfolioMetrics.usableEquity))
+              }
+              helper={
+                hasIncompleteLoanCoverage
+                  ? 'Add mortgage details for all properties to calculate portfolio equity and LVR accurately.'
+                  : 'Available at 80% LVR'
+              }
+              valueClassName={
+                hasIncompleteLoanCoverage
+                  ? 'text-gray-400'
+                  : portfolioMetrics.usableEquity >= 0
+                    ? 'text-primary-600'
+                    : 'text-red-500'
+              }
+            />
+            <KpiCard
+              label="Portfolio Cash Flow"
               value={
                 transactions.length === 0
                   ? '—'
                   : formatCurrency(portfolioMetrics.netMonthlyCashFlow)
               }
-              helper={`${now.toLocaleString('en-AU', { month: 'long' })} net`}
+              helper={`${now.toLocaleString('en-AU', {
+                month: 'long',
+              })} portfolio property cash flow, not household net position`}
               valueClassName={
                 portfolioMetrics.netMonthlyCashFlow >= 0
                   ? 'text-green-600'
@@ -365,7 +458,84 @@ export default function Dashboard({ session, subscription }) {
               }
             />
           </div>
+
+          {hasIncompleteLoanCoverage ? (
+            <div className="border-t border-gray-100 px-6 py-4 md:px-8">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <p className="text-sm text-amber-700">
+                  Add mortgage details for all properties to calculate portfolio equity and LVR accurately.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => navigate('/mortgages')}
+                  className="inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
+                >
+                  Add Mortgage
+                  <ChevronRight size={15} />
+                </button>
+              </div>
+            </div>
+          ) : null}
         </section>
+
+        {!(
+          dashboardCompleteness.hasProperties &&
+          dashboardCompleteness.hasLoans &&
+          dashboardCompleteness.financialProfileComplete &&
+          dashboardCompleteness.hasLiabilitiesData
+        ) && (
+          <section className="mt-6 bg-white rounded-2xl border border-gray-100 p-6">
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Setup Progress</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Complete the core data layer to unlock stronger portfolio, refinance, and borrowing insights.
+                </p>
+              </div>
+              <span className="inline-flex items-center rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700">
+                {[
+                  dashboardCompleteness.hasProperties,
+                  dashboardCompleteness.hasLoans,
+                  dashboardCompleteness.financialProfileComplete,
+                  dashboardCompleteness.hasLiabilitiesData,
+                ].filter(Boolean).length}
+                /4 complete
+              </span>
+            </div>
+
+            <div className="mt-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              <SetupChecklistItem
+                label="Properties"
+                complete={dashboardCompleteness.hasProperties}
+                description={dashboardCompleteness.messages.properties}
+                actionLabel="Add property"
+                onClick={handleOpenAddProperty}
+              />
+              <SetupChecklistItem
+                label="Loans"
+                complete={dashboardCompleteness.hasLoans}
+                description={dashboardCompleteness.messages.loans}
+                actionLabel="Add mortgage"
+                onClick={() => setShowAddLoan(true)}
+              />
+              <SetupChecklistItem
+                label="Financial Profile"
+                complete={dashboardCompleteness.financialProfileComplete}
+                description={dashboardCompleteness.messages.financialProfile}
+                actionLabel="Complete Financials"
+                onClick={() => navigate('/financials')}
+              />
+              <SetupChecklistItem
+                label="Liabilities"
+                complete={dashboardCompleteness.hasLiabilitiesData}
+                description={dashboardCompleteness.messages.liabilities}
+                actionLabel="Add liabilities"
+                onClick={() => navigate('/financials')}
+              />
+            </div>
+          </section>
+        )}
 
         {urgentAlerts.length > 0 && (
           <section className="mt-6 bg-red-50 border border-red-200 rounded-2xl p-5">
@@ -449,6 +619,26 @@ export default function Dashboard({ session, subscription }) {
                 />
               </div>
             </section>
+
+            {!dashboardCompleteness.loanDataComplete &&
+            dashboardCompleteness.hasLoans ? (
+              <section className="rounded-2xl border border-amber-200 bg-amber-50/70 p-5">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle
+                    size={18}
+                    className="mt-0.5 shrink-0 text-amber-600"
+                  />
+                  <div>
+                    <h2 className="text-sm font-semibold text-amber-900">
+                      Mortgage insights are running on limited data
+                    </h2>
+                    <p className="mt-1 text-sm text-amber-800">
+                      {dashboardCompleteness.messages.refinance}
+                    </p>
+                  </div>
+                </div>
+              </section>
+            ) : null}
 
             <PortfolioInsightsPanel
               insights={portfolioInsights}
@@ -822,6 +1012,41 @@ function EmptyMiniState({ title, description, icon = null }) {
       ) : null}
       <p className="text-sm font-medium text-gray-900">{title}</p>
       <p className="text-sm text-gray-500 mt-1">{description}</p>
+    </div>
+  )
+}
+
+function SetupChecklistItem({
+  label,
+  complete = false,
+  description,
+  actionLabel,
+  onClick,
+}) {
+  return (
+    <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-semibold text-gray-900">{label}</p>
+        <span
+          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+            complete
+              ? 'bg-green-50 text-green-700'
+              : 'bg-amber-50 text-amber-700'
+          }`}
+        >
+          {complete ? 'Complete' : 'Incomplete'}
+        </span>
+      </div>
+      <p className="mt-2 text-sm text-gray-500 min-h-[3rem]">{description}</p>
+      {!complete ? (
+        <button
+          type="button"
+          onClick={onClick}
+          className="mt-3 text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
+        >
+          {actionLabel}
+        </button>
+      ) : null}
     </div>
   )
 }

@@ -28,7 +28,50 @@ export default function BorrowingPowerCard({
     )
   }
 
-  if (!analysis) return null
+  if (!analysis || analysis.error || analysis.status === 'error') {
+    return (
+      <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
+        <div className="border-b border-gray-100 p-6">
+          <div className="flex items-center gap-2">
+            <TrendingUp size={18} className="text-primary-600" />
+            <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+          </div>
+          <p className="mt-2 text-sm text-gray-500">
+            Borrowing power is temporarily unavailable for the current mortgage set.
+          </p>
+        </div>
+
+        <div className="space-y-5 p-6">
+          <div className="rounded-2xl border border-amber-100 bg-amber-50/60 p-5">
+            <p className="text-xs font-medium uppercase tracking-wide text-amber-700">
+              Review required
+            </p>
+            <p className="mt-2 text-lg font-semibold text-gray-900">
+              Review mortgage details to restore borrowing power insights
+            </p>
+            <p className="mt-2 text-sm text-gray-600">
+              One or more mortgage inputs could not be assessed safely.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-gray-500">
+              Missing inputs: {(analysis?.missing_inputs || analysis?.missingInputs || []).join(', ')}
+            </p>
+
+            <button
+              type="button"
+              onClick={onExplore}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
+            >
+              <span className="whitespace-nowrap">Review Mortgages</span>
+              <ArrowRight size={14} className="shrink-0" />
+            </button>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   if (analysis.isBlocked) {
     return (

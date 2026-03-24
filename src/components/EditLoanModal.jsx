@@ -71,7 +71,7 @@ export default function EditLoanModal({ loan, onClose, onSave }) {
       return
     }
 
-    const { error } = await supabase.from('loans').update({
+    const loanPayload = {
       lender: form.lender,
       loan_amount: Number(form.loan_amount),
       current_balance: Number(form.current_balance),
@@ -86,7 +86,9 @@ export default function EditLoanModal({ loan, onClose, onSave }) {
       offset_balance: offsetBalance,
       refinance_cost_estimate: refinanceCostEstimate,
       benchmark_rate: benchmarkRate,
-    }).eq('id', loan.id)
+    }
+
+    const { error } = await supabase.from('loans').update(loanPayload).eq('id', loan.id)
 
     if (error) { setError(error.message); setLoading(false) }
     else { onSave(); onClose() }
