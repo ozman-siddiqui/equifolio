@@ -220,7 +220,7 @@ export default function Properties() {
               </p>
             </div>
           ) : (
-            <div className="p-6 grid grid-cols-1 xl:grid-cols-2 gap-5">
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
               {filteredProperties.map((property) => {
                 const propertyLoans = loans.filter(
                   (l) => String(l.property_id) === String(property.id)

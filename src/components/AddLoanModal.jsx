@@ -12,10 +12,15 @@ export default function AddLoanModal({ onClose, onSave, userId, properties, pres
     current_balance: '',
     interest_rate: '',
     loan_type: 'Variable',
+    fixed_variable: 'Variable',
     repayment_type: 'Principal and Interest',
     fixed_rate_expiry: '',
     monthly_repayment: '',
-    interest_only_expiry: ''
+    interest_only_expiry: '',
+    remaining_term_years: '',
+    offset_balance: '',
+    refinance_cost_estimate: '',
+    benchmark_rate: '',
   })
 
   const handleChange = (e) => {
@@ -34,16 +39,62 @@ export default function AddLoanModal({ onClose, onSave, userId, properties, pres
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.from('loans').insert([{
-      ...form,
+    const remainingTermYears = Number(form.remaining_term_years)
+    const offsetBalance = form.offset_balance === '' ? null : Number(form.offset_balance)
+    const refinanceCostEstimate =
+      form.refinance_cost_estimate === '' ? null : Number(form.refinance_cost_estimate)
+    const benchmarkRate = form.benchmark_rate === '' ? null : Number(form.benchmark_rate)
+
+    if (!Number.isFinite(remainingTermYears) || remainingTermYears <= 0) {
+      setError('Remaining term must be greater than 0 years.')
+      setLoading(false)
+      return
+    }
+
+    if (offsetBalance !== null && offsetBalance < 0) {
+      setError('Offset balance must be 0 or greater.')
+      setLoading(false)
+      return
+    }
+
+    if (refinanceCostEstimate !== null && refinanceCostEstimate < 0) {
+      setError('Estimated refinance cost must be 0 or greater.')
+      setLoading(false)
+      return
+    }
+
+    if (benchmarkRate !== null && benchmarkRate < 0) {
+      setError('Benchmark rate must be 0 or greater.')
+      setLoading(false)
+      return
+    }
+
+    const loanPayload = {
       user_id: userId,
+      property_id: form.property_id,
+      lender: form.lender,
       loan_amount: Number(form.loan_amount),
       current_balance: Number(form.current_balance),
       interest_rate: Number(form.interest_rate),
+      loan_type: form.loan_type,
+      repayment_type: form.repayment_type,
       monthly_repayment: Number(form.monthly_repayment),
-      fixed_rate_expiry: form.loan_type === 'Fixed' && form.fixed_rate_expiry ? form.fixed_rate_expiry : null,
-      interest_only_expiry: form.repayment_type === 'Interest Only' && form.interest_only_expiry ? form.interest_only_expiry : null,
-    }])
+      fixed_variable: form.fixed_variable,
+      fixed_rate_expiry:
+        form.loan_type === 'Fixed' && form.fixed_rate_expiry
+          ? form.fixed_rate_expiry
+          : null,
+      interest_only_expiry:
+        form.repayment_type === 'Interest Only' && form.interest_only_expiry
+          ? form.interest_only_expiry
+          : null,
+      remaining_term_months: Math.round(remainingTermYears * 12),
+      offset_balance: offsetBalance,
+      refinance_cost_estimate: refinanceCostEstimate,
+      benchmark_rate: benchmarkRate,
+    }
+
+    const { error } = await supabase.from('loans').insert([loanPayload])
 
     if (error) {
       setError(error.message)
@@ -130,6 +181,79 @@ export default function AddLoanModal({ onClose, onSave, userId, properties, pres
                 <option>Interest Only</option>
               </select>
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Rate Type</label>
+              <select
+                name="fixed_variable"
+                value={form.fixed_variable}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option>Variable</option>
+                <option>Fixed</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Remaining Term (Years)</label>
+              <input
+                name="remaining_term_years"
+                value={form.remaining_term_years}
+                onChange={handleChange}
+                required
+                type="number"
+                min="0.1"
+                step="0.1"
+                placeholder="25"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Offset Balance ($)</label>
+              <input
+                name="offset_balance"
+                value={form.offset_balance}
+                onChange={handleChange}
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Benchmark Rate (%)</label>
+              <input
+                name="benchmark_rate"
+                value={form.benchmark_rate}
+                onChange={handleChange}
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="5.59"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Refinance Cost ($)</label>
+            <input
+              name="refinance_cost_estimate"
+              value={form.refinance_cost_estimate}
+              onChange={handleChange}
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="1200"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
           </div>
 
           {isFixed && (

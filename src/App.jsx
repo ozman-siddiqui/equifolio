@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { supabase } from './supabase'
 
@@ -13,6 +13,40 @@ import Alerts from './pages/Alerts'
 import Settings from './pages/Settings'
 import Layout from './components/Layout'
 
+const Financials = lazy(() => import('./pages/Financials'))
+
+function FinancialsRouteFallback({ message = 'Loading financials...' }) {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="w-full max-w-xl rounded-2xl border border-gray-200 bg-white p-6 text-center">
+        <p className="text-lg font-semibold text-gray-900">Financials</p>
+        <p className="mt-2 text-sm text-gray-500">{message}</p>
+      </div>
+    </div>
+  )
+}
+
+class FinancialsErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <FinancialsRouteFallback message="Financials is temporarily unavailable. The rest of the app is still available." />
+      )
+    }
+
+    return this.props.children
+  }
+}
+
 export default function App() {
   const [session, setSession] = useState(null)
   const [subscription, setSubscription] = useState(null)
@@ -22,7 +56,9 @@ export default function App() {
   const signOut = async () => {
     try {
       await supabase.auth.signOut()
-    } catch (e) {}
+    } catch {
+      // Ignore sign-out errors and clear local state below.
+    }
     localStorage.clear()
     sessionStorage.clear()
     window.location.reload()
@@ -62,7 +98,7 @@ export default function App() {
         } else {
           setSubscriptionReady(true)
         }
-      } catch (e) {
+      } catch {
         if (isMounted) setSubscriptionReady(true)
       } finally {
         if (isMounted) setReady(true)
@@ -142,6 +178,16 @@ export default function App() {
         <Route path="property/:id" element={<PropertyDetail />} />
         <Route path="cashflow" element={<CashFlow />} />
         <Route path="mortgages" element={<Mortgages session={session} />} />
+        <Route
+          path="financials"
+          element={
+            <FinancialsErrorBoundary>
+              <Suspense fallback={<FinancialsRouteFallback />}>
+                <Financials session={session} />
+              </Suspense>
+            </FinancialsErrorBoundary>
+          }
+        />
         <Route path="alerts" element={<Alerts />} />
         <Route path="pricing" element={<Pricing session={session} existingPlan={subscription?.plan || null} />} />
         <Route path="settings" element={<Settings session={session} subscription={subscription} />} />

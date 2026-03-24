@@ -4,6 +4,7 @@ import {
   Building2,
   Wallet,
   Landmark,
+  BriefcaseBusiness,
   Bell,
   Settings,
 } from 'lucide-react'
@@ -13,6 +14,7 @@ const navItems = [
   { to: '/properties', label: 'Properties', icon: Building2 },
   { to: '/cashflow', label: 'Cash Flow', icon: Wallet },
   { to: '/mortgages', label: 'Mortgages', icon: Landmark },
+  { to: '/financials', label: 'Financials', icon: BriefcaseBusiness },
   { to: '/alerts', label: 'Alerts', icon: Bell },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]
@@ -21,11 +23,13 @@ export default function Sidebar({ mobile = false, onNavigate }) {
   if (mobile) {
     return (
       <nav className="p-3 space-y-2">
-        {navItems.map(({ to, label, icon: Icon, end }) => (
+        {navItems.map((item) => {
+          const Icon = item.icon
+          return (
           <NavLink
-            key={to}
-            to={to}
-            end={end}
+            key={item.to}
+            to={item.to}
+            end={item.end}
             onClick={onNavigate}
             className={({ isActive }) =>
               `flex items-center gap-4 px-4 py-3 rounded-2xl text-base font-medium transition-colors ${
@@ -36,9 +40,10 @@ export default function Sidebar({ mobile = false, onNavigate }) {
             }
           >
             <Icon size={22} />
-            <span>{label}</span>
+            <span>{item.label}</span>
           </NavLink>
-        ))}
+          )
+        })}
       </nav>
     )
   }
@@ -62,11 +67,13 @@ export default function Sidebar({ mobile = false, onNavigate }) {
       </div>
 
       <nav className="p-4 space-y-2">
-        {navItems.map(({ to, label, icon: Icon, end }) => (
+        {navItems.map((item) => {
+          const Icon = item.icon
+          return (
           <NavLink
-            key={to}
-            to={to}
-            end={end}
+            key={item.to}
+            to={item.to}
+            end={item.end}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
                 isActive
@@ -76,9 +83,10 @@ export default function Sidebar({ mobile = false, onNavigate }) {
             }
           >
             <Icon size={20} />
-            <span>{label}</span>
+            <span>{item.label}</span>
           </NavLink>
-        ))}
+          )
+        })}
       </nav>
     </aside>
   )

@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import {
   Bath,
   BedDouble,
@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../supabase'
 
+import useFinancialData from '../hooks/useFinancialData'
 import usePortfolioData from '../hooks/usePortfolioData'
 import AddLoanModal from '../components/AddLoanModal'
 import EditLoanModal from '../components/EditLoanModal'
@@ -28,7 +29,9 @@ import CashFlowModal from '../components/CashFlowModal'
 import EditTransactionModal from '../components/EditTransactionModal'
 import RefinanceModal from '../components/RefinanceModal'
 import AIScorePanel from '../components/AIScorePanel'
+import BorrowingPowerCard from '../components/BorrowingPowerCard'
 import OptimisationModal from '../components/OptimisationModal'
+import buildBorrowingPowerAnalysis from '../lib/borrowingPowerEngine'
 import {
   utilityPrimaryButtonClass,
   utilitySecondaryButtonClass,
@@ -64,7 +67,9 @@ const formatCurrency = (amount) =>
 
 export default function PropertyDetail() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const { properties, loans, transactions, loading, fetchData } = usePortfolioData()
+  const { financialProfile, liabilities, loading: financialsLoading } = useFinancialData()
 
   const [showAddLoan, setShowAddLoan] = useState(false)
   const [editingLoan, setEditingLoan] = useState(null)
@@ -270,6 +275,18 @@ export default function PropertyDetail() {
 
     return actions.slice(0, 4)
   }, [property, metrics, propertyLoans])
+
+  const borrowingPowerAnalysis = useMemo(
+    () =>
+      buildBorrowingPowerAnalysis({
+        financialProfile,
+        liabilities,
+        loans: propertyLoans,
+        transactions: propertyTransactions,
+        propertyId: property?.id ?? null,
+      }),
+      [financialProfile, liabilities, property?.id, propertyLoans, propertyTransactions]
+    )
 
   const handleDeleteTransaction = async (txnId) => {
     if (!window.confirm('Delete this transaction?')) return
@@ -668,6 +685,14 @@ export default function PropertyDetail() {
                 transactions={propertyTransactions}
               />
             </div>
+
+            <BorrowingPowerCard
+              analysis={borrowingPowerAnalysis}
+              loading={financialsLoading}
+              title="Borrowing Power Contribution"
+              onExplore={() => mortgageSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              onCompleteFinancials={() => navigate('/financials')}
+            />
           </div>
         </section>
       </main>
