@@ -76,13 +76,18 @@ function transactionToMonthly(amount, frequency) {
   }
 }
 
-function getProtectedLivingExpenses({ livingExpensesMonthly, dependants = 0, borrowerCount = 1 }) {
+function getProtectedLivingExpenses({
+  livingExpensesMonthly,
+  dependants = 0,
+  borrowerCount = 1,
+  config = BORROWING_POWER_CONFIG,
+}) {
   const normalizedBorrowerCount = Math.max(0, Number(borrowerCount || 0))
   const normalizedDependants = Math.max(0, Number(dependants || 0))
   const benchmarkExpenses =
-    BORROWING_POWER_CONFIG.expenseFloorMonthly.base +
-    normalizedBorrowerCount * BORROWING_POWER_CONFIG.expenseFloorMonthly.perBorrower +
-    normalizedDependants * BORROWING_POWER_CONFIG.expenseFloorMonthly.dependant
+    config.expenseFloorMonthly.base +
+    normalizedBorrowerCount * config.expenseFloorMonthly.perBorrower +
+    normalizedDependants * config.expenseFloorMonthly.dependant
 
   const reported = Number(livingExpensesMonthly)
   if (!Number.isFinite(reported) || reported < 0) {
@@ -256,7 +261,7 @@ function getEstimatedLiabilityRepayment(liability) {
   }
 }
 
-function getLoanCommitmentMeta(loan) {
+function getLoanCommitmentMeta(loan, config = BORROWING_POWER_CONFIG) {
   const currentBalance = Number(loan?.current_balance)
   const originalLoanAmount = Number(loan?.loan_amount)
   const currentRepayment = Number(loan?.monthly_repayment)
@@ -298,11 +303,11 @@ function getLoanCommitmentMeta(loan) {
 
   const { months, assumed } = getRemainingTermMonths(
     loan,
-    BORROWING_POWER_CONFIG.assessmentTermYears * 12
+    config.assessmentTermYears * 12
   )
   const rawAssessedRepayment = estimateRepayment({
     principal: currentBalance,
-    annualRate: BORROWING_POWER_CONFIG.assessmentRatePct,
+    annualRate: config.assessmentRatePct,
     repaymentType,
     remainingTermMonths: months,
   })
@@ -346,12 +351,21 @@ export function calculateBorrowingPower({
   loans = null,
   transactions = null,
   propertyId = null,
+  config = {},
 } = {}) {
+  const runtimeConfig = {
+    ...BORROWING_POWER_CONFIG,
+    ...config,
+    expenseFloorMonthly: {
+      ...BORROWING_POWER_CONFIG.expenseFloorMonthly,
+      ...(config.expenseFloorMonthly || {}),
+    },
+  }
   const missingInputs = []
   const assumptionNotes = [
-    `Assessment rate ${BORROWING_POWER_CONFIG.assessmentRatePct.toFixed(1)}%`,
-    `${BORROWING_POWER_CONFIG.assessmentTermYears}-year assessment term`,
-    `${Math.round(BORROWING_POWER_CONFIG.surplusUsePct * 100)}% surplus usage buffer`,
+    `Assessment rate ${runtimeConfig.assessmentRatePct.toFixed(1)}%`,
+    `${runtimeConfig.assessmentTermYears}-year assessment term`,
+    `${Math.round(runtimeConfig.surplusUsePct * 100)}% surplus usage buffer`,
   ]
 
   const dependants = Number(financialProfile?.dependants)
@@ -426,7 +440,9 @@ export function calculateBorrowingPower({
   }
 
   const normalizedLoans = loansProvided ? loans : []
-  const loanCommitmentMeta = normalizedLoans.map(getLoanCommitmentMeta)
+  const loanCommitmentMeta = normalizedLoans.map((loan) =>
+    getLoanCommitmentMeta(loan, runtimeConfig)
+  )
   const hasLoans = normalizedLoans.length > 0
   const hasLoanCommitmentData =
     hasLoans && loanCommitmentMeta.every((loanMeta) => loanMeta.hasCommitmentData)
@@ -475,6 +491,7 @@ export function calculateBorrowingPower({
     livingExpensesMonthly: financialProfile?.living_expenses_monthly,
     dependants: Number.isFinite(dependants) ? dependants : 0,
     borrowerCount: Number.isFinite(borrowerCount) ? borrowerCount : 1,
+    config: runtimeConfig,
   })
 
   if (usedFloor) {
@@ -488,11 +505,15 @@ export function calculateBorrowingPower({
   }
 
   if (loanCommitmentMeta.some((loanMeta) => loanMeta.usedAssessedRepayment)) {
-    assumptionNotes.push('Existing loan commitments assessed at 8.5% to reflect conservative lender servicing')
+    assumptionNotes.push(
+      `Existing loan commitments assessed at ${runtimeConfig.assessmentRatePct.toFixed(1)}% to reflect conservative lender servicing`
+    )
   }
 
   if (loanCommitmentMeta.some((loanMeta) => loanMeta.usedAssumedTerm)) {
-    assumptionNotes.push(`Default ${BORROWING_POWER_CONFIG.assessmentTermYears}-year term used where remaining loan term was missing`)
+    assumptionNotes.push(
+      `Default ${runtimeConfig.assessmentTermYears}-year term used where remaining loan term was missing`
+    )
   }
 
   if (loanCommitmentMeta.some((loanMeta) => loanMeta.usedFallbackRepayment)) {
@@ -555,10 +576,10 @@ export function calculateBorrowingPower({
     Math.max(0, Number(monthlyHouseholdIncome || 0) + Number(monthlyOtherIncome || 0))
   )
   const actualAfterTaxIncomeMonthly = roundCurrency(
-    grossTotalMonthlyIncome * BORROWING_POWER_CONFIG.incomeAdjustmentFactor
+    grossTotalMonthlyIncome * runtimeConfig.incomeAdjustmentFactor
   )
   const adjustedIncomeAnnual = roundCurrency(
-    grossTotalMonthlyIncome * 12 * BORROWING_POWER_CONFIG.incomeAdjustmentFactor
+    grossTotalMonthlyIncome * 12 * runtimeConfig.incomeAdjustmentFactor
   )
   const adjustedMonthlyIncome = roundCurrency(adjustedIncomeAnnual / 12)
   const totalUsableMonthlyIncome = roundCurrency(
@@ -567,13 +588,13 @@ export function calculateBorrowingPower({
 
   assumptionNotes.push(
     `Income adjusted to ${Math.round(
-      BORROWING_POWER_CONFIG.incomeAdjustmentFactor * 100
+      runtimeConfig.incomeAdjustmentFactor * 100
     )}% of gross for tax and lender shading`
   )
   if (grossMonthlyRentalIncome > 0) {
     assumptionNotes.push(
       `Rental income shaded to ${Math.round(
-        BORROWING_POWER_CONFIG.rentalIncomeShadingFactor * 100
+        runtimeConfig.rentalIncomeShadingFactor * 100
       )}% of gross rent`
     )
   }
@@ -643,12 +664,12 @@ export function calculateBorrowingPower({
       : null
 
   const serviceableRepaymentCapacity = roundCurrency(
-    Math.max(0, netMonthlySurplus) * BORROWING_POWER_CONFIG.surplusUsePct
+    Math.max(0, netMonthlySurplus) * runtimeConfig.surplusUsePct
   )
   const borrowingPowerEstimate = estimatePrincipalFromMonthlyRepayment({
     monthlyRepayment: serviceableRepaymentCapacity,
-    annualRatePct: BORROWING_POWER_CONFIG.assessmentRatePct,
-    termYears: BORROWING_POWER_CONFIG.assessmentTermYears,
+    annualRatePct: runtimeConfig.assessmentRatePct,
+    termYears: runtimeConfig.assessmentTermYears,
   })
 
   let status = 'ready'
@@ -748,11 +769,11 @@ export function calculateBorrowingPower({
 
   const confidenceScore =
     status === 'insufficient_data'
-      ? BORROWING_POWER_CONFIG.insufficientConfidenceScore
+      ? runtimeConfig.insufficientConfidenceScore
       : status === 'partial'
         ? Math.max(
-            46,
-            BORROWING_POWER_CONFIG.partialConfidenceScore -
+          46,
+          runtimeConfig.partialConfidenceScore -
               (missingInputs.includes('loan commitments') ? 8 : 0) -
               (missingInputs.includes('loan details') ? 6 : 0)
           )
@@ -810,16 +831,16 @@ export function calculateBorrowingPower({
     loan_count: totalLoanCount,
   }
   const assumptionsDetail = {
-    income_shading_factor: BORROWING_POWER_CONFIG.incomeAdjustmentFactor,
-    rental_shading_factor: BORROWING_POWER_CONFIG.rentalIncomeShadingFactor,
+    income_shading_factor: runtimeConfig.incomeAdjustmentFactor,
+    rental_shading_factor: runtimeConfig.rentalIncomeShadingFactor,
     credit_card_commitment_rate: 0.03,
-    assessment_rate_pct: BORROWING_POWER_CONFIG.assessmentRatePct,
-    assessment_term_years: BORROWING_POWER_CONFIG.assessmentTermYears,
-    surplus_use_factor: BORROWING_POWER_CONFIG.surplusUsePct,
+    assessment_rate_pct: runtimeConfig.assessmentRatePct,
+    assessment_term_years: runtimeConfig.assessmentTermYears,
+    surplus_use_factor: runtimeConfig.surplusUsePct,
     benchmark_expense_rule: {
-      base: BORROWING_POWER_CONFIG.expenseFloorMonthly.base,
-      per_borrower: BORROWING_POWER_CONFIG.expenseFloorMonthly.perBorrower,
-      per_dependant: BORROWING_POWER_CONFIG.expenseFloorMonthly.dependant,
+      base: runtimeConfig.expenseFloorMonthly.base,
+      per_borrower: runtimeConfig.expenseFloorMonthly.perBorrower,
+      per_dependant: runtimeConfig.expenseFloorMonthly.dependant,
       applied: usedFloor,
     },
     mortgage_commitment_basis_used: loanCommitmentMeta.some(
@@ -865,10 +886,10 @@ export function calculateBorrowingPower({
     gross_monthly_rental_income: grossMonthlyRentalIncome,
     usable_monthly_rental_income: usableMonthlyRentalIncome,
     monthly_household_income: roundCurrency(
-      grossMonthlyHouseholdIncome * BORROWING_POWER_CONFIG.incomeAdjustmentFactor
+      grossMonthlyHouseholdIncome * runtimeConfig.incomeAdjustmentFactor
     ),
     monthly_other_income: roundCurrency(
-      grossMonthlyOtherIncome * BORROWING_POWER_CONFIG.incomeAdjustmentFactor
+      grossMonthlyOtherIncome * runtimeConfig.incomeAdjustmentFactor
     ),
     total_monthly_income: totalUsableMonthlyIncome,
     user_living_expenses:
