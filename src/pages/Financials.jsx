@@ -58,6 +58,7 @@ function defaultProfileForm() {
     employment_income_annual: '',
     partner_income_annual: '',
     other_income_annual: '',
+    cash_available_for_investment: '',
     groceries_household_monthly: '',
     utilities_phone_internet_monthly: '',
     transport_monthly: '',
@@ -196,6 +197,8 @@ export default function Financials({ session = null }) {
           employment_income_annual: financialProfile.employment_income_annual ?? '',
           partner_income_annual: derivePartnerIncome(financialProfile),
           other_income_annual: financialProfile.other_income_annual ?? '',
+          cash_available_for_investment:
+            financialProfile.cash_available_for_investment ?? '',
           groceries_household_monthly: financialProfile.groceries_household_monthly ?? '',
           utilities_phone_internet_monthly:
             financialProfile.utilities_phone_internet_monthly ?? '',
@@ -316,11 +319,20 @@ export default function Financials({ session = null }) {
     const income = parseMoney(profileForm.employment_income_annual)
     const partnerIncome = parseMoney(profileForm.partner_income_annual)
     const otherIncome = parseMoney(profileForm.other_income_annual)
+    const cashAvailableForInvestment = parseMoney(
+      profileForm.cash_available_for_investment
+    )
     const expenseCategoryValues = EXPENSE_CATEGORY_FIELDS.map(({ key }) => parseMoney(profileForm[key]))
     const dependants = Number(profileForm.dependants)
     const borrowerCount = Number(profileForm.borrower_count)
 
-    const nonNegativeMoneyFields = [income, partnerIncome, otherIncome, ...expenseCategoryValues]
+    const nonNegativeMoneyFields = [
+      income,
+      partnerIncome,
+      otherIncome,
+      cashAvailableForInvestment,
+      ...expenseCategoryValues,
+    ]
     const hasInvalidMoney = nonNegativeMoneyFields.some(
       (value) => value !== null && (!Number.isFinite(value) || value < 0)
     )
@@ -372,6 +384,7 @@ export default function Financials({ session = null }) {
         employment_income_annual: income,
         partner_income_annual: partnerIncome,
         other_income_annual: otherIncome,
+        cash_available_for_investment: cashAvailableForInvestment,
         groceries_household_monthly: expenseCategoryValues[0],
         utilities_phone_internet_monthly: expenseCategoryValues[1],
         transport_monthly: expenseCategoryValues[2],
@@ -645,6 +658,26 @@ export default function Financials({ session = null }) {
                   />
                 </Field>
 
+                <Field
+                  label="Cash available for investment ($)"
+                  helper="Liquid cash you are willing to deploy toward deposits and acquisition costs."
+                >
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={profileForm.cash_available_for_investment}
+                    onChange={(event) =>
+                      handleProfileChange(
+                        'cash_available_for_investment',
+                        event.target.value
+                      )
+                    }
+                    placeholder="e.g. 50000"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </Field>
+
                 <Field label="Borrower count">
                   <input
                     type="number"
@@ -765,6 +798,12 @@ export default function Financials({ session = null }) {
             <SummaryRow
               label="Living expenses"
               value={formatCurrency(financialProfile?.living_expenses_monthly || 0)}
+            />
+            <SummaryRow
+              label="Cash available for investment"
+              value={formatCurrency(
+                financialProfile?.cash_available_for_investment || 0
+              )}
             />
           </FinancialCard>
         </div>

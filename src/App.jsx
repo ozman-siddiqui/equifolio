@@ -3,7 +3,9 @@ import { Routes, Route } from 'react-router-dom'
 import { supabase } from './supabase'
 
 import Auth from './pages/Auth'
+import BorrowingPowerExplained from './pages/BorrowingPowerExplained'
 import Dashboard from './pages/Dashboard'
+import PortfolioGrowthScenarios from './pages/PortfolioGrowthScenarios'
 import Pricing from './pages/Pricing'
 import Properties from './pages/Properties'
 import PropertyDetail from './pages/PropertyDetail'
@@ -178,6 +180,7 @@ export default function App() {
         <Route path="property/:id" element={<PropertyDetail />} />
         <Route path="cashflow" element={<CashFlow />} />
         <Route path="mortgages" element={<Mortgages session={session} />} />
+        <Route path="growth-scenarios" element={<PortfolioGrowthScenarios />} />
         <Route
           path="financials"
           element={
@@ -188,6 +191,7 @@ export default function App() {
             </FinancialsErrorBoundary>
           }
         />
+        <Route path="borrowing-power" element={<BorrowingPowerExplained />} />
         <Route path="alerts" element={<Alerts />} />
         <Route path="pricing" element={<Pricing session={session} existingPlan={subscription?.plan || null} />} />
         <Route path="settings" element={<Settings session={session} subscription={subscription} />} />

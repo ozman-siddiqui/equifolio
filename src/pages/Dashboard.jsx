@@ -1,254 +1,79 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  Plus,
-  Building2,
-  CreditCard,
-  TrendingUp,
-  AlertTriangle,
-  ArrowRight,
-  DollarSign,
-  Home,
-  ChevronRight,
-  ShieldAlert,
-} from 'lucide-react'
+import { ChevronRight, Plus, Siren, Sparkles } from 'lucide-react'
 
 import AddPropertyModal from '../components/AddPropertyModal'
-import AddLoanModal from '../components/AddLoanModal'
-import EditPropertyModal from '../components/EditPropertyModal'
-import EditLoanModal from '../components/EditLoanModal'
-import CashFlowModal from '../components/CashFlowModal'
-import EditTransactionModal from '../components/EditTransactionModal'
-import { buildAlerts } from '../components/AlertsDropdown'
-import BorrowingPowerCard from '../components/BorrowingPowerCard'
-import PortfolioInsightsPanel from '../components/PortfolioInsightsPanel'
-import RefinanceModal from '../components/RefinanceModal'
 import UpgradeModal from '../components/UpgradeModal'
+import ActionCard from '../components/dashboard/ActionCard'
+import CommandCentreCard from '../components/dashboard/CommandCentreCard'
+import DashboardPromptCard from '../components/dashboard/DashboardPromptCard'
+import DashboardBorrowingPowerCard from '../components/dashboard/BorrowingPowerCard'
+import BorrowingPowerBreakdown from '../components/dashboard/BorrowingPowerBreakdown'
+import PropertyCard from '../components/dashboard/PropertyCard'
+import ScenarioCard from '../components/dashboard/ScenarioCard'
+import SetupProgress from '../components/dashboard/SetupProgress'
+import { buildAlerts } from '../components/AlertsDropdown'
+import { utilityPrimaryButtonClass, utilitySecondaryButtonClass } from '../components/CardPrimitives'
 import useFinancialData from '../hooks/useFinancialData'
 import usePortfolioData from '../hooks/usePortfolioData'
-import buildBorrowingPowerAnalysis from '../lib/borrowingPowerEngine'
+import calculateBorrowingPower from '../lib/borrowingPowerEngine'
+import buildDashboardCommandCenter from '../lib/dashboardCommandCenter'
 import buildDashboardCompleteness from '../lib/dashboardCompleteness'
-import buildPortfolioInsights from '../utils/buildPortfolioInsights'
-import { utilityPrimaryButtonClass } from '../components/CardPrimitives'
+import buildDashboardFinancialAudit from '../lib/dashboardFinancialAudit'
+import buildDashboardStateResolver from '../lib/dashboardStateResolver'
 
 const PLAN_LIMITS = { starter: 3, investor: 10, premium: Infinity }
 
-const toMonthly = (amount, frequency) => {
-  const map = {
-    Weekly: 52 / 12,
-    Fortnightly: 26 / 12,
-    Monthly: 1,
-    Quarterly: 1 / 3,
-    Annual: 1 / 12,
-  }
-  return Number(amount || 0) * (map[frequency] || 1)
-}
+const formatCurrency = (amount) =>
+  new Intl.NumberFormat('en-AU', {
+    style: 'currency',
+    currency: 'AUD',
+    maximumFractionDigits: 0,
+  }).format(Number(amount || 0))
 
 export default function Dashboard({ session, subscription }) {
   const navigate = useNavigate()
   const { properties, loans, transactions, loading, fetchData } = usePortfolioData()
-  const { financialProfile, liabilities, loading: financialsLoading } = useFinancialData()
+  const { financialProfile, liabilities } = useFinancialData()
 
   const [showAddProperty, setShowAddProperty] = useState(false)
-  const [showAddLoan, setShowAddLoan] = useState(false)
-  const [addLoanPropertyId, setAddLoanPropertyId] = useState(null)
-  const [editingProperty, setEditingProperty] = useState(null)
-  const [editingLoan, setEditingLoan] = useState(null)
-  const [cashFlowPropertyId, setCashFlowPropertyId] = useState(null)
-  const [editingTransaction, setEditingTransaction] = useState(null)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
-  const [refinancingLoan, setRefinancingLoan] = useState(null)
 
-  const formatCurrency = (amount) =>
-    new Intl.NumberFormat('en-AU', {
-      style: 'currency',
-      currency: 'AUD',
-      maximumFractionDigits: 0,
-    }).format(Number(amount) || 0)
+  const handleOpenAddProperty = () => {
+    const plan = (subscription?.plan || 'starter').toLowerCase()
+    const limit = PLAN_LIMITS[plan] || 3
 
-  const now = new Date()
-  const currentMonth = now.getMonth()
-  const currentYear = now.getFullYear()
-
-  const thisMonthTxns = transactions.filter((t) => {
-    const d = new Date(t.date)
-    return d.getMonth() === currentMonth && d.getFullYear() === currentYear
-  })
-
-  const portfolioMetrics = useMemo(() => {
-    const totalValue = properties.reduce(
-      (sum, p) => sum + Number(p.current_value || 0),
-      0
-    )
-
-    const totalDebt = loans.reduce(
-      (sum, l) => sum + Number(l.current_balance || 0),
-      0
-    )
-
-    const totalEquity = totalValue - totalDebt
-    const portfolioLVR =
-      totalValue > 0 ? ((totalDebt / totalValue) * 100).toFixed(1) : '0.0'
-
-    const usableEquity = totalValue > 0 ? totalValue * 0.8 - totalDebt : 0
-
-    const totalMonthlyIncome = thisMonthTxns
-      .filter((t) => t.type === 'income')
-      .reduce((sum, t) => sum + toMonthly(t.amount, t.frequency), 0)
-
-    const totalMonthlyExpenses = thisMonthTxns
-      .filter((t) => t.type === 'expense')
-      .reduce((sum, t) => sum + toMonthly(t.amount, t.frequency), 0)
-
-    const netMonthlyCashFlow = totalMonthlyIncome - totalMonthlyExpenses
-
-    return {
-      totalValue,
-      totalDebt,
-      totalEquity,
-      portfolioLVR,
-      usableEquity,
-      totalMonthlyIncome,
-      totalMonthlyExpenses,
-      netMonthlyCashFlow,
+    if (properties.length >= limit) {
+      setShowUpgradeModal(true)
+      return
     }
-  }, [properties, loans, thisMonthTxns])
 
-  const propertiesMissingLoanCoverage = useMemo(
-    () =>
-      properties.filter(
-        (property) =>
-          !loans.some((loan) => String(loan.property_id) === String(property.id))
-      ),
-    [properties, loans]
-  )
-
-  const hasIncompleteLoanCoverage =
-    properties.length > 0 && propertiesMissingLoanCoverage.length > 0
+    setShowAddProperty(true)
+  }
 
   const alerts = useMemo(() => buildAlerts(properties, loans), [properties, loans])
 
-  const fallbackAlerts = useMemo(() => {
-    const derived = []
-
-    const fixedExpiringSoon = loans.filter((loan) => {
-      if (loan.loan_type !== 'Fixed' || !loan.fixed_rate_expiry) return false
-      const days = Math.ceil(
-        (new Date(loan.fixed_rate_expiry) - new Date()) / (1000 * 60 * 60 * 24)
-      )
-      return days > 0 && days <= 90
-    })
-
-    if (fixedExpiringSoon.length > 0) {
-      derived.push({
-        id: 'fallback-fixed-expiry',
-        title: 'Fixed-rate expiry approaching',
-        description: `${fixedExpiringSoon.length} mortgage${
-          fixedExpiringSoon.length === 1 ? '' : 's'
-        } expire within 90 days.`,
-        urgent: fixedExpiringSoon.some((loan) => {
-          const days = Math.ceil(
-            (new Date(loan.fixed_rate_expiry) - new Date()) / (1000 * 60 * 60 * 24)
-          )
-          return days <= 30
-        }),
-      })
-    }
-
-    if (portfolioMetrics.netMonthlyCashFlow < 0) {
-      derived.push({
-        id: 'fallback-negative-cashflow',
-        title: 'Negative monthly cash flow',
-        description: `Portfolio is currently running at ${formatCurrency(
-          portfolioMetrics.netMonthlyCashFlow
-        )} this month.`,
-        urgent: false,
-      })
-    }
-
-    const highLvrProperties = properties.filter((property) => {
-      const propertyLoans = loans.filter(
-        (loan) => String(loan.property_id) === String(property.id)
-      )
-      const debt = propertyLoans.reduce(
-        (sum, loan) => sum + Number(loan.current_balance || 0),
-        0
-      )
-      const currentValue = Number(property.current_value || 0)
-      const lvr = currentValue > 0 ? (debt / currentValue) * 100 : 0
-      return lvr >= 80
-    })
-
-    if (highLvrProperties.length > 0) {
-      derived.push({
-        id: 'fallback-high-lvr',
-        title: 'High leverage detected',
-        description: `${highLvrProperties.length} propert${
-          highLvrProperties.length === 1 ? 'y is' : 'ies are'
-        } at or above 80% LVR.`,
-        urgent: false,
-      })
-    }
-
-    return derived
-  }, [loans, properties, portfolioMetrics.netMonthlyCashFlow])
-
-  const effectiveAlerts = alerts.length > 0 ? alerts : fallbackAlerts
-  const urgentAlerts = effectiveAlerts.filter((a) => a.urgent)
-  const nonUrgentAlerts = effectiveAlerts.filter((a) => !a.urgent)
-
-  const portfolioInsights = useMemo(
-    () =>
-      buildPortfolioInsights({
-        properties,
+  const borrowingPowerAnalysis = useMemo(() => {
+    try {
+      return calculateBorrowingPower({
+        financialProfile,
+        liabilities,
         loans,
         transactions,
-        alerts: effectiveAlerts,
-      }),
-    [properties, loans, transactions, effectiveAlerts]
-  )
+      })
+    } catch (error) {
+      console.error('Borrowing power analysis failed', {
+        error,
+        loanCount: Array.isArray(loans) ? loans.length : 0,
+      })
 
-  const borrowingPowerAnalysis = useMemo(
-    () => {
-      try {
-        return buildBorrowingPowerAnalysis({
-          financialProfile,
-          liabilities,
-          loans,
-          transactions,
-        })
-      } catch (error) {
-        console.error('Borrowing power analysis failed', {
-          error,
-          loanCount: Array.isArray(loans) ? loans.length : 0,
-          loanSummaries: Array.isArray(loans)
-            ? loans.map((loan, index) => ({
-                index,
-                current_balance: loan?.current_balance,
-                interest_rate: loan?.interest_rate,
-                monthly_repayment: loan?.monthly_repayment,
-                remaining_term_months: loan?.remaining_term_months,
-                repayment_type: loan?.repayment_type,
-                offset_balance: loan?.offset_balance,
-              }))
-            : [],
-        })
-
-        return {
-          status: 'error',
-          isBlocked: true,
-          error: true,
-          missing_inputs: ['mortgage details'],
-          missingInputs: ['mortgage details'],
-          confidenceScore: 0,
-          confidenceLabel: 'Low',
-          blockedReason: 'Borrowing power is temporarily unavailable',
-          blockedActionLabel: 'Review Mortgages',
-        }
+      return {
+        status: 'error',
+        isBlocked: true,
+        confidenceLabel: 'Low',
       }
-    },
-    [financialProfile, liabilities, loans, transactions]
-  )
+    }
+  }, [financialProfile, liabilities, loans, transactions])
 
   const dashboardCompleteness = useMemo(
     () =>
@@ -261,68 +86,189 @@ export default function Dashboard({ session, subscription }) {
     [properties, loans, financialProfile, liabilities]
   )
 
-  const topProperties = useMemo(() => {
-    return [...properties]
-      .map((property) => {
-        const propertyLoans = loans.filter(
-          (loan) => String(loan.property_id) === String(property.id)
-        )
+  const dashboardState = useMemo(
+    () =>
+      buildDashboardStateResolver({
+        properties,
+        loans,
+        transactions,
+        financialProfile,
+        liabilities,
+        dashboardCompleteness,
+        borrowingAnalysis: borrowingPowerAnalysis,
+      }),
+    [
+      properties,
+      loans,
+      transactions,
+      financialProfile,
+      liabilities,
+      dashboardCompleteness,
+      borrowingPowerAnalysis,
+    ]
+  )
 
-        const debt = propertyLoans.reduce(
-          (sum, loan) => sum + Number(loan.current_balance || 0),
-          0
-        )
+  const commandCenter = useMemo(
+    () =>
+      buildDashboardCommandCenter({
+        properties,
+        loans,
+        transactions,
+        alerts,
+        borrowingAnalysis: borrowingPowerAnalysis,
+        dashboardCompleteness,
+        dashboardState,
+        financialProfile,
+        liabilities,
+      }),
+    [
+      properties,
+      loans,
+      transactions,
+      alerts,
+      borrowingPowerAnalysis,
+      dashboardCompleteness,
+      dashboardState,
+      financialProfile,
+      liabilities,
+    ]
+  )
 
-        const currentValue = Number(property.current_value || 0)
-        const purchasePrice = Number(property.purchase_price || 0)
-        const equity = currentValue - debt
-        const growth = currentValue - purchasePrice
+  const borrowingRenderState = useMemo(() => {
+    const setupComplete = Boolean(dashboardState?.setupComplete)
+    const analysisStatus = borrowingPowerAnalysis?.status
+    const confidence = borrowingPowerAnalysis?.confidenceLabel || 'Low'
 
-        return {
-          ...property,
-          debt,
-          equity,
-          growth,
-        }
-      })
-      .sort((a, b) => Number(b.current_value || 0) - Number(a.current_value || 0))
-      .slice(0, 3)
-  }, [properties, loans])
-
-  const strongestGrowthProperty = useMemo(() => {
-    if (properties.length === 0) return null
-
-    return [...properties]
-      .map((property) => ({
-        ...property,
-        growth:
-          Number(property.current_value || 0) - Number(property.purchase_price || 0),
-      }))
-      .sort((a, b) => b.growth - a.growth)[0]
-  }, [properties])
-
-  const weakestGrowthProperty = useMemo(() => {
-    if (properties.length === 0) return null
-
-    return [...properties]
-      .map((property) => ({
-        ...property,
-        growth:
-          Number(property.current_value || 0) - Number(property.purchase_price || 0),
-      }))
-      .sort((a, b) => a.growth - b.growth)[0]
-  }, [properties])
-
-  const handleOpenAddProperty = () => {
-    const plan = (subscription?.plan || 'starter').toLowerCase()
-    const limit = PLAN_LIMITS[plan] || 3
-
-    if (properties.length >= limit) {
-      setShowUpgradeModal(true)
-    } else {
-      setShowAddProperty(true)
+    if (!setupComplete) {
+      return {
+        state: 'locked',
+        confidence,
+        warning: null,
+      }
     }
-  }
+
+    if (analysisStatus === 'error') {
+      return {
+        state: 'warning',
+        confidence: 'Low',
+        warning:
+          'Borrowing inputs are complete, but one or more mortgage assumptions could not be assessed cleanly. Review the breakdown before acting.',
+      }
+    }
+
+    if (analysisStatus === 'partial') {
+      return {
+        state: 'warning',
+        confidence,
+        warning:
+          'Borrowing analysis is shown using inferred or partial inputs. Review the explainability notes before acting.',
+      }
+    }
+
+    return {
+      state: 'ready',
+      confidence,
+      warning: null,
+    }
+  }, [dashboardState, borrowingPowerAnalysis])
+
+  const dashboardFinancialAudit = useMemo(
+    () =>
+      buildDashboardFinancialAudit({
+        properties,
+        loans,
+        transactions,
+        financialProfile,
+        liabilities,
+        borrowingAnalysis: borrowingPowerAnalysis,
+        dashboardCompleteness,
+        dashboardState,
+        commandCenter,
+        borrowingRenderState,
+      }),
+    [
+      properties,
+      loans,
+      transactions,
+      financialProfile,
+      liabilities,
+      borrowingPowerAnalysis,
+      dashboardCompleteness,
+      dashboardState,
+      commandCenter,
+      borrowingRenderState,
+    ]
+  )
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.__equifolioDashboardAudit = dashboardFinancialAudit
+    }
+
+    console.debug('Equifolio dashboard financial audit', dashboardFinancialAudit)
+  }, [dashboardFinancialAudit])
+
+  useEffect(() => {
+    const borrowingSnapshot = {
+      scope: 'dashboard',
+      inputs: {
+        financialProfilePresent: Boolean(financialProfile),
+        liabilityCount: Array.isArray(liabilities) ? liabilities.length : null,
+        loanCount: Array.isArray(loans) ? loans.length : null,
+        transactionCount: Array.isArray(transactions) ? transactions.length : null,
+      },
+      calculatedSurplus: borrowingPowerAnalysis?.net_monthly_surplus ?? null,
+      borrowingCapacity: borrowingPowerAnalysis?.borrowing_power_estimate ?? null,
+      assessedMortgageCommitments:
+        borrowingPowerAnalysis?.assessed_mortgage_commitments_monthly ?? null,
+    }
+
+    if (typeof window !== 'undefined') {
+      window.__equifolioBorrowingSnapshots = {
+        ...(window.__equifolioBorrowingSnapshots || {}),
+        dashboard: borrowingSnapshot,
+      }
+    }
+
+    const debugPayload = {
+      setupComplete: dashboardState?.isSetupComplete,
+      unifiedSetupComplete: dashboardState?.setupComplete,
+      setupProgress: {
+        setupCompletionLabel: dashboardState?.setupCompletionLabel,
+        stage: dashboardState?.stage,
+        checklist: dashboardState?.setupChecklist,
+      },
+      financialProfile,
+      liabilities,
+      loans,
+      borrowingInputs: borrowingSnapshot.inputs,
+      assessedMortgageCommitments:
+        borrowingPowerAnalysis?.assessed_mortgage_commitments_monthly ?? null,
+      calculatedSurplus: borrowingSnapshot.calculatedSurplus,
+      borrowingCapacity: borrowingSnapshot.borrowingCapacity,
+      borrowingRenderState: borrowingRenderState.state,
+      borrowingConfidenceState: borrowingRenderState.confidence,
+    }
+
+    console.debug('Equifolio borrowing render debug', debugPayload)
+
+    if (dashboardState?.setupComplete && borrowingRenderState.state === 'locked') {
+      console.warn('Setup/borrowing state mismatch detected', debugPayload)
+    }
+  }, [
+    dashboardState,
+    financialProfile,
+    liabilities,
+    loans,
+    transactions,
+    borrowingPowerAnalysis,
+    borrowingRenderState,
+  ])
+
+  const totalPropertyValue = useMemo(
+    () => properties.reduce((sum, property) => sum + Number(property?.current_value || 0), 0),
+    [properties]
+  )
 
   if (loading) {
     return (
@@ -334,719 +280,565 @@ export default function Dashboard({ session, subscription }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <main
-        className="max-w-7xl mx-auto px-4 py-8"
-        data-completeness-level={dashboardCompleteness.completenessLevel}
-        data-borrowing-ready={dashboardCompleteness.borrowingReady}
-        data-refinance-ready={dashboardCompleteness.refinanceReady}
-      >
-        <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <div className="p-6 md:p-8 border-b border-gray-100">
-            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-              <div className="min-w-0">
-                <div className="inline-flex items-center gap-2 text-xs font-medium text-primary-700 bg-primary-50 px-3 py-1 rounded-full mb-4">
-                  <Building2 size={13} />
-                  Portfolio Command Centre
-                </div>
+      <main className="mx-auto max-w-7xl px-4 py-8">
+        <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-3xl">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+                Portfolio
+              </p>
 
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
-                  Portfolio Dashboard
-                </h1>
+              <h1 className="mt-4 text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">
+                Portfolio Command Centre
+              </h1>
 
-                <p className="text-gray-500 mt-2 max-w-2xl">
-                  Monitor portfolio health, act on urgent lending events, and jump
-                  quickly into property, mortgage, and cash flow workflows.
-                </p>
-              </div>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-gray-600 md:text-base">
+                Your current position, constraints, and next best actions.
+              </p>
+            </div>
 
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={() => navigate('/properties')}
-                  className="inline-flex items-center gap-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
-                >
-                  View Properties
-                  <ChevronRight size={16} />
-                </button>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => navigate('/properties')}
+                className={utilitySecondaryButtonClass}
+              >
+                View Properties
+                <ChevronRight size={15} />
+              </button>
 
-                <button
-                  onClick={handleOpenAddProperty}
-                  className={utilityPrimaryButtonClass}
-                >
-                  <Plus size={15} />
-                  Add Property
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={handleOpenAddProperty}
+                className={utilityPrimaryButtonClass}
+              >
+                <Plus size={15} />
+                Add Property
+              </button>
             </div>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-4 p-6 md:p-8 bg-gray-50/70">
-            <KpiCard
-              label="Portfolio Value"
-              value={formatCurrency(portfolioMetrics.totalValue)}
-              helper={`${properties.length} ${
-                properties.length === 1 ? 'property' : 'properties'
-              }`}
-            />
-            <KpiCard
-              label="Total Equity"
-              value={
-                hasIncompleteLoanCoverage
-                  ? '—'
-                  : formatCurrency(portfolioMetrics.totalEquity)
-              }
-              helper={
-                hasIncompleteLoanCoverage
-                  ? 'Add mortgage details for all properties to calculate portfolio equity and LVR accurately.'
-                  : 'Value minus debt'
-              }
-              valueClassName={
-                hasIncompleteLoanCoverage
-                  ? 'text-gray-400'
-                  : portfolioMetrics.totalEquity >= 0
-                    ? 'text-green-600'
-                    : 'text-red-500'
-              }
-            />
-            <KpiCard
-              label="Portfolio LVR"
-              value={
-                hasIncompleteLoanCoverage ? '—' : `${portfolioMetrics.portfolioLVR}%`
-              }
-              helper={
-                hasIncompleteLoanCoverage
-                  ? 'Add mortgage details for all properties to calculate portfolio equity and LVR accurately.'
-                  : 'Loan to value ratio'
-              }
-              valueClassName={
-                hasIncompleteLoanCoverage ? 'text-gray-400' : 'text-gray-900'
-              }
-            />
-            <KpiCard
-              label="Usable Equity"
-              value={
-                hasIncompleteLoanCoverage
-                  ? '—'
-                  : formatCurrency(Math.max(0, portfolioMetrics.usableEquity))
-              }
-              helper={
-                hasIncompleteLoanCoverage
-                  ? 'Add mortgage details for all properties to calculate portfolio equity and LVR accurately.'
-                  : 'Available at 80% LVR'
-              }
-              valueClassName={
-                hasIncompleteLoanCoverage
-                  ? 'text-gray-400'
-                  : portfolioMetrics.usableEquity >= 0
-                    ? 'text-primary-600'
-                    : 'text-red-500'
-              }
-            />
-            <KpiCard
-              label="Portfolio Cash Flow"
-              value={
-                transactions.length === 0
-                  ? '—'
-                  : formatCurrency(portfolioMetrics.netMonthlyCashFlow)
-              }
-              helper={`${now.toLocaleString('en-AU', {
-                month: 'long',
-              })} portfolio property cash flow, not household net position`}
-              valueClassName={
-                portfolioMetrics.netMonthlyCashFlow >= 0
-                  ? 'text-green-600'
-                  : 'text-red-500'
-              }
-            />
-          </div>
-
-          {hasIncompleteLoanCoverage ? (
-            <div className="border-t border-gray-100 px-6 py-4 md:px-8">
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <p className="text-sm text-amber-700">
-                  Add mortgage details for all properties to calculate portfolio equity and LVR accurately.
-                </p>
-
-                <button
-                  type="button"
-                  onClick={() => navigate('/mortgages')}
-                  className="inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
-                >
-                  Add Mortgage
-                  <ChevronRight size={15} />
-                </button>
-              </div>
-            </div>
-          ) : null}
         </section>
 
-        {!(
-          dashboardCompleteness.hasProperties &&
-          dashboardCompleteness.hasLoans &&
-          dashboardCompleteness.financialProfileComplete &&
-          dashboardCompleteness.hasLiabilitiesData
-        ) && (
-          <section className="mt-6 bg-white rounded-2xl border border-gray-100 p-6">
-            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">Setup Progress</h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  Complete the core data layer to unlock stronger portfolio, refinance, and borrowing insights.
-                </p>
-              </div>
-              <span className="inline-flex items-center rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700">
-                {[
-                  dashboardCompleteness.hasProperties,
-                  dashboardCompleteness.hasLoans,
-                  dashboardCompleteness.financialProfileComplete,
-                  dashboardCompleteness.hasLiabilitiesData,
-                ].filter(Boolean).length}
-                /4 complete
-              </span>
+        <section className="mt-4 rounded-3xl border border-gray-100 bg-white px-5 py-4 shadow-sm shadow-gray-100/70">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-wrap items-center gap-6">
+              <StripMetric
+                label="Data Coverage"
+                value={`${commandCenter.dataCoveragePct}%`}
+              />
+              <StripMetric
+                label="Decision Confidence"
+                value={commandCenter.decisionConfidence}
+              />
             </div>
 
-            <div className="mt-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-              <SetupChecklistItem
-                label="Properties"
-                complete={dashboardCompleteness.hasProperties}
-                description={dashboardCompleteness.messages.properties}
-                actionLabel="Add property"
-                onClick={handleOpenAddProperty}
+            <p className="text-sm text-gray-500">
+              Better data coverage sharpens borrowing, refinance, and portfolio actions.
+            </p>
+          </div>
+        </section>
+
+        <SetupProgress state={dashboardState} onOpenSection={(route) => navigate(route)} />
+
+        {!dashboardState.hasProperties ? (
+          <section className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-2">
+            {dashboardState.missingSections.map((section) => (
+              <DashboardPromptCard
+                key={section.id}
+                eyebrow={section.label}
+                title={section.title}
+                body={section.body}
+                ctaLabel={section.ctaLabel}
+                onAction={() => navigate(section.route)}
               />
-              <SetupChecklistItem
-                label="Loans"
-                complete={dashboardCompleteness.hasLoans}
-                description={dashboardCompleteness.messages.loans}
-                actionLabel="Add mortgage"
-                onClick={() => setShowAddLoan(true)}
-              />
-              <SetupChecklistItem
-                label="Financial Profile"
-                complete={dashboardCompleteness.financialProfileComplete}
-                description={dashboardCompleteness.messages.financialProfile}
-                actionLabel="Complete Financials"
-                onClick={() => navigate('/financials')}
-              />
-              <SetupChecklistItem
-                label="Liabilities"
-                complete={dashboardCompleteness.hasLiabilitiesData}
-                description={dashboardCompleteness.messages.liabilities}
-                actionLabel="Add liabilities"
-                onClick={() => navigate('/financials')}
-              />
-            </div>
+            ))}
           </section>
-        )}
-
-        {urgentAlerts.length > 0 && (
-          <section className="mt-6 bg-red-50 border border-red-200 rounded-2xl p-5">
-            <div className="flex items-start gap-3">
-              <div className="mt-1">
-                <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                  <div>
-                    <h2 className="text-sm font-semibold text-red-800">
-                      {urgentAlerts.length === 1
-                        ? '1 urgent alert'
-                        : `${urgentAlerts.length} urgent alerts`}
-                    </h2>
-                    <p className="text-xs text-red-600 mt-1">
-                      Action required within 30 days
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => navigate('/alerts')}
-                    className="inline-flex items-center gap-2 text-sm font-medium text-red-700 hover:text-red-800 transition-colors"
-                  >
-                    View Alerts
-                    <ArrowRight size={15} />
-                  </button>
-                </div>
-
-                <div className="mt-3 space-y-1.5">
-                  {urgentAlerts.slice(0, 3).map((alert) => (
-                    <p key={alert.id} className="text-sm text-red-700">
-                      · {alert.title}: {alert.description}
-                      {typeof alert.days !== 'undefined' ? ` (${alert.days} days)` : ''}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-6">
-          <div className="xl:col-span-2 space-y-6">
-            <section className="bg-white rounded-2xl border border-gray-100 p-6">
-              <div className="flex items-center justify-between gap-4 mb-5">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Quick Navigation
-                  </h2>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Jump into the right workspace
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <QuickNavCard
-                  icon={<Home size={18} className="text-primary-600" />}
-                  title="Properties"
-                  description="Browse, filter, and drill into each property."
-                  actionLabel="Open Properties"
-                  onClick={() => navigate('/properties')}
+        ) : (
+          <>
+            <section className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-3">
+              {dashboardState.canShowNetPosition ? (
+                <CommandCentreCard
+                  eyebrow="Net Position"
+                  title={dashboardState.showNetPositionPartial ? 'Asset Value' : 'Net Equity'}
+                  value={
+                    dashboardState.showNetPositionPartial
+                      ? totalPropertyValue
+                      : commandCenter.hero.netPosition.value
+                  }
+                  helper={
+                    dashboardState.showNetPositionPartial
+                      ? 'Asset-only view until all mortgages are recorded'
+                      : commandCenter.hero.netPosition.helper
+                  }
+                  subtitle={
+                    dashboardState.showNetPositionPartial
+                      ? 'Add mortgage details for every property to calculate true net equity, leverage, and LVR.'
+                      : commandCenter.hero.netPosition.subtitle
+                  }
+                  cta={{
+                    label: dashboardState.showNetPositionPartial ? 'Add Mortgage' : commandCenter.hero.netPosition.cta.label,
+                  }}
+                  onClick={() =>
+                    navigate(
+                      dashboardState.showNetPositionPartial
+                        ? '/mortgages'
+                        : commandCenter.hero.netPosition.cta.route
+                    )
+                  }
                 />
-
-                <QuickNavCard
-                  icon={<DollarSign size={18} className="text-green-600" />}
-                  title="Cash Flow"
-                  description="Review income, expenses, and monthly cash performance."
-                  actionLabel="Open Cash Flow"
-                  onClick={() => navigate('/cashflow')}
+              ) : (
+                <DashboardPromptCard
+                  eyebrow="Net Position"
+                  title="Add property values"
+                  body="Portfolio position only appears when your properties have current values recorded."
+                  ctaLabel="Review properties"
+                  onAction={() => navigate('/properties')}
                 />
+              )}
 
-                <QuickNavCard
-                  icon={<CreditCard size={18} className="text-orange-600" />}
-                  title="Mortgages"
-                  description="Monitor balances, fixed rates, and refinance opportunities."
-                  actionLabel="Open Mortgages"
-                  onClick={() => navigate('/mortgages')}
+              {dashboardState.canShowMonthlyPosition ? (
+                <CommandCentreCard
+                  eyebrow="Monthly Position"
+                  title="Cash Flow and Surplus"
+                  metrics={[
+                    {
+                      label: 'Property cash flow',
+                      value: dashboardState.canShowPropertyCashFlow
+                        ? commandCenter.hero.monthlyPosition.propertyCashFlow
+                        : null,
+                      helper: dashboardState.canShowPropertyCashFlow
+                        ? 'Portfolio-level property inflows less property expenses'
+                        : 'Add rent and property expenses to unlock portfolio cash flow',
+                      tone:
+                        commandCenter.hero.monthlyPosition.propertyCashFlow >= 0
+                          ? 'text-green-600'
+                          : 'text-red-500',
+                    },
+                    {
+                      label: 'Actual monthly surplus',
+                      value: dashboardState.canShowActualMonthlySurplus
+                        ? borrowingPowerAnalysis?.actual_monthly_surplus
+                        : null,
+                      displayValue: dashboardState.canShowActualMonthlySurplus
+                        ? null
+                        : 'Incomplete',
+                      helper: dashboardState.canShowActualMonthlySurplus
+                        ? 'Estimated after tax. Uses after-tax income, recorded rent, property expenses, actual liabilities, and current mortgage repayments.'
+                        : 'Complete cash flow tracking to calculate your real monthly position.',
+                      tone:
+                        Number(borrowingPowerAnalysis?.actual_monthly_surplus) >= 0
+                          ? 'text-primary-700'
+                          : dashboardState.canShowActualMonthlySurplus
+                            ? 'text-red-500'
+                            : 'text-gray-500',
+                    },
+                    {
+                      label: 'Serviceability surplus',
+                      value: dashboardState.canShowHouseholdSurplus
+                        ? commandCenter.hero.monthlyPosition.householdSurplus
+                        : null,
+                      helper: dashboardState.canShowHouseholdSurplus
+                        ? 'Surplus after lender-style income shading, assessment buffers, and assessed commitments.'
+                        : 'Add Financials to unlock serviceability surplus analysis',
+                      tone:
+                        Number(commandCenter.hero.monthlyPosition.householdSurplus) >= 0
+                          ? 'text-primary-700'
+                          : 'text-red-500',
+                    },
+                  ]}
+                  subtitle="Property cash flow, your real monthly position, and the lender view are shown separately."
+                  cta={{
+                    label:
+                      !dashboardState.canShowActualMonthlySurplus || !dashboardState.canShowPropertyCashFlow
+                        ? 'Go to Cash Flow'
+                        : dashboardState.canShowHouseholdSurplus
+                          ? 'Explore cash flow'
+                          : 'Open financials',
+                  }}
+                  onClick={() =>
+                    navigate(
+                      !dashboardState.canShowActualMonthlySurplus || !dashboardState.canShowPropertyCashFlow
+                        ? '/cashflow'
+                        : dashboardState.canShowHouseholdSurplus
+                          ? '/cashflow'
+                          : '/financials'
+                    )
+                  }
                 />
-              </div>
+              ) : (
+                <DashboardPromptCard
+                  eyebrow="Monthly Position"
+                  title="Complete monthly position inputs"
+                  body="Add property transactions and household financials to unlock portfolio cash flow, actual monthly surplus, and lender-view serviceability analysis."
+                  ctaLabel="Open setup"
+                  onAction={() => navigate('/financials')}
+                />
+              )}
+
+              {dashboardState.canShowBorrowing ? (
+                <DashboardBorrowingPowerCard
+                  currentCapacity={commandCenter.hero.borrowingPower.currentCapacity}
+                  unlockPotential={commandCenter.hero.borrowingPower.unlockPotential}
+                  subtitle={
+                    borrowingRenderState.state === 'warning'
+                      ? 'Borrowing output is available, but confidence is reduced. Use the breakdown before acting.'
+                      : 'Additional borrowing headroom visible from your next best move'
+                  }
+                  warning={borrowingRenderState.warning}
+                  confidence={borrowingRenderState.confidence}
+                  cta={{ label: 'Explore scenarios' }}
+                  onCta={() => navigate('/growth-scenarios')}
+                />
+              ) : (
+                <DashboardPromptCard
+                  eyebrow="Borrowing Power"
+                  title="Complete setup to unlock borrowing analysis"
+                  body="Borrowing power stays locked until Financials, liabilities, and mortgage commitments are fully recorded."
+                  ctaLabel={dashboardState.missingSections[0]?.ctaLabel || 'Open setup'}
+                  onAction={() => navigate(dashboardState.missingSections[0]?.route || '/financials')}
+                />
+              )}
             </section>
 
-            {!dashboardCompleteness.loanDataComplete &&
-            dashboardCompleteness.hasLoans ? (
-              <section className="rounded-2xl border border-amber-200 bg-amber-50/70 p-5">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle
-                    size={18}
-                    className="mt-0.5 shrink-0 text-amber-600"
-                  />
+            <section className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-[1.45fr,0.8fr]">
+              {dashboardState.canShowBorrowing ? (
+                <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
+                  <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+                        Growth
+                      </p>
+                      <h2 className="mt-2 text-2xl font-semibold text-gray-900">
+                        Deploy your borrowing capacity
+                      </h2>
+                      <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+                        Engine-generated acquisition scenarios based on your real serviceability and capital position.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    {commandCenter.capacityUseCases.slice(0, 3).map((scenario, index) => (
+                      <ScenarioCard
+                        key={scenario.id}
+                        label={`Option ${String.fromCharCode(65 + index)}`}
+                        title={scenario.title}
+                        priceRange={scenario.estimatedPriceRange}
+                        yieldText={scenario.expectedRentalYield}
+                        metricText={scenario.monthlyCashFlow}
+                        rationale={scenario.outcome}
+                        onExplore={() => navigate('/growth-scenarios')}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ) : (
+                <LockedChecklistCard
+                  eyebrow="Growth"
+                  title="Complete setup to unlock borrowing analysis"
+                  body="Scenarios only appear when serviceability inputs are complete enough to support a real borrowing view."
+                  missingSections={dashboardState.missingSections}
+                  onAction={(route) => navigate(route)}
+                />
+              )}
+
+              {dashboardState.canShowTopActions ? (
+                <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
                   <div>
-                    <h2 className="text-sm font-semibold text-amber-900">
-                      Mortgage insights are running on limited data
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+                      Actions
+                    </p>
+                    <h2 className="mt-2 text-2xl font-semibold text-gray-900">
+                      What to fix first
                     </h2>
-                    <p className="mt-1 text-sm text-amber-800">
-                      {dashboardCompleteness.messages.refinance}
+                    <p className="mt-2 text-sm leading-6 text-gray-600">
+                      Ranked actions unlocked from validated portfolio, mortgage, and household inputs.
                     </p>
                   </div>
+
+                  <div className="mt-5 space-y-3">
+                    {commandCenter.topActions.map((action, index) => (
+                      <ActionCard
+                        key={action.id}
+                        rank={action.rank ?? index + 1}
+                        sequenceLabel={action.sequenceLabel}
+                        title={action.title}
+                        impact={action.impactLabel || action.impact}
+                        monthlyImpact={action.monthlyImpactDisplay}
+                        yearlyImpact={action.yearlyImpactDisplay}
+                        borrowingImpact={action.borrowingImpactDisplay}
+                        rankReason={action.sequenceReason}
+                        explanation={action.whyItMatters || action.problem}
+                        featured={index === 0}
+                        onExplore={() => navigate(action.route)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ) : (
+                <LockedChecklistCard
+                  eyebrow="Actions"
+                  title="Unlock your top actions"
+                  body={dashboardState.topActionsLockedReason}
+                  missingSections={dashboardState.missingSections}
+                  onAction={(route) => navigate(route)}
+                />
+              )}
+            </section>
+
+            {dashboardState.canShowBorrowing ? (
+              <section className="mt-5">
+                <BorrowingPowerBreakdown
+                  analysis={borrowingPowerAnalysis}
+                  onViewFullBreakdown={() => navigate('/borrowing-power')}
+                />
+              </section>
+            ) : null}
+
+            {dashboardState.canShowBorrowing && commandCenter.compareOptions?.length > 0 ? (
+              <section className="mt-5 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+                  Trade-offs
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold text-gray-900">
+                  Compare your options
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-gray-600">
+                  See the financial consequences of staying put, applying the top recommendation, or deploying capital now.
+                </p>
+
+                <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-3">
+                  {commandCenter.compareOptions.map((option) => (
+                    <CompareOptionCard key={option.id} option={option} />
+                  ))}
                 </div>
               </section>
             ) : null}
 
-            <PortfolioInsightsPanel
-              insights={portfolioInsights}
-              onNavigate={(to) => navigate(to)}
-            />
+            {dashboardState.canShowBorrowing && Array.isArray(borrowingPowerAnalysis?.topConstraints) && borrowingPowerAnalysis.topConstraints.length > 0 ? (
+              <section className="mt-5 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+                  Constraints
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold text-gray-900">
+                  What&apos;s holding you back
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-gray-600">
+                  Your borrowing is primarily limited by:
+                </p>
 
-            <section className="bg-white rounded-2xl border border-gray-100 p-6">
-              <div className="flex items-center justify-between gap-4 mb-5">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Top Properties
-                  </h2>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Highest-value properties in your portfolio
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => navigate('/properties')}
-                  className="text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
-                >
-                  View all
-                </button>
-              </div>
-
-              {topProperties.length === 0 ? (
-                <EmptyMiniState
-                  title="No properties yet"
-                  description="Add your first property to start building your portfolio."
-                />
-              ) : (
-                <div className="space-y-3">
-                  {topProperties.map((property) => (
-                    <button
-                      key={property.id}
-                      type="button"
-                      onClick={() => navigate(`/property/${property.id}`)}
-                      className="w-full text-left rounded-xl border border-gray-100 p-4 hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-sm font-semibold text-gray-900">
-                              {property.address}
-                            </p>
-                            {property.property_use === 'owner_occupied' && (
-                              <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">
-                                Owner Occupied
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-500 mt-1">
-                            {property.suburb}, {property.state}
-                            {property.property_type ? ` · ${property.property_type}` : ''}
-                          </p>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-4 md:min-w-[320px]">
-                          <MiniMetric
-                            label="Value"
-                            value={formatCurrency(property.current_value)}
-                          />
-                          <MiniMetric
-                            label="Equity"
-                            value={formatCurrency(property.equity)}
-                            valueClassName={
-                              property.equity >= 0 ? 'text-green-600' : 'text-red-500'
-                            }
-                          />
-                          <MiniMetric
-                            label="Growth"
-                            value={formatCurrency(property.growth)}
-                            valueClassName={
-                              property.growth >= 0 ? 'text-green-600' : 'text-red-500'
-                            }
-                          />
-                        </div>
+                <ul className="mt-4 space-y-3 text-sm leading-6 text-gray-700">
+                  {borrowingPowerAnalysis.topConstraints.slice(0, 2).map((constraint) => (
+                    <li key={constraint.type} className="flex items-start gap-3">
+                      <span className="mt-[10px] h-1.5 w-1.5 shrink-0 rounded-full bg-primary-600" />
+                      <div>
+                        <p className="font-medium text-gray-900">{constraint.message}</p>
+                        <p className="text-xs uppercase tracking-wide text-gray-400">
+                          {constraint.severity} severity
+                        </p>
                       </div>
-                    </button>
+                    </li>
                   ))}
-                </div>
-              )}
-            </section>
-          </div>
+                </ul>
+              </section>
+            ) : null}
+          </>
+        )}
 
-          <div className="space-y-6">
-            <BorrowingPowerCard
-              analysis={borrowingPowerAnalysis}
-              loading={financialsLoading}
-              onExplore={() => navigate('/mortgages')}
-              onCompleteFinancials={() => navigate('/financials')}
-            />
+        {dashboardState.hasProperties && commandCenter.urgentAlerts.length > 0 ? (
+          <section className="mt-8 rounded-[2rem] border border-red-100 bg-red-50/70 p-6 md:p-7">
+            <div className="flex items-center gap-2 text-red-700">
+              <Siren size={18} />
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em]">
+                Smart Alerts
+              </p>
+            </div>
 
-            <section className="bg-white rounded-2xl border border-gray-100 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <TrendingUp size={18} className="text-primary-600" />
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Portfolio Signals
+            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+              {commandCenter.urgentAlerts.map((alert) => (
+                <button
+                  key={alert.id}
+                  type="button"
+                  onClick={() => navigate(alert.route)}
+                  className="rounded-2xl border border-red-100 bg-white/80 p-5 text-left transition-colors hover:bg-white"
+                >
+                  <p className="text-sm font-semibold text-gray-900">{alert.title}</p>
+                  <p className="mt-2 text-sm font-medium text-red-700">{alert.impact}</p>
+                  <p className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary-600">
+                    Explore
+                    <ChevronRight size={15} />
+                  </p>
+                </button>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {dashboardState.hasProperties ? (
+          <div className="mt-8">
+          <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+                  Portfolio
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold text-gray-900">
+                  Properties at a glance
                 </h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+                  Each property shows its current position, so you can spot where
+                  the next intervention matters most.
+                </p>
               </div>
 
-              <div className="space-y-4">
-                <SignalCard
-                  label="Best performer"
-                  title={strongestGrowthProperty?.address || '—'}
-                  value={
-                    strongestGrowthProperty
-                      ? formatCurrency(
-                          Number(strongestGrowthProperty.current_value || 0) -
-                            Number(strongestGrowthProperty.purchase_price || 0)
-                        )
-                      : '—'
-                  }
-                  tone="positive"
-                />
+              <button
+                type="button"
+                onClick={() => navigate('/properties')}
+                className="inline-flex items-center gap-2 text-sm font-semibold text-primary-600 transition-colors hover:text-primary-700"
+              >
+                View all
+                <ChevronRight size={15} />
+              </button>
+            </div>
 
-                <SignalCard
-                  label="Weakest performer"
-                  title={weakestGrowthProperty?.address || '—'}
-                  value={
-                    weakestGrowthProperty
-                      ? formatCurrency(
-                          Number(weakestGrowthProperty.current_value || 0) -
-                            Number(weakestGrowthProperty.purchase_price || 0)
-                        )
-                      : '—'
-                  }
-                  tone="negative"
-                />
-
-                <SignalCard
-                  label="Monthly portfolio net"
-                  title={now.toLocaleString('en-AU', {
-                    month: 'long',
-                    year: 'numeric',
-                  })}
-                  value={
-                    transactions.length === 0
-                      ? '—'
-                      : formatCurrency(portfolioMetrics.netMonthlyCashFlow)
-                  }
-                  tone={portfolioMetrics.netMonthlyCashFlow >= 0 ? 'positive' : 'negative'}
-                />
-              </div>
-            </section>
-
-            <section className="bg-white rounded-2xl border border-gray-100 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <AlertTriangle size={18} className="text-orange-600" />
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Alerts Snapshot
-                </h2>
-              </div>
-
-              {effectiveAlerts.length === 0 ? (
-                <EmptyMiniState
-                  title="No alerts right now"
-                  description="No current lending or portfolio risk signals detected."
-                  icon={<ShieldAlert size={18} className="text-green-600" />}
-                />
+            <div className="mt-5 space-y-4">
+              {commandCenter.portfolioProperties.length > 0 ? (
+                commandCenter.portfolioProperties.map((property) => (
+                  <PropertyCard
+                    key={property.id}
+                    address={property.address}
+                    location={property.location}
+                    equity={property.equity}
+                    cashFlow={property.cashFlow}
+                    status={property.status}
+                    hasLoanCoverage={property.hasLoanCoverage}
+                    onExplore={() => navigate(property.route)}
+                  />
+                ))
               ) : (
-                <div className="space-y-3">
-                  {urgentAlerts.slice(0, 2).map((alert) => (
-                    <AlertRow key={alert.id} alert={alert} urgent />
-                  ))}
-                  {nonUrgentAlerts.slice(0, 2).map((alert) => (
-                    <AlertRow key={alert.id} alert={alert} />
-                  ))}
-
-                  <button
-                    onClick={() => navigate('/alerts')}
-                    className="w-full mt-2 text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
-                  >
-                    View all alerts
-                  </button>
-                </div>
+                <EmptyState
+                  title="No properties yet"
+                  description="Add your first property to activate the Command Centre."
+                  actionLabel="Add Property"
+                  onAction={handleOpenAddProperty}
+                />
               )}
-            </section>
+            </div>
+          </section>
           </div>
-        </div>
+        ) : null}
       </main>
 
-      {showAddProperty && (
+      {showAddProperty ? (
         <AddPropertyModal
           userId={session.user.id}
           onClose={() => setShowAddProperty(false)}
           onSave={fetchData}
         />
-      )}
+      ) : null}
 
-      {showAddLoan && (
-        <AddLoanModal
-          userId={session.user.id}
-          properties={properties}
-          preselectedPropertyId={addLoanPropertyId}
-          onClose={() => {
-            setShowAddLoan(false)
-            setAddLoanPropertyId(null)
-          }}
-          onSave={fetchData}
-        />
-      )}
-
-      {editingProperty && (
-        <EditPropertyModal
-          property={editingProperty}
-          userId={session.user.id}
-          onClose={() => setEditingProperty(null)}
-          onSave={fetchData}
-        />
-      )}
-
-      {editingLoan && (
-        <EditLoanModal
-          loan={editingLoan}
-          onClose={() => setEditingLoan(null)}
-          onSave={fetchData}
-        />
-      )}
-
-      {showUpgradeModal && (
+      {showUpgradeModal ? (
         <UpgradeModal
           currentPlan={subscription?.plan || 'starter'}
           currentCount={properties.length}
           onClose={() => setShowUpgradeModal(false)}
         />
-      )}
-
-      {refinancingLoan && (
-        <RefinanceModal
-          loan={refinancingLoan.loan}
-          property={refinancingLoan.property}
-          onClose={() => setRefinancingLoan(null)}
-        />
-      )}
-
-      {cashFlowPropertyId && (
-        <CashFlowModal
-          userId={session.user.id}
-          propertyId={cashFlowPropertyId}
-          properties={properties}
-          onClose={() => setCashFlowPropertyId(null)}
-          onSave={fetchData}
-        />
-      )}
-
-      {editingTransaction && (
-        <EditTransactionModal
-          transaction={editingTransaction}
-          propertyUse={editingTransaction.propertyUse}
-          onClose={() => setEditingTransaction(null)}
-          onSave={fetchData}
-        />
-      )}
+      ) : null}
     </div>
   )
 }
 
-function KpiCard({
-  label,
-  value,
-  helper,
-  valueClassName = 'text-gray-900',
-}) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-100 p-5 min-h-[190px] flex flex-col">
-      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide leading-5 min-h-[2.75rem]">
-        {label}
-      </p>
-
-      <div className="flex-1 flex items-center min-h-[72px]">
-        <p
-          className={`text-2xl md:text-3xl lg:text-4xl leading-tight font-bold tracking-tight break-words max-w-full ${valueClassName}`}
-        >
-          {value}
-        </p>
-      </div>
-
-      <p className="text-sm text-gray-400 leading-6 min-h-[3rem] mt-3">
-        {helper}
-      </p>
-    </div>
-  )
-}
-
-function QuickNavCard({ icon, title, description, actionLabel, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="text-left rounded-xl border border-gray-100 p-5 hover:bg-gray-50 transition-colors"
-    >
-      <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center mb-4">
-        {icon}
-      </div>
-      <h3 className="font-semibold text-gray-900">{title}</h3>
-      <p className="text-sm text-gray-500 mt-1">{description}</p>
-      <div className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary-600">
-        {actionLabel}
-        <ChevronRight size={15} />
-      </div>
-    </button>
-  )
-}
-
-function MiniMetric({
-  label,
-  value,
-  valueClassName = 'text-gray-900',
-}) {
+function StripMetric({ label, value }) {
   return (
     <div>
-      <p className="text-xs text-gray-400">{label}</p>
-      <p className={`text-sm font-semibold ${valueClassName}`}>{value}</p>
-    </div>
-  )
-}
-
-function SignalCard({ label, title, value, tone = 'neutral' }) {
-  const toneClass =
-    tone === 'positive'
-      ? 'text-green-600'
-      : tone === 'negative'
-      ? 'text-red-500'
-      : 'text-gray-900'
-
-  return (
-    <div className="rounded-xl border border-gray-100 p-4">
-      <p className="text-xs uppercase tracking-wide text-gray-400">{label}</p>
-      <p className="text-sm font-semibold text-gray-900 mt-1">{title}</p>
-      <p className={`text-sm font-semibold mt-2 ${toneClass}`}>{value}</p>
-    </div>
-  )
-}
-
-function AlertRow({ alert, urgent = false }) {
-  return (
-    <div
-      className={`rounded-xl border p-3 ${
-        urgent
-          ? 'border-red-200 bg-red-50'
-          : 'border-gray-100 bg-gray-50'
-      }`}
-    >
-      <p
-        className={`text-sm font-medium ${
-          urgent ? 'text-red-800' : 'text-gray-900'
-        }`}
-      >
-        {alert.title}
+      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+        {label}
       </p>
-      <p
-        className={`text-xs mt-1 ${
-          urgent ? 'text-red-600' : 'text-gray-500'
-        }`}
-      >
-        {alert.description}
-        {typeof alert.days !== 'undefined' ? ` (${alert.days} days)` : ''}
+      <p className="mt-1 text-sm font-semibold text-gray-900">{value}</p>
+    </div>
+  )
+}
+
+function LockedChecklistCard({ eyebrow, title, body, missingSections, onAction }) {
+  return (
+    <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+        {eyebrow}
       </p>
-    </div>
-  )
-}
+      <h2 className="mt-2 text-2xl font-semibold text-gray-900">{title}</h2>
+      <p className="mt-3 text-sm leading-6 text-gray-600">{body}</p>
 
-function EmptyMiniState({ title, description, icon = null }) {
-  return (
-    <div className="rounded-xl border border-dashed border-gray-200 p-5 text-center">
-      {icon ? (
-        <div className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-3">
-          {icon}
-        </div>
-      ) : null}
-      <p className="text-sm font-medium text-gray-900">{title}</p>
-      <p className="text-sm text-gray-500 mt-1">{description}</p>
-    </div>
-  )
-}
-
-function SetupChecklistItem({
-  label,
-  complete = false,
-  description,
-  actionLabel,
-  onClick,
-}) {
-  return (
-    <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-semibold text-gray-900">{label}</p>
-        <span
-          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-            complete
-              ? 'bg-green-50 text-green-700'
-              : 'bg-amber-50 text-amber-700'
-          }`}
-        >
-          {complete ? 'Complete' : 'Incomplete'}
-        </span>
+      <div className="mt-5 space-y-3">
+        {missingSections.map((section) => (
+          <button
+            key={section.id}
+            type="button"
+            onClick={() => onAction(section.route)}
+            className="flex w-full items-start justify-between gap-4 rounded-2xl border border-gray-100 bg-gray-50/70 px-4 py-4 text-left transition-colors hover:bg-gray-50"
+          >
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-gray-900">{section.label}</p>
+              <p className="mt-1 text-sm leading-6 text-gray-600">{section.body}</p>
+            </div>
+            <span className="shrink-0 text-sm font-semibold text-primary-600">
+              {section.ctaLabel}
+            </span>
+          </button>
+        ))}
       </div>
-      <p className="mt-2 text-sm text-gray-500 min-h-[3rem]">{description}</p>
-      {!complete ? (
+    </section>
+  )
+}
+
+function EmptyState({ title, description, actionLabel = null, onAction = null }) {
+  return (
+    <div className="rounded-3xl border border-dashed border-gray-200 bg-gray-50/60 p-8 text-center">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-primary-600 shadow-sm shadow-gray-100/80">
+        <Sparkles size={18} />
+      </div>
+      <p className="mt-4 text-base font-semibold text-gray-900">{title}</p>
+      <p className="mt-2 text-sm leading-6 text-gray-500">{description}</p>
+      {actionLabel ? (
         <button
           type="button"
-          onClick={onClick}
-          className="mt-3 text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
+          onClick={onAction}
+          className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-primary-600 transition-colors hover:text-primary-700"
         >
           {actionLabel}
+          <ChevronRight size={15} />
         </button>
       ) : null}
     </div>
+  )
+}
+
+function CompareOptionCard({ option }) {
+  const annualTone =
+    Number(option.annualImpact) >= 0 ? 'text-primary-700' : 'text-red-500'
+
+  return (
+    <article className="rounded-3xl border border-gray-100 bg-gray-50/70 p-5">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+        {option.scenario}
+      </p>
+      <p className={`mt-3 text-2xl font-semibold tracking-tight ${annualTone}`}>
+        {`${Number(option.annualImpact) >= 0 ? '+' : '-'}${formatCurrency(
+          Math.abs(Number(option.annualImpact || 0))
+        )}/year`}
+      </p>
+      <div className="mt-4 space-y-2 text-sm text-gray-600">
+        <div className="flex items-center justify-between gap-4">
+          <span>Borrowing position</span>
+          <span className="font-semibold text-gray-900">
+            {formatCurrency(option.borrowing)}
+          </span>
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <span>Risk</span>
+          <span className="font-semibold capitalize text-gray-900">{option.risk}</span>
+        </div>
+      </div>
+      <p className="mt-4 text-sm leading-6 text-gray-600">{option.description}</p>
+    </article>
   )
 }
