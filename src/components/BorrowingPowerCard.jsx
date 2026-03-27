@@ -199,6 +199,9 @@ export default function BorrowingPowerCard({
           <p className="mt-2 text-sm text-gray-600">
             Conservative estimate using your financial profile and liabilities.
           </p>
+          <p className="mt-2 text-xs text-gray-500">
+            Borrowing capacity estimates may differ from lender assessments.
+          </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3 text-sm text-gray-600">

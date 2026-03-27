@@ -87,7 +87,7 @@ function normalizeActionType(action) {
 }
 
 function getActionSequenceLabel(rank) {
-  if (rank === 1) return 'Do this first'
+  if (rank === 1) return 'Start here'
   if (rank === 2) return 'Next priority'
   return 'Then consider'
 }
@@ -732,7 +732,7 @@ export default function buildDashboardCommandCenter({
         ? `${formatCurrency(scenario.depositRequired)} deposit`
         : 'Preserve liquidity',
     depositRequired:
-      scenario.depositRequired > 0 ? formatCurrency(scenario.depositRequired) : 'Not recommended yet',
+      scenario.depositRequired > 0 ? formatCurrency(scenario.depositRequired) : 'Not currently suggested',
     monthlyCashFlow:
       scenario.strategyType === 'optimise_first'
         ? 'Improve resilience first'

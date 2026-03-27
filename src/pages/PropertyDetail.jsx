@@ -795,7 +795,7 @@ export default function PropertyDetail() {
       {showOptimisationModal && (
         <OptimisationModal
           title="Property Optimisation Options"
-          subtitle={`Recommended next actions for ${property.address}.`}
+          subtitle={`Suggested next scenarios for ${property.address}.`}
           actions={optimisationActions}
           onClose={() => setShowOptimisationModal(false)}
         />

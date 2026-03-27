@@ -13,6 +13,11 @@ import {
 } from 'recharts'
 
 import PremiumProjectionTooltip from './PremiumProjectionTooltip'
+import {
+  SCENARIO_CHART_DEFAULT_MARGIN,
+  getScenarioXAxisLayout,
+  getScenarioChartMargin,
+} from './scenarioChartAxisConfig'
 
 const TOOLTIP_WIDTH = 248
 const TOOLTIP_HEIGHT = 182
@@ -58,6 +63,34 @@ function PremiumLegend({ payload }) {
   )
 }
 
+function ReferenceLineStackedLabel({
+  viewBox,
+  lines = [],
+  fill = '#6B7280',
+}) {
+  if (!viewBox || !lines.length) return null
+
+  const x = Number(viewBox.x ?? 0)
+  const y = Math.max(Number(viewBox.y ?? 0) - 10, 10)
+
+  return (
+    <text x={x} y={y} textAnchor="middle" fill={fill}>
+      {lines.map((line, index) => (
+        <tspan
+          key={`${line}-${index}`}
+          x={x}
+          dy={index === 0 ? 0 : 12}
+          fontSize={index === 0 ? 13 : 10}
+          fontWeight={index === 0 ? 500 : 500}
+          fill={index === 0 ? fill : '#6B7280'}
+        >
+          {line}
+        </tspan>
+      ))}
+    </text>
+  )
+}
+
 export default function PremiumProjectionChart({
   data = [],
   series = [],
@@ -66,13 +99,21 @@ export default function PremiumProjectionChart({
   valueFormatter = defaultCurrencyFormatter,
   axisFormatter = defaultAxisFormatter,
   xAxisKey = 'year',
+  xAxisType = 'category',
+  xAxisDomain = undefined,
+  xAxisTicks = undefined,
+  xAxisTickFormatter = undefined,
   xAxisLabel = 'Years',
+  xAxisConfig = undefined,
   yAxisLabel = 'Value ($)',
   rightYAxisLabel = null,
   rightAxisFormatter = defaultAxisFormatter,
   tooltipLabelTitle = 'Year',
   getExtraTooltipRows = null,
+  tooltipContent = null,
   referenceLines = [],
+  chartOverlay = null,
+  chartMargin = SCENARIO_CHART_DEFAULT_MARGIN,
   height = 360,
 }) {
   const legendSeries = series.filter((item) => item.showInLegend !== false)
@@ -80,6 +121,8 @@ export default function PremiumProjectionChart({
   const chartContainerRef = useRef(null)
   const [chartBounds, setChartBounds] = useState({ width: 0, height })
   const [tooltipPosition, setTooltipPosition] = useState(null)
+  const resolvedXAxisConfig = xAxisConfig || getScenarioXAxisLayout(xAxisLabel)
+  const resolvedChartMargin = getScenarioChartMargin(chartMargin)
 
   useEffect(() => {
     if (!chartContainerRef.current) return undefined
@@ -153,7 +196,8 @@ export default function PremiumProjectionChart({
         </header>
       ) : null}
 
-      <div ref={chartContainerRef} className="px-4 py-5 md:px-6 md:py-6">
+      <div ref={chartContainerRef} className="relative px-4 py-5 md:px-6 md:py-6">
+        {chartOverlay ? <div className="pointer-events-none absolute inset-x-0 top-4 z-10">{chartOverlay}</div> : null}
         <div className="mb-4 mt-2 md:mb-5">
           <PremiumLegend
             payload={legendSeries.map((item) => ({
@@ -166,7 +210,7 @@ export default function PremiumProjectionChart({
         <ResponsiveContainer width="100%" height={height}>
           <LineChart
             data={data}
-            margin={{ top: 8, right: 12, left: 12, bottom: 20 }}
+            margin={resolvedChartMargin}
             onMouseMove={handleMouseMove}
             onMouseLeave={() => setTooltipPosition(null)}
           >
@@ -177,17 +221,16 @@ export default function PremiumProjectionChart({
             />
             <XAxis
               dataKey={xAxisKey}
+              type={xAxisType}
+              domain={xAxisDomain}
+              ticks={xAxisTicks}
               axisLine={false}
               tickLine={false}
-              tick={{ fill: '#64748B', fontSize: 12, fontWeight: 500 }}
-              dy={0}
+              tick={resolvedXAxisConfig.tick}
+              tickMargin={resolvedXAxisConfig.tickMargin}
+              tickFormatter={xAxisTickFormatter}
             >
-              <Label
-                value={xAxisLabel}
-                position="insideBottom"
-                offset={12}
-                style={{ fill: '#9CA3AF', fontSize: 12, fontWeight: 500 }}
-              />
+              <Label {...resolvedXAxisConfig.label} />
             </XAxis>
             <YAxis
               yAxisId="left"
@@ -237,12 +280,15 @@ export default function PremiumProjectionChart({
               position={tooltipPosition || undefined}
               cursor={{ stroke: '#CBD5E1', strokeWidth: 1.25, strokeDasharray: '4 5' }}
               content={
-                <PremiumProjectionTooltip
-                  series={tooltipSeries}
-                  valueFormatter={valueFormatter}
-                  labelTitle={tooltipLabelTitle}
-                  getExtraRows={getExtraTooltipRows}
-                />
+                tooltipContent ||
+                (
+                  <PremiumProjectionTooltip
+                    series={tooltipSeries}
+                    valueFormatter={valueFormatter}
+                    labelTitle={tooltipLabelTitle}
+                    getExtraRows={getExtraTooltipRows}
+                  />
+                )
               }
             />
             {referenceLines.map((referenceLine) => (
@@ -251,10 +297,20 @@ export default function PremiumProjectionChart({
                 x={referenceLine.axis === 'x' ? referenceLine.value : undefined}
                 y={referenceLine.axis === 'y' ? referenceLine.value : undefined}
                 stroke={referenceLine.stroke || '#94A3B8'}
-                strokeDasharray={referenceLine.strokeDasharray || '4 5'}
+                strokeDasharray={referenceLine.strokeDasharray}
                 strokeWidth={referenceLine.strokeWidth || 1.25}
+                strokeOpacity={referenceLine.strokeOpacity ?? 1}
+                ifOverflow={referenceLine.ifOverflow}
+                isFront={referenceLine.isFront}
                 label={
-                  referenceLine.label
+                  referenceLine.labelLines?.length
+                    ? (
+                        <ReferenceLineStackedLabel
+                          lines={referenceLine.labelLines}
+                          fill={referenceLine.labelColor || '#6B7280'}
+                        />
+                      )
+                    : referenceLine.label
                     ? {
                         value: referenceLine.label,
                         position: referenceLine.labelPosition || 'top',

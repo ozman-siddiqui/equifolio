@@ -1,12 +1,16 @@
 import { estimateRepayment } from './mortgageMath'
 
+const DEFAULT_DEBT_RATE_PCT = 5.8
+
 const DEFAULT_CONFIG = {
   depositRatio: 0.2,
   targetLvr: 0.8,
+  repaymentType: 'Interest Only',
   acquisitionCostRate: 0.05,
   liquidityBuffer: 25000,
   minimumPostPurchaseSurplus: 1500,
   minimumBorrowingThreshold: 350000,
+  nearViableGapThreshold: 100000,
   realisticMarketEntry: {
     minPrice: 450000,
     maxPrice: 600000,
@@ -16,6 +20,13 @@ const DEFAULT_CONFIG = {
     { minLvr: 0.9, rate: 0.025 },
     { minLvr: 0.85, rate: 0.0125 },
   ],
+  expenseAssumptions: {
+    propertyManagementRate: 0.065,
+    vacancyBufferRate: 0.025,
+    councilWaterMonthly: 250,
+    insuranceMonthly: 150,
+    maintenanceAnnualRate: 0.006,
+  },
   riskModes: {
     growth: { grossYieldPct: 4.4, recommendedRangeFloorPct: 0.78, stretchRangeFloorPct: 0.9 },
     balanced: { grossYieldPct: 5.2, recommendedRangeFloorPct: 0.72, stretchRangeFloorPct: 0.86 },
@@ -45,6 +56,20 @@ function getConfidenceLabel(score) {
   return 'Low'
 }
 
+function getScenarioStateLabel(state) {
+  switch (state) {
+    case 'recommended':
+      return 'Suggested'
+    case 'near_viable':
+      return 'Near viable'
+    case 'stretch':
+      return 'Stretch'
+    case 'blocked':
+    default:
+      return 'Blocked'
+  }
+}
+
 function normalizeDepositRatio(value) {
   const numericValue = Number(value)
   if (!Number.isFinite(numericValue) || numericValue <= 0 || numericValue >= 1) {
@@ -54,10 +79,18 @@ function normalizeDepositRatio(value) {
   return numericValue
 }
 
-function normalizeInterestRate(value, fallback = 6.2) {
+function normalizeInterestRate(value, fallback = DEFAULT_DEBT_RATE_PCT) {
   const numericValue = Number(value)
-  if (!Number.isFinite(numericValue)) return fallback
-  return Math.min(15, Math.max(0, numericValue))
+  if (!Number.isFinite(numericValue) || numericValue <= 0) return fallback
+  return Math.min(15, numericValue)
+}
+
+function normalizeRepaymentType(value) {
+  const normalizedValue = String(value || '').trim().toLowerCase()
+  if (normalizedValue === 'interest only' || normalizedValue === 'io') {
+    return 'Interest Only'
+  }
+  return 'Principal & Interest'
 }
 
 function getTargetLvrFromDepositRatio(depositRatio) {
@@ -78,19 +111,82 @@ function normalizeProjectionYears(value) {
   return Math.max(1, Math.min(numericValue, 40))
 }
 
+export function calculatePurchasePowerConstraints({
+  depositAvailable = 0,
+  requiredDepositRatio = DEFAULT_CONFIG.depositRatio,
+  borrowingCapacity = 0,
+}) {
+  const safeDepositAvailable = Math.max(0, Number(depositAvailable || 0))
+  const safeDepositRatio = normalizeDepositRatio(requiredDepositRatio)
+  const safeBorrowingCapacity = Math.max(0, Number(borrowingCapacity || 0))
+  const depositConstrainedPrice =
+    safeDepositRatio > 0 ? roundCurrency(safeDepositAvailable / safeDepositRatio) : 0
+  const borrowingConstrainedPrice = roundCurrency(safeBorrowingCapacity)
+  const maxPurchasePrice = Math.max(
+    0,
+    Math.min(depositConstrainedPrice, borrowingConstrainedPrice)
+  )
+
+  return {
+    depositConstrainedPrice,
+    borrowingConstrainedPrice,
+    maxPurchasePrice,
+    limitingFactor:
+      depositConstrainedPrice <= borrowingConstrainedPrice ? 'capital' : 'borrowing',
+  }
+}
+
+export function calculateScenarioWealthOutcomes({
+  purchasePrice = 0,
+  deposit = 0,
+  acquisitionCosts = 0,
+  monthlyAfterTaxCashFlow = 0,
+  years = 5,
+  equityGain = 0,
+}) {
+  const safePurchasePrice = Math.max(0, Number(purchasePrice || 0))
+  const safeDeposit = Math.max(0, Number(deposit || 0))
+  const safeAcquisitionCosts = Math.max(0, Number(acquisitionCosts || 0))
+  const safeMonthlyAfterTaxCashFlow = Number.isFinite(Number(monthlyAfterTaxCashFlow))
+    ? Number(monthlyAfterTaxCashFlow)
+    : 0
+  const safeYears = Math.max(0, Number(years || 0))
+  const safeEquityGain = Number.isFinite(Number(equityGain)) ? Number(equityGain) : 0
+  const totalCashInvested =
+    safeDeposit +
+    safeAcquisitionCosts -
+    safeMonthlyAfterTaxCashFlow * 12 * safeYears
+  const netWealthCreated = safeEquityGain - totalCashInvested
+  const wealthMultiple =
+    totalCashInvested > 0 ? safeEquityGain / totalCashInvested : null
+
+  return {
+    purchasePrice: safePurchasePrice,
+    equityGain: safeEquityGain,
+    totalCashInvested,
+    netWealthCreated,
+    wealthMultiple,
+  }
+}
+
 export function generateScenarioProjectionData({
   purchasePrice = 0,
   loanSize = 0,
-  interestRatePct = 6.2,
+  interestRatePct = DEFAULT_DEBT_RATE_PCT,
   annualGrowthRatePct = 3.5,
   loanTermYears = 30,
   monthlyCashFlow = 0,
+  monthlyRentalIncome = 0,
+  monthlyExpenses = 0,
+  rentalGrowthRatePct = 3,
+  expenseGrowthRatePct = 2.5,
 }) {
   const safePurchasePrice = Math.max(0, Number(purchasePrice || 0))
   const safeLoanSize = Math.max(0, Number(loanSize || 0))
-  const safeInterestRatePct = Number.isFinite(Number(interestRatePct))
-    ? Math.max(0, Number(interestRatePct))
-    : 6.2
+  const safeInterestRatePct = normalizeInterestRate(
+    interestRatePct,
+    DEFAULT_DEBT_RATE_PCT
+  )
   const safeAnnualGrowthRatePct = Number.isFinite(Number(annualGrowthRatePct))
     ? Number(annualGrowthRatePct)
     : 3.5
@@ -98,6 +194,18 @@ export function generateScenarioProjectionData({
   const safeMonthlyCashFlow = Number.isFinite(Number(monthlyCashFlow))
     ? Number(monthlyCashFlow)
     : 0
+  const safeMonthlyRentalIncome = Number.isFinite(Number(monthlyRentalIncome))
+    ? Math.max(0, Number(monthlyRentalIncome))
+    : 0
+  const safeMonthlyExpenses = Number.isFinite(Number(monthlyExpenses))
+    ? Math.max(0, Number(monthlyExpenses))
+    : 0
+  const safeRentalGrowthRatePct = Number.isFinite(Number(rentalGrowthRatePct))
+    ? Number(rentalGrowthRatePct)
+    : 3
+  const safeExpenseGrowthRatePct = Number.isFinite(Number(expenseGrowthRatePct))
+    ? Number(expenseGrowthRatePct)
+    : 2.5
   const totalMonths = safeLoanTermYears * 12
   const monthlyRepayment = estimateRepayment({
     principal: safeLoanSize,
@@ -108,14 +216,18 @@ export function generateScenarioProjectionData({
   const monthlyRate = safeInterestRatePct / 100 / 12
 
   let remainingBalance = safeLoanSize
+  const baseMonthlyCashFlow =
+    safeMonthlyRentalIncome > 0 || safeMonthlyExpenses > 0
+      ? safeMonthlyRentalIncome - safeMonthlyExpenses - monthlyRepayment
+      : safeMonthlyCashFlow
   const projectionData = [
     {
       year: 0,
       propertyValue: roundCurrency(safePurchasePrice),
       loanBalance: roundCurrency(remainingBalance),
       netEquity: roundCurrency(safePurchasePrice - remainingBalance),
-      annualCashFlow: roundCurrency(safeMonthlyCashFlow * 12),
-      monthlyCashFlow: roundCurrency(safeMonthlyCashFlow),
+      annualCashFlow: roundCurrency(baseMonthlyCashFlow * 12),
+      monthlyCashFlow: roundCurrency(baseMonthlyCashFlow),
     },
   ]
 
@@ -136,13 +248,22 @@ export function generateScenarioProjectionData({
     }
 
     const propertyValue = safePurchasePrice * Math.pow(1 + safeAnnualGrowthRatePct / 100, year)
+    const projectedMonthlyRentalIncome =
+      safeMonthlyRentalIncome * Math.pow(1 + safeRentalGrowthRatePct / 100, year)
+    const projectedMonthlyExpenses =
+      safeMonthlyExpenses * Math.pow(1 + safeExpenseGrowthRatePct / 100, year)
+    const projectedMonthlyCashFlow =
+      safeMonthlyRentalIncome > 0 || safeMonthlyExpenses > 0
+        ? projectedMonthlyRentalIncome - projectedMonthlyExpenses - monthlyRepayment
+        : safeMonthlyCashFlow
+
     projectionData.push({
       year,
       propertyValue: roundCurrency(propertyValue),
       loanBalance: roundCurrency(remainingBalance),
       netEquity: roundCurrency(propertyValue - remainingBalance),
-      annualCashFlow: roundCurrency(safeMonthlyCashFlow * 12),
-      monthlyCashFlow: roundCurrency(safeMonthlyCashFlow),
+      annualCashFlow: roundCurrency(projectedMonthlyCashFlow * 12),
+      monthlyCashFlow: roundCurrency(projectedMonthlyCashFlow),
     })
   }
 
@@ -177,7 +298,7 @@ function getAverageInterestRate(loans) {
     .map((loan) => Number(loan?.interest_rate))
     .filter((rate) => Number.isFinite(rate) && rate > 0)
 
-  if (validRates.length === 0) return 6.2
+  if (validRates.length === 0) return DEFAULT_DEBT_RATE_PCT
 
   return validRates.reduce((sum, rate) => sum + rate, 0) / validRates.length
 }
@@ -197,18 +318,44 @@ function getPortfolioYield(properties, transactions, fallbackYieldPct) {
   return Math.min(Math.max(annualYieldPct, fallbackYieldPct - 0.5), fallbackYieldPct + 0.8)
 }
 
-function getExpenseRatio(transactions) {
-  const grossMonthlyRent = transactions
-    .filter((transaction) => transaction?.type === 'income')
-    .reduce((sum, transaction) => sum + toMonthly(transaction?.amount, transaction?.frequency), 0)
-  const monthlyPropertyExpenses = transactions
-    .filter((transaction) => transaction?.type === 'expense')
-    .reduce((sum, transaction) => sum + toMonthly(transaction?.amount, transaction?.frequency), 0)
+function calculateScenarioExpenseBreakdown({
+  purchasePrice,
+  monthlyRent,
+  expenseAssumptions = DEFAULT_CONFIG.expenseAssumptions,
+}) {
+  const safePurchasePrice = Math.max(0, Number(purchasePrice || 0))
+  const safeMonthlyRent = Math.max(0, Number(monthlyRent || 0))
+  const propertyManagement = roundCurrency(
+    safeMonthlyRent * Number(expenseAssumptions.propertyManagementRate || 0)
+  )
+  const vacancyBuffer = roundCurrency(
+    safeMonthlyRent * Number(expenseAssumptions.vacancyBufferRate || 0)
+  )
+  const councilWater = roundCurrency(Number(expenseAssumptions.councilWaterMonthly || 0))
+  const insurance = roundCurrency(Number(expenseAssumptions.insuranceMonthly || 0))
+  const maintenance = roundCurrency(
+    (safePurchasePrice * Number(expenseAssumptions.maintenanceAnnualRate || 0)) / 12
+  )
+  const totalExpenses = roundCurrency(
+    propertyManagement + vacancyBuffer + councilWater + insurance + maintenance
+  )
 
-  if (grossMonthlyRent <= 0 || monthlyPropertyExpenses <= 0) return 0.28
-
-  const ratio = monthlyPropertyExpenses / grossMonthlyRent
-  return Math.min(Math.max(ratio, 0.18), 0.45)
+  return {
+    propertyManagement,
+    vacancyBuffer,
+    councilWater,
+    councilRates: councilWater,
+    insurance,
+    maintenance,
+    totalExpenses,
+    assumptions: {
+      propertyManagementRate: Number(expenseAssumptions.propertyManagementRate || 0),
+      vacancyBufferRate: Number(expenseAssumptions.vacancyBufferRate || 0),
+      councilWaterMonthly: Number(expenseAssumptions.councilWaterMonthly || 0),
+      insuranceMonthly: Number(expenseAssumptions.insuranceMonthly || 0),
+      maintenanceAnnualRate: Number(expenseAssumptions.maintenanceAnnualRate || 0),
+    },
+  }
 }
 
 function getGrowthRate(properties) {
@@ -249,15 +396,18 @@ function evaluateScenarioAtPrice({
   propertyCount,
   grossYieldPct,
   interestRatePct,
-  expenseRatio,
+  repaymentType = DEFAULT_CONFIG.repaymentType,
   depositRatio = DEFAULT_CONFIG.depositRatio,
   acquisitionCostRate,
   currentSurplus,
   availableCash,
+  usableEquityAvailable = 0,
   totalDeployableCapital,
   lmiRateTable = DEFAULT_CONFIG.lmiRateTable,
+  expenseAssumptions = DEFAULT_CONFIG.expenseAssumptions,
 }) {
   const safeDepositRatio = normalizeDepositRatio(depositRatio)
+  const safeRepaymentType = normalizeRepaymentType(repaymentType)
   const targetLvr = getTargetLvrFromDepositRatio(safeDepositRatio)
   const depositRequired = roundCurrency(purchasePrice * safeDepositRatio)
   const acquisitionCosts = roundCurrency(purchasePrice * acquisitionCostRate)
@@ -267,19 +417,38 @@ function evaluateScenarioAtPrice({
   const lmiEstimate = roundCurrency(baseLoanSize * lmiRate)
   const estimatedLoanSize = roundCurrency(baseLoanSize + lmiEstimate)
   const monthlyGrossRent = (purchasePrice * (grossYieldPct / 100)) / 12
-  const monthlyPropertyCosts = monthlyGrossRent * expenseRatio
-  const monthlyLoanRepayment = estimateRepayment({
-    principal: estimatedLoanSize,
-    annualRate: interestRatePct,
-    repaymentType: 'Principal & Interest',
-    remainingTermMonths: 360,
+  const expenseBreakdown = calculateScenarioExpenseBreakdown({
+    purchasePrice,
+    monthlyRent: monthlyGrossRent,
+    expenseAssumptions,
+  })
+  const monthlyPropertyCosts = expenseBreakdown.totalExpenses
+  const monthlyLoanRepayment =
+    safeRepaymentType === 'Interest Only'
+      ? roundCurrency((estimatedLoanSize * (interestRatePct / 100)) / 12)
+      : estimateRepayment({
+          principal: estimatedLoanSize,
+          annualRate: interestRatePct,
+          repaymentType: 'Principal & Interest',
+          remainingTermMonths: 360,
+        })
+  console.log('Loan calc:', {
+    loan: estimatedLoanSize,
+    rate: interestRatePct,
+    type: safeRepaymentType,
+    monthly: monthlyLoanRepayment,
   })
   const incrementalMonthlyCashFlow = roundCurrency(
     monthlyGrossRent - monthlyPropertyCosts - monthlyLoanRepayment
   )
   const postPurchaseSurplus = roundCurrency(currentSurplus + incrementalMonthlyCashFlow)
   const cashUsed = roundCurrency(Math.min(Math.max(Number(availableCash || 0), 0), totalCapitalRequired))
-  const equityUsed = roundCurrency(Math.max(totalCapitalRequired - cashUsed, 0))
+  const equityUsed = roundCurrency(
+    Math.min(
+      Math.max(Number(usableEquityAvailable || 0), 0),
+      Math.max(totalCapitalRequired - cashUsed, 0)
+    )
+  )
   const retainedCapital = roundCurrency(
     Math.max(Number(totalDeployableCapital || 0) - totalCapitalRequired, 0)
   )
@@ -297,9 +466,11 @@ function evaluateScenarioAtPrice({
     estimatedLoanSize,
     monthlyGrossRent: roundCurrency(monthlyGrossRent),
     monthlyPropertyCosts: roundCurrency(monthlyPropertyCosts),
+    expenseBreakdown,
     incrementalMonthlyCashFlow,
     postPurchaseSurplus,
     monthlyLoanRepayment: roundCurrency(monthlyLoanRepayment),
+    repaymentType: safeRepaymentType,
     grossYieldPct,
     cashUsed,
     equityUsed,
@@ -312,14 +483,16 @@ function findMaxPriceBySurplus({
   propertyCount,
   grossYieldPct,
   interestRatePct,
-  expenseRatio,
+  repaymentType = DEFAULT_CONFIG.repaymentType,
   depositRatio = DEFAULT_CONFIG.depositRatio,
   acquisitionCostRate,
   currentSurplus,
   minimumPostPurchaseSurplus,
   availableCash,
+  usableEquityAvailable = 0,
   totalDeployableCapital,
   lmiRateTable = DEFAULT_CONFIG.lmiRateTable,
+  expenseAssumptions = DEFAULT_CONFIG.expenseAssumptions,
 }) {
   if (baseCap <= 0) return 0
 
@@ -333,13 +506,15 @@ function findMaxPriceBySurplus({
       propertyCount,
       grossYieldPct,
       interestRatePct,
-      expenseRatio,
+      repaymentType,
       depositRatio,
       acquisitionCostRate,
       currentSurplus,
       availableCash,
+      usableEquityAvailable,
       totalDeployableCapital,
       lmiRateTable,
+      expenseAssumptions,
     })
 
     if (evaluation.postPurchaseSurplus >= minimumPostPurchaseSurplus) {
@@ -413,11 +588,27 @@ function buildBreakdown({
       loanSize: formatCurrency(evaluation.estimatedLoanSize),
       interestRate: `${Number(assumptions.interestRatePct || 0).toFixed(1)}%`,
       monthlyRepayment: formatCurrency(evaluation.monthlyLoanRepayment),
+      repaymentType: evaluation.repaymentType,
     },
     cashFlow: {
       rentalIncome: `${formatCurrency(evaluation.monthlyGrossRent)}/month`,
       expenses: `${formatCurrency(evaluation.monthlyPropertyCosts)}/month`,
       netCashFlow: `${formatCurrency(evaluation.incrementalMonthlyCashFlow)}/month`,
+      expenseComponents: {
+        propertyManagement: `${formatCurrency(evaluation.expenseBreakdown.propertyManagement)}/month`,
+        councilWater: `${formatCurrency(evaluation.expenseBreakdown.councilWater)}/month`,
+        insurance: `${formatCurrency(evaluation.expenseBreakdown.insurance)}/month`,
+        maintenance: `${formatCurrency(evaluation.expenseBreakdown.maintenance)}/month`,
+        vacancyBuffer: `${formatCurrency(evaluation.expenseBreakdown.vacancyBuffer)}/month`,
+        totalExpenses: `${formatCurrency(evaluation.expenseBreakdown.totalExpenses)}/month`,
+        assumptions: {
+          propertyManagementRate: `${(evaluation.expenseBreakdown.assumptions.propertyManagementRate * 100).toFixed(1)}% of rent`,
+          vacancyBufferRate: `${(evaluation.expenseBreakdown.assumptions.vacancyBufferRate * 100).toFixed(1)}% of rent`,
+          councilWater: `${formatCurrency(evaluation.expenseBreakdown.assumptions.councilWaterMonthly)}/month`,
+          insurance: `${formatCurrency(evaluation.expenseBreakdown.assumptions.insuranceMonthly)}/month`,
+          maintenance: `${(evaluation.expenseBreakdown.assumptions.maintenanceAnnualRate * 100).toFixed(1)}% of property value / year`,
+        },
+      },
     },
     serviceabilityImpact: {
       surplusBefore: formatCurrency(assumptions.surplusBefore),
@@ -441,7 +632,6 @@ function buildStrategyScenario({
   riskMode,
   propertyCount,
   grossYieldPct,
-  expenseRatio,
   interestRatePct,
   growthRate,
   borrowingCapacity,
@@ -454,57 +644,70 @@ function buildStrategyScenario({
   const riskConfig = config.riskModes[riskMode]
   const liquidityBuffer = config.liquidityBuffer
   const depositRatio = normalizeDepositRatio(config.depositRatio)
-  const targetLvr = getTargetLvrFromDepositRatio(depositRatio)
   const usableEquityAfterBuffer = Math.max(0, usableEquity - liquidityBuffer)
   const totalDeployableCapital = Math.max(0, usableEquityAfterBuffer + availableCash)
-  const debtCap = roundCurrency(borrowingCapacity / targetLvr)
-  const capitalCap = roundCurrency(
-    totalDeployableCapital / (depositRatio + config.acquisitionCostRate)
-  )
-  const baseCap = Math.max(0, Math.min(debtCap, capitalCap))
+  const purchasePower = calculatePurchasePowerConstraints({
+    depositAvailable: totalDeployableCapital,
+    requiredDepositRatio: depositRatio,
+    borrowingCapacity,
+  })
+  const debtCap = purchasePower.borrowingConstrainedPrice
+  const capitalCap = purchasePower.depositConstrainedPrice
+  const baseCap = purchasePower.maxPurchasePrice
   const surplusCap = findMaxPriceBySurplus({
     baseCap,
     propertyCount,
     grossYieldPct,
     interestRatePct,
-    expenseRatio,
+    repaymentType: config.repaymentType,
     depositRatio,
     acquisitionCostRate: config.acquisitionCostRate,
     currentSurplus,
     minimumPostPurchaseSurplus: config.minimumPostPurchaseSurplus,
     availableCash,
+    usableEquityAvailable: usableEquityAfterBuffer,
     totalDeployableCapital,
     lmiRateTable: config.lmiRateTable,
+    expenseAssumptions: config.expenseAssumptions,
   })
   const finalCap = Math.max(0, Math.min(baseCap, surplusCap || baseCap))
 
-  if (finalCap <= 0) {
-    return null
-  }
-
-  const recommendedMin = roundCurrency(finalCap * riskConfig.recommendedRangeFloorPct)
-  const recommendedMax = finalCap
-  const stretchMin = roundCurrency(finalCap * riskConfig.stretchRangeFloorPct)
-  const stretchMax = finalCap
+  const minimumFeasiblePropertyPrice = Number(config.realisticMarketEntry?.minPrice || 0)
+  const baselineScenarioPrice = roundCurrency(minimumFeasiblePropertyPrice * propertyCount)
+  const scenarioCap = finalCap > 0 ? finalCap : baselineScenarioPrice
+  const recommendedMin = roundCurrency(scenarioCap * riskConfig.recommendedRangeFloorPct)
+  const recommendedMax = scenarioCap
+  const stretchMin = roundCurrency(scenarioCap * riskConfig.stretchRangeFloorPct)
+  const stretchMax = scenarioCap
   const representativePrice = roundCurrency((recommendedMin + recommendedMax) / 2)
   const evaluation = evaluateScenarioAtPrice({
     purchasePrice: representativePrice,
     propertyCount,
     grossYieldPct,
     interestRatePct,
-    expenseRatio,
     depositRatio,
     acquisitionCostRate: config.acquisitionCostRate,
     currentSurplus,
     availableCash,
+    usableEquityAvailable: usableEquityAfterBuffer,
     totalDeployableCapital,
     lmiRateTable: config.lmiRateTable,
+    expenseAssumptions: config.expenseAssumptions,
   })
   const fiveYearValue = representativePrice * Math.pow(1 + growthRate, 5)
   const fiveYearEquityProjection = roundCurrency(fiveYearValue - evaluation.estimatedLoanSize)
   const equityCreated = roundCurrency(
     Math.max(fiveYearEquityProjection - evaluation.totalCapitalRequired, 0)
   )
+  const wealthProjection = calculateScenarioWealthOutcomes({
+    purchasePrice: representativePrice,
+    deposit: evaluation.depositRequired,
+    acquisitionCosts: evaluation.acquisitionCosts,
+    monthlyAfterTaxCashFlow:
+      config.monthlyAfterTaxCashFlowOverride ?? evaluation.incrementalMonthlyCashFlow,
+    years: 5,
+    equityGain: fiveYearEquityProjection,
+  })
   const projectionData = generateScenarioProjectionData({
     purchasePrice: representativePrice,
     loanSize: evaluation.estimatedLoanSize,
@@ -512,17 +715,19 @@ function buildStrategyScenario({
     annualGrowthRatePct: growthRate * 100,
     loanTermYears: 30,
     monthlyCashFlow: evaluation.incrementalMonthlyCashFlow,
+    monthlyRentalIncome: evaluation.monthlyGrossRent,
+    monthlyExpenses: evaluation.monthlyPropertyCosts,
   })
 
   const constraints = []
-  if (finalCap === debtCap) constraints.push('Borrowing capacity capped the recommended range.')
-  if (finalCap === capitalCap) constraints.push('Deposit and acquisition costs capped the recommended range.')
-  if (finalCap === surplusCap) {
-    constraints.push('Post-purchase surplus threshold capped the recommended range.')
+  if (scenarioCap === debtCap) constraints.push('Borrowing capacity capped the suggested range.')
+  if (scenarioCap === capitalCap) constraints.push('Available deposit capital capped the suggested range.')
+  if (scenarioCap === surplusCap) {
+    constraints.push('Post-purchase surplus threshold capped the suggested range.')
   }
 
   const assumptions = {
-    targetLvr: `${Math.round(targetLvr * 100)}%`,
+    targetLvr: `${Math.round(getTargetLvrFromDepositRatio(depositRatio) * 100)}%`,
     depositRatio: `${Math.round(depositRatio * 100)}%`,
     acquisitionCostRate: `${Math.round(config.acquisitionCostRate * 100)}%`,
     lmiEstimateMode: 'Indicative only — actual LMI depends on lender, LVR, and borrower profile.',
@@ -562,20 +767,68 @@ function buildStrategyScenario({
       ? ['Higher concentration risk', 'Lower diversification across markets']
       : ['More moving parts to manage', 'Lower growth concentration in a single asset']
   const perPropertyRecommendedMax = roundCurrency(recommendedMax / propertyCount)
-  const minimumFeasiblePropertyPrice = Number(config.realisticMarketEntry?.minPrice || 0)
   const minimumCapitalForFeasibleStrategy = roundCurrency(
     minimumFeasiblePropertyPrice *
       propertyCount *
       (depositRatio + config.acquisitionCostRate)
   )
-  const additionalCapitalRequired = Math.max(
-    minimumCapitalForFeasibleStrategy - totalDeployableCapital,
+  const capitalGap = Math.max(evaluation.totalCapitalRequired - totalDeployableCapital, 0)
+  const borrowingGap = Math.max(evaluation.estimatedLoanSize - borrowingCapacity, 0)
+  const priceGap = Math.max(
+    minimumFeasiblePropertyPrice * propertyCount - recommendedMax,
     0
   )
-  const isFeasible = perPropertyRecommendedMax >= minimumFeasiblePropertyPrice
-  const feasibilityMessage = isFeasible
-    ? null
-    : 'This strategy falls below realistic market entry pricing and is not currently feasible.'
+  let blockedReason = null
+  let blockedExplanation = null
+
+  if (perPropertyRecommendedMax < minimumFeasiblePropertyPrice) {
+    blockedReason = 'Below realistic market price range'
+    blockedExplanation = `The suggested range implies about ${formatCurrency(
+      perPropertyRecommendedMax
+    )} per property, which sits below the configured Australian market entry floor of ${formatCurrency(
+      minimumFeasiblePropertyPrice
+    )}.`
+  } else if (capitalGap > 0) {
+    blockedReason = 'Deposit is insufficient to cover deposit and acquisition costs'
+    blockedExplanation =
+      'Available deposit capital does not fully cover the required deposit and acquisition costs for this scenario.'
+  } else if (borrowingGap > 0) {
+    blockedReason = 'Borrowing capacity does not support the required loan size'
+    blockedExplanation =
+      'The required loan size sits above current borrowing capacity once lender serviceability buffers are applied.'
+  }
+
+  const additionalCapitalRequired = Math.max(
+    blockedReason === 'Below realistic market price range'
+      ? minimumCapitalForFeasibleStrategy - totalDeployableCapital
+      : capitalGap,
+    0
+  )
+  const requiredCapitalGap = roundCurrency(
+    blockedReason === 'Borrowing capacity does not support the required loan size'
+      ? borrowingGap
+      : blockedReason === 'Below realistic market price range'
+        ? Math.max(additionalCapitalRequired, priceGap)
+        : additionalCapitalRequired
+  )
+  const isFeasible = !blockedReason
+  const feasibilityMessage = blockedExplanation
+  const scenarioState =
+    isFeasible
+      ? 'stretch'
+      : blockedReason !== 'Below realistic market price range' &&
+          requiredCapitalGap > 0 &&
+          requiredCapitalGap <= Number(config.nearViableGapThreshold || DEFAULT_CONFIG.nearViableGapThreshold)
+        ? 'near_viable'
+        : 'blocked'
+  const scenarioStateLabel = getScenarioStateLabel(scenarioState)
+  const stateSummary =
+    scenarioState === 'near_viable'
+      ? 'This scenario is close to executable with a modest uplift in capital or borrowing.'
+      : scenarioState === 'blocked'
+        ? blockedExplanation ||
+          'This scenario is not currently executable under realistic market and funding assumptions.'
+        : 'This scenario is currently executable under the stored assumptions.'
 
   return {
     id,
@@ -609,6 +862,10 @@ function buildStrategyScenario({
               ' each'
             ),
     },
+    scenarioPurchasePrice: representativePrice,
+    scenarioDepositAmount: evaluation.depositRequired,
+    scenarioLoanAmount: evaluation.estimatedLoanSize,
+    scenarioDepositPct: roundCurrency((evaluation.depositRequired / Math.max(representativePrice, 1)) * 100),
     depositRequired: evaluation.depositRequired,
     estimatedAcquisitionCosts: evaluation.acquisitionCosts,
     lmiEstimate: evaluation.lmiEstimate,
@@ -617,21 +874,37 @@ function buildStrategyScenario({
     estimatedGrossYield: grossYieldPct,
     estimatedMonthlyCashFlow: evaluation.incrementalMonthlyCashFlow,
     monthlyRentalIncome: evaluation.monthlyGrossRent,
+    monthlyLoanRepayment: evaluation.monthlyLoanRepayment,
+    repaymentType: evaluation.repaymentType,
+    scenarioInterestRatePct: interestRatePct,
     monthlyPropertyExpenses: evaluation.monthlyPropertyCosts,
+    monthlyExpenseBreakdown: evaluation.expenseBreakdown,
     fiveYearEquityProjection,
     fiveYearValue: roundCurrency(fiveYearValue),
     equityCreated,
+    wealthProjection,
     projectionData,
     borrowingCapacityAfterPurchase: roundCurrency(
       Math.max(borrowingCapacity - evaluation.estimatedLoanSize, 0)
     ),
     deployableCapital: totalDeployableCapital,
+    allocatedCash: roundCurrency(availableCash),
+    depositConstrainedPrice: purchasePower.depositConstrainedPrice,
+    borrowingConstrainedPrice: purchasePower.borrowingConstrainedPrice,
+    maxPurchasePrice: purchasePower.maxPurchasePrice,
+    limitingFactor: purchasePower.limitingFactor,
     usableEquityAfterBuffer,
     cashUsed: evaluation.cashUsed,
     equityUsed: evaluation.equityUsed,
     confidenceScore,
     confidenceLabel: getConfidenceLabel(confidenceScore),
+    scenarioState,
+    scenarioStateLabel,
+    stateSummary,
     isFeasible,
+    blockedReason,
+    blockedExplanation,
+    requiredCapitalGap,
     feasibilityMessage,
     additionalCapitalRequired,
     warnings,
@@ -664,111 +937,6 @@ function buildStrategyScenario({
       confidenceScore,
       warnings,
     }),
-  }
-}
-
-function buildWaitScenario({ currentSurplus, borrowingCapacity, usableEquity }) {
-  return {
-    id: 'optimise-first',
-    title: 'Optimise first, then acquire',
-    strategyType: 'optimise_first',
-    riskMode: 'balanced',
-    riskLevel: 'Low',
-    propertyCount: 0,
-    recommendedPurchaseRange: { min: 0, max: 0, label: 'Hold acquisition until constraints improve' },
-    stretchRange: { min: 0, max: 0, label: null },
-    depositRequired: 0,
-    estimatedAcquisitionCosts: 0,
-    lmiEstimate: 0,
-    estimatedLoanSize: 0,
-    estimatedPostPurchaseSurplus: roundCurrency(currentSurplus),
-    estimatedGrossYield: 0,
-    estimatedMonthlyCashFlow: 0,
-    fiveYearEquityProjection: 0,
-    projectionData: [],
-    borrowingCapacityAfterPurchase: roundCurrency(Math.max(borrowingCapacity, 0)),
-    rationale:
-      usableEquity <= 0
-        ? 'Usable equity is not yet available for a clean deposit strategy.'
-        : 'Current surplus is too tight to support a resilient acquisition without first improving serviceability or liquidity.',
-    breakdown: {
-      derivedFrom: {
-        borrowingCapacityCap: formatCurrency(borrowingCapacity),
-        capitalCap: formatCurrency(usableEquity),
-        surplusCap: formatCurrency(currentSurplus),
-        finalCap: formatCurrency(0),
-      },
-      purchaseRange: {
-        recommended: 'No acquisition range recommended yet',
-        stretch: null,
-      },
-      assumptions: {
-        action: 'Improve serviceability before deploying additional debt.',
-      },
-      constraints: ['Current financial resilience is below the minimum post-purchase threshold.'],
-      postPurchase: {
-        estimatedLoanSize: formatCurrency(0),
-        estimatedAcquisitionCosts: formatCurrency(0),
-        depositRequired: formatCurrency(0),
-        estimatedPostPurchaseSurplus: formatCurrency(currentSurplus),
-        estimatedMonthlyCashFlow: formatCurrency(0),
-      },
-    },
-  }
-}
-
-function buildConstrainedScenario({
-  currentSurplus,
-  borrowingCapacity,
-  usableEquity,
-  availableCash,
-  minimumBorrowingThreshold,
-}) {
-  return {
-    id: 'capital-constrained',
-    title: 'Lower-cost market or improve capital first',
-    strategyType: 'capital_constrained',
-    riskMode: 'balanced',
-    riskLevel: 'Moderate',
-    propertyCount: 0,
-    recommendedPurchaseRange: { min: 0, max: 0, label: 'Constrained by deposit and acquisition costs' },
-    stretchRange: { min: 0, max: 0, label: null },
-    depositRequired: 0,
-    estimatedAcquisitionCosts: 0,
-    lmiEstimate: 0,
-    estimatedLoanSize: 0,
-    estimatedPostPurchaseSurplus: roundCurrency(currentSurplus),
-    estimatedGrossYield: 0,
-    estimatedMonthlyCashFlow: 0,
-    fiveYearEquityProjection: 0,
-    projectionData: [],
-    borrowingCapacityAfterPurchase: roundCurrency(Math.max(borrowingCapacity, 0)),
-    rationale:
-      'Borrowing capacity is viable, but current equity and liquidity do not yet support a clean deposit-and-costs position for the next acquisition.',
-    breakdown: {
-      derivedFrom: {
-        borrowingCapacityCap: formatCurrency(borrowingCapacity),
-        capitalCap: formatCurrency(usableEquity + availableCash),
-        surplusCap: formatCurrency(currentSurplus),
-        finalCap: formatCurrency(0),
-      },
-      purchaseRange: {
-        recommended: 'Improve capital position before targeting a purchase range',
-        stretch: null,
-      },
-      assumptions: {
-        minimumBorrowingThreshold: formatCurrency(minimumBorrowingThreshold),
-        action: 'Improve capital, preserve liquidity, or target a lower-cost market first.',
-      },
-      constraints: ['Current equity or cash position is insufficient for deposit plus acquisition costs.'],
-      postPurchase: {
-        estimatedLoanSize: formatCurrency(0),
-        estimatedAcquisitionCosts: formatCurrency(0),
-        depositRequired: formatCurrency(0),
-        estimatedPostPurchaseSurplus: formatCurrency(currentSurplus),
-        estimatedMonthlyCashFlow: formatCurrency(0),
-      },
-    },
   }
 }
 
@@ -811,13 +979,17 @@ export default function buildPortfolioGrowthScenarios({
   const cashOnHand = Math.max(0, Number(availableCash || 0))
   const usableEquityAfterBuffer = Math.max(0, availableEquity - mergedConfig.liquidityBuffer)
   const totalDeployableCapital = Math.max(0, usableEquityAfterBuffer + cashOnHand)
+  const purchasePower = calculatePurchasePowerConstraints({
+    depositAvailable: totalDeployableCapital,
+    requiredDepositRatio: mergedConfig.depositRatio,
+    borrowingCapacity,
+  })
   const growthRate = getGrowthRate(properties)
   const defaultInterestRatePct = getAverageInterestRate(loans)
   const interestRatePct = normalizeInterestRate(
     config.interestRatePct,
     defaultInterestRatePct
   )
-  const expenseRatio = getExpenseRatio(transactions)
   const growthYieldPct = getPortfolioYield(
     properties,
     transactions,
@@ -856,112 +1028,102 @@ export default function buildPortfolioGrowthScenarios({
     (confidenceInputs.filter(Boolean).length / confidenceInputs.length) * 100
   )
 
-  if (viabilityState === 'NOT_READY') {
-    scenarios.push(
-      buildWaitScenario({
-      currentSurplus,
-      borrowingCapacity,
-      usableEquity: usableEquityAfterBuffer + cashOnHand,
-      })
-    )
-  } else if (viabilityState === 'CONSTRAINED') {
-    scenarios.push(
-      buildConstrainedScenario({
-      currentSurplus,
-      borrowingCapacity,
-      usableEquity: usableEquityAfterBuffer,
-        availableCash: cashOnHand,
-        minimumBorrowingThreshold: mergedConfig.minimumBorrowingThreshold,
-      })
-    )
+  const largerPropertyScenario = buildStrategyScenario({
+    id: 'larger-property',
+    title: 'Buy 1 larger property',
+    strategyType: 'larger_property',
+    riskMode: 'growth',
+    propertyCount: 1,
+    grossYieldPct: growthYieldPct,
+    interestRatePct,
+    growthRate,
+    borrowingCapacity,
+    usableEquity: availableEquity,
+    availableCash: cashOnHand,
+    currentSurplus,
+    config: mergedConfig,
+    confidenceScore,
+  })
+
+  if (largerPropertyScenario) {
+    scenarios.push(largerPropertyScenario)
   }
 
-  if (viabilityState === 'READY') {
-    const largerPropertyScenario = buildStrategyScenario({
-      id: 'larger-property',
-      title: 'Buy 1 larger property',
-      strategyType: 'larger_property',
-      riskMode: 'growth',
-      propertyCount: 1,
-      grossYieldPct: growthYieldPct,
-      expenseRatio,
-      interestRatePct,
-      growthRate,
-      borrowingCapacity,
-      usableEquity: availableEquity,
-      availableCash: cashOnHand,
-      currentSurplus,
-      config: mergedConfig,
-      confidenceScore,
-    })
+  const twoPropertyScenario = buildStrategyScenario({
+    id: 'two-smaller-properties',
+    title: 'Buy 2 smaller properties',
+    strategyType: 'two_smaller_properties',
+    riskMode: 'balanced',
+    propertyCount: 2,
+    grossYieldPct: balancedYieldPct,
+    interestRatePct,
+    growthRate,
+    borrowingCapacity,
+    usableEquity: availableEquity,
+    availableCash: cashOnHand,
+    currentSurplus,
+    config: mergedConfig,
+    confidenceScore,
+  })
 
-    if (largerPropertyScenario) {
-      scenarios.push(largerPropertyScenario)
-    }
-
-    const twoPropertyScenario = buildStrategyScenario({
-      id: 'two-smaller-properties',
-      title: 'Buy 2 smaller properties',
-      strategyType: 'two_smaller_properties',
-      riskMode: 'balanced',
-      propertyCount: 2,
-      grossYieldPct: balancedYieldPct,
-      expenseRatio,
-      interestRatePct,
-      growthRate,
-      borrowingCapacity,
-      usableEquity: availableEquity,
-      availableCash: cashOnHand,
-      currentSurplus,
-      config: mergedConfig,
-      confidenceScore,
-    })
-
-    if (twoPropertyScenario) {
-      scenarios.push(twoPropertyScenario)
-    }
-
-    if (
-      scenarios.length === 0 ||
-      currentSurplus < mergedConfig.minimumPostPurchaseSurplus ||
-      borrowingCapacity <= 0
-    ) {
-      scenarios.push(
-        buildWaitScenario({
-          currentSurplus,
-          borrowingCapacity,
-          usableEquity: usableEquityAfterBuffer + cashOnHand,
-        })
-      )
-    }
+  if (twoPropertyScenario) {
+    scenarios.push(twoPropertyScenario)
   }
 
-  const feasibleStrategies = scenarios.filter(
-    (scenario) =>
-      scenario.strategyType !== 'optimise_first' &&
-      scenario.strategyType !== 'capital_constrained' &&
-      scenario.isFeasible !== false
-  )
+  const executableStrategies = scenarios.filter((scenario) => scenario.scenarioState !== 'blocked' && scenario.isFeasible)
+  const nearViableStrategies = scenarios.filter((scenario) => scenario.scenarioState === 'near_viable')
+  const blockedStrategies = scenarios.filter((scenario) => scenario.scenarioState === 'blocked')
 
-  const recommendedStrategy =
-    viabilityState !== 'READY'
-      ? null
-      : feasibleStrategies.sort((a, b) => {
-          if (b.estimatedPostPurchaseSurplus !== a.estimatedPostPurchaseSurplus) {
-            return b.estimatedPostPurchaseSurplus - a.estimatedPostPurchaseSurplus
-          }
-          return b.estimatedGrossYield - a.estimatedGrossYield
-        })[0] || null
+  const primaryStrategy =
+    executableStrategies
+      .sort((a, b) => {
+        if (b.estimatedPostPurchaseSurplus !== a.estimatedPostPurchaseSurplus) {
+          return b.estimatedPostPurchaseSurplus - a.estimatedPostPurchaseSurplus
+        }
+        return b.estimatedGrossYield - a.estimatedGrossYield
+      })[0] ||
+    nearViableStrategies
+      .sort((a, b) => (a.requiredCapitalGap || 0) - (b.requiredCapitalGap || 0))[0] ||
+    blockedStrategies
+      .sort((a, b) => (a.requiredCapitalGap || 0) - (b.requiredCapitalGap || 0))[0] ||
+    null
 
-  if (viabilityState === 'READY' && feasibleStrategies.length === 0) {
+  const classifiedScenarios = scenarios
+    .map((scenario) => {
+      if (!primaryStrategy) return scenario
+      if (scenario.id === primaryStrategy.id) {
+        return {
+          ...scenario,
+          scenarioState: scenario.isFeasible ? 'recommended' : scenario.scenarioState,
+          scenarioStateLabel: getScenarioStateLabel(
+            scenario.isFeasible ? 'recommended' : scenario.scenarioState
+          ),
+        }
+      }
+
+      if (scenario.isFeasible) {
+        return {
+          ...scenario,
+          scenarioState: 'stretch',
+          scenarioStateLabel: getScenarioStateLabel('stretch'),
+        }
+      }
+
+      return scenario
+    })
+    .sort((a, b) => {
+      const priority = { recommended: 0, near_viable: 1, stretch: 2, blocked: 3 }
+      return (priority[a.scenarioState] ?? 99) - (priority[b.scenarioState] ?? 99)
+    })
+
+  const recommendedStrategy = primaryStrategy
+
+  if (!primaryStrategy && viabilityState === 'READY') {
     viabilityMessage =
       'Your current capital is not sufficient to acquire a property at realistic market entry levels'
   }
 
-  const limitingFactor =
-    viabilityState === 'CONSTRAINED' || totalDeployableCapital < borrowingCapacity / mergedConfig.targetLvr
-      ? 'capital'
-      : 'borrowing'
+  const limitingFactor = purchasePower.limitingFactor
 
   return {
     inputs: {
@@ -976,6 +1138,7 @@ export default function buildPortfolioGrowthScenarios({
       liabilitiesMonthly,
       mortgageCommitmentsMonthly,
       portfolioCashFlow: roundCurrency(portfolioCashFlow),
+      purchasePower,
     },
     assumptions: {
       depositRatio: mergedConfig.depositRatio,
@@ -986,7 +1149,7 @@ export default function buildPortfolioGrowthScenarios({
       minimumBorrowingThreshold: mergedConfig.minimumBorrowingThreshold,
       interestRatePct,
       defaultInterestRatePct,
-      expenseRatio,
+      expenseAssumptions: mergedConfig.expenseAssumptions,
       growthRatePct: growthRate * 100,
     },
     viability: {
@@ -998,8 +1161,9 @@ export default function buildPortfolioGrowthScenarios({
       realisticMarketEntryMin: mergedConfig.realisticMarketEntry.minPrice,
       realisticMarketEntryMax: mergedConfig.realisticMarketEntry.maxPrice,
       requiredCapitalForMultiPropertyStrategy:
-        scenarios.find((scenario) => scenario.propertyCount === 2)?.additionalCapitalRequired || 0,
+        classifiedScenarios.find((scenario) => scenario.propertyCount === 2)?.additionalCapitalRequired || 0,
       limitingFactor,
+      purchasePower,
     },
     confidence: {
       score: confidenceScore,
@@ -1011,10 +1175,21 @@ export default function buildPortfolioGrowthScenarios({
           title: recommendedStrategy.title,
           selectedOption:
             recommendedStrategy.strategyType === 'larger_property' ? 'A' : 'B',
+          scenarioState: recommendedStrategy.scenarioState,
+          scenarioStateLabel: recommendedStrategy.scenarioStateLabel,
+          stateSummary: recommendedStrategy.stateSummary,
+          requiredCapitalGap: recommendedStrategy.requiredCapitalGap || 0,
           reasons: recommendedStrategy.reasons,
           tradeOffs: recommendedStrategy.tradeOffs,
         }
       : null,
-    scenarios,
+    feasibleStrategies: classifiedScenarios.filter((scenario) =>
+      ['recommended', 'stretch'].includes(scenario.scenarioState)
+    ),
+    nearViableStrategies: classifiedScenarios.filter(
+      (scenario) => scenario.scenarioState === 'near_viable'
+    ),
+    blockedStrategies,
+    scenarios: classifiedScenarios,
   }
 }

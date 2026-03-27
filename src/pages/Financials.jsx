@@ -3,6 +3,7 @@ import { BriefcaseBusiness, CreditCard, Wallet } from 'lucide-react'
 
 import { supabase } from '../supabase'
 import useFinancialData from '../hooks/useFinancialData'
+import { normalizeTaxOwnership, validateTaxOwnership } from '../lib/taxOwnership'
 import {
   utilityPrimaryButtonClass,
   utilitySecondaryButtonClass,
@@ -59,6 +60,9 @@ function defaultProfileForm() {
     partner_income_annual: '',
     other_income_annual: '',
     cash_available_for_investment: '',
+    ownership_structure: 'individual',
+    ownership_split_user_pct: '100',
+    ownership_split_partner_pct: '0',
     groceries_household_monthly: '',
     utilities_phone_internet_monthly: '',
     transport_monthly: '',
@@ -181,6 +185,29 @@ export default function Financials({ session = null }) {
     () => sumMoney(livingExpenseCategories),
     [livingExpenseCategories]
   )
+  const ownershipDraft = useMemo(
+    () =>
+      normalizeTaxOwnership({
+        ownershipStructure: profileForm.ownership_structure,
+        ownershipSplitUserPct: parseMoney(profileForm.ownership_split_user_pct),
+        ownershipSplitPartnerPct: parseMoney(profileForm.ownership_split_partner_pct),
+      }),
+    [
+      profileForm.ownership_structure,
+      profileForm.ownership_split_partner_pct,
+      profileForm.ownership_split_user_pct,
+    ]
+  )
+  const ownershipSplitTotal =
+    Number(ownershipDraft.ownershipSplitUserPct || 0) +
+    Number(ownershipDraft.ownershipSplitPartnerPct || 0)
+  const ownershipSplitInlineError =
+    profileForm.ownership_structure === 'joint' && ownershipSplitTotal !== 100
+      ? 'Ownership split must total 100.'
+      : ''
+  const showPartnerIncomeWarning =
+    profileForm.ownership_structure === 'joint' &&
+    !(Number(parseMoney(profileForm.partner_income_annual)) > 0)
 
   useEffect(() => {
     if (profileDirty) return
@@ -191,6 +218,12 @@ export default function Financials({ session = null }) {
         ? financialProfile.living_expenses_monthly
         : ''
 
+    const normalizedOwnership = normalizeTaxOwnership({
+      ownershipStructure: financialProfile?.ownership_structure,
+      ownershipSplitUserPct: financialProfile?.ownership_split_user_pct,
+      ownershipSplitPartnerPct: financialProfile?.ownership_split_partner_pct,
+    })
+
     const nextForm = !financialProfile
       ? defaultProfileForm()
       : {
@@ -199,6 +232,9 @@ export default function Financials({ session = null }) {
           other_income_annual: financialProfile.other_income_annual ?? '',
           cash_available_for_investment:
             financialProfile.cash_available_for_investment ?? '',
+          ownership_structure: normalizedOwnership.ownershipStructure,
+          ownership_split_user_pct: String(normalizedOwnership.ownershipSplitUserPct),
+          ownership_split_partner_pct: String(normalizedOwnership.ownershipSplitPartnerPct),
           groceries_household_monthly: financialProfile.groceries_household_monthly ?? '',
           utilities_phone_internet_monthly:
             financialProfile.utilities_phone_internet_monthly ?? '',
@@ -268,7 +304,33 @@ export default function Financials({ session = null }) {
       error: '',
       success: '',
     }))
-    setProfileForm((prev) => ({ ...prev, [field]: value }))
+    setProfileForm((prev) => {
+      if (field === 'ownership_structure') {
+        if (value === 'joint') {
+          const normalizedOwnership = normalizeTaxOwnership({
+            ownershipStructure: 'joint',
+            ownershipSplitUserPct: parseMoney(prev.ownership_split_user_pct),
+            ownershipSplitPartnerPct: parseMoney(prev.ownership_split_partner_pct),
+          })
+
+          return {
+            ...prev,
+            ownership_structure: 'joint',
+            ownership_split_user_pct: String(normalizedOwnership.ownershipSplitUserPct),
+            ownership_split_partner_pct: String(normalizedOwnership.ownershipSplitPartnerPct),
+          }
+        }
+
+        return {
+          ...prev,
+          ownership_structure: 'individual',
+          ownership_split_user_pct: '100',
+          ownership_split_partner_pct: '0',
+        }
+      }
+
+      return { ...prev, [field]: value }
+    })
   }
 
   const handleLiabilityChange = (field, value) => {
@@ -322,6 +384,11 @@ export default function Financials({ session = null }) {
     const cashAvailableForInvestment = parseMoney(
       profileForm.cash_available_for_investment
     )
+    const ownership = normalizeTaxOwnership({
+      ownershipStructure: profileForm.ownership_structure,
+      ownershipSplitUserPct: parseMoney(profileForm.ownership_split_user_pct),
+      ownershipSplitPartnerPct: parseMoney(profileForm.ownership_split_partner_pct),
+    })
     const expenseCategoryValues = EXPENSE_CATEGORY_FIELDS.map(({ key }) => parseMoney(profileForm[key]))
     const dependants = Number(profileForm.dependants)
     const borrowerCount = Number(profileForm.borrower_count)
@@ -364,6 +431,20 @@ export default function Financials({ session = null }) {
       return
     }
 
+    const ownershipValidationError = validateTaxOwnership({
+      ...ownership,
+      partnerIncomeAnnual: partnerIncome,
+    })
+
+    if (ownershipValidationError) {
+      setProfileState({
+        loading: false,
+        error: ownershipValidationError,
+        success: '',
+      })
+      return
+    }
+
     if (!session?.user?.id) {
       setProfileState({
         loading: false,
@@ -385,6 +466,9 @@ export default function Financials({ session = null }) {
         partner_income_annual: partnerIncome,
         other_income_annual: otherIncome,
         cash_available_for_investment: cashAvailableForInvestment,
+        ownership_structure: ownership.ownershipStructure,
+        ownership_split_user_pct: ownership.ownershipSplitUserPct,
+        ownership_split_partner_pct: ownership.ownershipSplitPartnerPct,
         groceries_household_monthly: expenseCategoryValues[0],
         utilities_phone_internet_monthly: expenseCategoryValues[1],
         transport_monthly: expenseCategoryValues[2],
@@ -702,6 +786,91 @@ export default function Financials({ session = null }) {
                   />
                 </Field>
               </div>
+
+              <FinancialCard
+                title="Tax Ownership"
+                description="Used to estimate property tax benefits correctly."
+                nested
+              >
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-500">
+                    Tax benefits are estimated using ownership split and each owner&apos;s taxable income.
+                  </p>
+
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <Field label="Ownership structure">
+                      <select
+                        value={profileForm.ownership_structure}
+                        onChange={(event) =>
+                          handleProfileChange('ownership_structure', event.target.value)
+                        }
+                        className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      >
+                        <option value="individual">Individual</option>
+                        <option value="joint">Joint ownership</option>
+                      </select>
+                    </Field>
+                  </div>
+
+                  {profileForm.ownership_structure === 'joint' ? (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <Field label="User %">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            value={profileForm.ownership_split_user_pct}
+                            onChange={(event) =>
+                              handleProfileChange(
+                                'ownership_split_user_pct',
+                                event.target.value
+                              )
+                            }
+                            className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          />
+                        </Field>
+
+                        <Field label="Partner %">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            value={profileForm.ownership_split_partner_pct}
+                            onChange={(event) =>
+                              handleProfileChange(
+                                'ownership_split_partner_pct',
+                                event.target.value
+                              )
+                            }
+                            className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          />
+                        </Field>
+                      </div>
+
+                      {ownershipSplitInlineError ? (
+                        <p className="text-sm text-red-600">{ownershipSplitInlineError}</p>
+                      ) : (
+                        <p className="text-sm text-gray-500">
+                          Split total: {ownershipSplitTotal} / 100
+                        </p>
+                      )}
+
+                      {showPartnerIncomeWarning ? (
+                        <p className="text-sm text-amber-700">
+                          Add partner income to estimate joint ownership tax benefit accurately.
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      Individual ownership uses a 100 / 0 split.
+                    </p>
+                  )}
+                </div>
+              </FinancialCard>
 
               <FinancialCard
                 title="Expenses"

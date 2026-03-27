@@ -10,7 +10,7 @@ import {
 
 export default function OptimisationModal({
   title = 'Optimisation Options',
-  subtitle = 'Recommended next actions based on current portfolio signals.',
+  subtitle = 'Suggested next scenarios based on current portfolio signals.',
   actions = [],
   onClose,
 }) {

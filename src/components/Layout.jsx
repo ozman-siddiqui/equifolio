@@ -143,6 +143,11 @@ export default function Layout({ session, onSignOut }) {
               <Outlet />
             </div>
           </main>
+          <footer className="border-t border-gray-100 px-4 py-4 md:px-6 lg:px-6">
+            <p className="text-xs text-gray-500">
+              This tool provides general financial information only and does not constitute personal financial advice.
+            </p>
+          </footer>
         </div>
       </div>
     </div>

@@ -28,11 +28,15 @@ export default function PremiumProjectionTooltip({
 
   return (
     <div className="min-w-[240px] overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 px-4 py-3 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.35)] backdrop-blur-sm">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-        {labelTitle}
-      </p>
-      <p className="mt-1 text-sm font-semibold text-slate-950">{label}</p>
-      <div className="mt-3 border-t border-slate-100 pt-2">
+      {labelTitle ? (
+        <>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+            {labelTitle}
+          </p>
+          <p className="mt-1 text-sm font-semibold text-slate-950">{label}</p>
+        </>
+      ) : null}
+      <div className={`${labelTitle ? 'mt-3 border-t border-slate-100 pt-2' : ''}`}>
         {payloadBySeriesOrder.map((entry, index) => {
           const matchedSeries = series.find((item) => item.dataKey === entry.dataKey)
           const seriesLabel = matchedSeries?.label || entry.name || entry.dataKey

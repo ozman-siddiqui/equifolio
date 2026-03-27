@@ -75,6 +75,9 @@ export default function BorrowingPowerExplained() {
           title="Borrowing Power Explained"
           description="See how Equifolio translated your recorded income, living costs, liabilities, and mortgage commitments into a lender-style borrowing view."
         >
+          <p className="mb-4 text-xs text-gray-500">
+            Borrowing capacity estimates may differ from lender assessments.
+          </p>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
             <SummaryMetric
               label="Current capacity"
