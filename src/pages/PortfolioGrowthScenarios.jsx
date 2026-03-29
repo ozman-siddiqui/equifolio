@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+﻿import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowRight, ChevronRight, Landmark } from 'lucide-react'
 
 import useFinancialData from '../hooks/useFinancialData'
@@ -12,6 +11,7 @@ import { calculateNegativeGearingTaxBenefit } from '../lib/negativeGearingTaxBen
 import { calculateAfterTaxHoldingCost } from '../lib/afterTaxHoldingCost'
 import { normalizeTaxOwnership } from '../lib/taxOwnership'
 import PremiumProjectionChart from '../components/charts/PremiumProjectionChart'
+import PortfolioGrowthScenariosPremiumView from '../components/scenarios/PortfolioGrowthScenariosPremiumView'
 import {
   getScenarioXAxisLayout,
 } from '../components/charts/scenarioChartAxisConfig'
@@ -166,8 +166,65 @@ function normalizeScenario(scenario) {
   return normalizedScenario
 }
 
+function getConstraintBannerTitle(limitingFactor) {
+  if (limitingFactor === 'capital') {
+    return 'Capital is your constraint ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â not borrowing capacity'
+  }
+
+  if (limitingFactor === 'borrowing') {
+    return 'Borrowing capacity is your constraint ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â not capital'
+  }
+
+  return 'Capital and borrowing capacity are closely balanced'
+}
+
+function ConstraintBanner({
+  borrowingCapacity,
+  availableCapital,
+  limitingFactor,
+}) {
+  const limitingFactorLabel =
+    limitingFactor === 'capital'
+      ? 'Capital constraint'
+      : limitingFactor === 'borrowing'
+        ? 'Borrowing constraint'
+        : 'Balanced constraint'
+
+  return (
+    <section className="rounded-[1.75rem] border border-gray-200/80 border-l-4 border-l-teal-500 bg-white px-5 py-5 md:px-7 md:py-6">
+      <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-3">
+            <span className="h-3 w-3 shrink-0 rounded-full bg-teal-500" />
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-teal-700">
+              Limiting factor
+            </p>
+          </div>
+          <p className="mt-3 text-2xl font-semibold tracking-tight text-gray-900">
+            {getConstraintBannerTitle(limitingFactor)}
+          </p>
+          <p className="mt-2 text-sm text-gray-600">{limitingFactorLabel}</p>
+        </div>
+        <div className="flex flex-wrap gap-3 md:justify-end">
+          <div className="rounded-full bg-gray-50 px-4 py-3 text-right">
+            <p className="text-2xl font-bold tracking-tight text-gray-950">
+              {formatCurrency(borrowingCapacity)}
+            </p>
+            <p className="mt-1 text-sm text-gray-500">Borrowing capacity</p>
+          </div>
+          <div className="rounded-full bg-gray-50 px-4 py-3 text-right">
+            <p className="text-2xl font-bold tracking-tight text-gray-950">
+              {formatCurrency(availableCapital)}
+            </p>
+            <p className="mt-1 text-sm text-gray-500">Available capital</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export default function PortfolioGrowthScenarios() {
-  const navigate = useNavigate()
   const { properties, loans, transactions, loading } = usePortfolioData()
   const { financialProfile, liabilities } = useFinancialData()
   const rawAvailableCashForInvestment =
@@ -181,6 +238,8 @@ export default function PortfolioGrowthScenarios() {
   const [depositStrategy, setDepositStrategy] = useState('20')
   const [selectedInterestRate, setSelectedInterestRate] = useState(null)
   const [interestRateInput, setInterestRateInput] = useState('')
+  const [isAdvancedAnalysisOpen, setIsAdvancedAnalysisOpen] = useState(false)
+  const [activePremiumTab, setActivePremiumTab] = useState('wealth-growth')
   const effectiveCashToDeploy = clampCashToDeploy(
     Number.isFinite(Number(cashToDeploy)) ? Number(cashToDeploy) : 0,
     maxCashAvailableForInvestment
@@ -776,7 +835,7 @@ export default function PortfolioGrowthScenarios() {
         scenarioDebtRateAssumption || 0
       ).toFixed(1)}% debt rate`
     )
-    return parts.join(' · ')
+    return parts.join(' ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· ')
   }, [
     growthRateAssumptionPct,
     recommendedScenarioAnchorPrice,
@@ -787,7 +846,7 @@ export default function PortfolioGrowthScenarios() {
       ownershipStructure === 'joint'
         ? `${ownershipSplitUserInput || '0'} / ${ownershipSplitPartnerInput || '0'}`
         : '100 / 0'
-    return `Inputs used: pre-tax cash flow, ${taxIncomeBasisLabel} income, ownership ${splitLabel} · Assumptions: Australian resident individual tax brackets, depreciation ${
+    return `Inputs used: pre-tax cash flow, ${taxIncomeBasisLabel} income, ownership ${splitLabel} ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· Assumptions: Australian resident individual tax brackets, depreciation ${
       includeDepreciation ? `included at ${formatCurrency(annualDepreciation)}/year` : 'not included'
     }`
   }, [
@@ -802,6 +861,17 @@ export default function PortfolioGrowthScenarios() {
     () => new Map((savingsSimulationModel.scenarios || []).map((scenario) => [scenario.id, scenario])),
     [savingsSimulationModel.scenarios]
   )
+  const topSuggestedScenario = useMemo(() => {
+    if (!recommendedScenario) return null
+    const simulatedScenario = simulatedScenarioLookup.get(recommendedScenario.id)
+    return effectiveCashToDeploy > 0 && simulatedScenario ? simulatedScenario : recommendedScenario
+  }, [effectiveCashToDeploy, recommendedScenario, simulatedScenarioLookup])
+  const topAlternativeScenario = useMemo(() => {
+    const sourceScenario = blockedScenarios[0] || secondaryScenarios[0] || null
+    if (!sourceScenario) return null
+    const simulatedScenario = simulatedScenarioLookup.get(sourceScenario.id)
+    return effectiveCashToDeploy > 0 && simulatedScenario ? simulatedScenario : sourceScenario
+  }, [blockedScenarios, effectiveCashToDeploy, secondaryScenarios, simulatedScenarioLookup])
   const borrowingSensitivityData = useMemo(() => {
     if (!scenarioModel.recommendedStrategy) return []
     const assessmentRate = Number(
@@ -1090,36 +1160,12 @@ export default function PortfolioGrowthScenarios() {
         ...point,
         breakEvenMarker: isBreakEvenCashFlowPoint ? Number(point?.monthlyCashFlow || 0) : null,
         inflectionMarker: isInflectionPoint,
+        fiveYearProjectionMarker:
+          Number(point?.year || 0) === 5 ? Number(point?.netEquity || 0) : null,
         initialCapital,
       }
     })
   }, [recommendedScenario])
-  const equityCashFlowInsight = useMemo(() => {
-    if (!recommendedScenario || !equityCashFlowTradeOffData.length) return null
-
-    const fiveYearPoint =
-      equityCashFlowTradeOffData.find((point) => Number(point.year) === 5) ||
-      equityCashFlowTradeOffData[Math.min(5, equityCashFlowTradeOffData.length - 1)]
-    const fiveYearEquity = Number(fiveYearPoint?.netEquity || 0)
-    const monthlyCashFlow = Number(
-      recommendedScenarioSafeTaxView?.afterTaxMonthlyImpact ??
-        (recommendedScenario.estimatedMonthlyCashFlow || 0)
-    )
-
-    if (monthlyCashFlow < 0) {
-      return `Projected equity outcome: ~${formatCurrency(
-        fiveYearEquity
-      )} in 5 years, with an estimated cost of ~${formatCurrency(
-        Math.abs(monthlyCashFlow)
-      )}/month after tax.`
-    }
-
-    return `Projected equity outcome: ~${formatCurrency(
-      fiveYearEquity
-    )} in 5 years, while generating ~${formatCurrency(
-      monthlyCashFlow
-    )}/month after tax.`
-  }, [equityCashFlowTradeOffData, recommendedScenario, recommendedScenarioSafeTaxView])
   const fiveYearEquitySourceOfTruth = useMemo(() => {
     if (!equityCashFlowTradeOffData.length) return 0
 
@@ -1129,17 +1175,6 @@ export default function PortfolioGrowthScenarios() {
 
     return Number(fiveYearPoint?.netEquity || 0)
   }, [equityCashFlowTradeOffData])
-  const projectionInsight = useMemo(() => {
-    if (!recommendedScenario?.projectionData?.length) return null
-
-    const finalPoint =
-      recommendedScenario.projectionData[recommendedScenario.projectionData.length - 1]
-    const finalLoanBalance = Number(finalPoint?.loanBalance || 0)
-
-    return finalLoanBalance <= 0
-      ? 'Over time, equity growth is driven by both value appreciation and debt reduction.'
-      : 'Loan balance falls steadily while net equity compounds.'
-  }, [recommendedScenario])
   const recommendedNextMoveSummary = useMemo(() => {
     if (!recommendedScenario?.projectionData?.length) return null
 
@@ -1414,33 +1449,7 @@ export default function PortfolioGrowthScenarios() {
       <ScenarioChartTooltip
         contextLabel="Year"
         contextValue={String(datum?.year ?? '')}
-        primaryLabel="Net equity"
-        primaryValue={formatCurrency(datum?.netEquity ?? 0)}
-        supportingRows={[
-          Number.isFinite(Number(datum?.monthlyCashFlow))
-            ? {
-                label: 'Monthly cash flow',
-                value: `${Number(datum?.monthlyCashFlow || 0) >= 0 ? '+' : '-'}${formatCurrency(
-                  Math.abs(Number(datum?.monthlyCashFlow || 0))
-                )}/month`,
-              }
-            : null,
-        ].filter(Boolean)}
-        explanation="This path increases long-term equity while affecting monthly cash flow."
-      />
-    )
-  }
-  const renderProjectionTooltip = ({ active, payload }) => {
-    if (!active || !payload?.length) return null
-
-    const datum = payload[0]?.payload
-    if (!datum) return null
-
-    return (
-      <ScenarioChartTooltip
-        contextLabel="Year"
-        contextValue={String(datum?.year ?? '')}
-        primaryLabel="Net equity"
+        primaryLabel={Number(datum?.year) === 5 ? '5-year projection' : 'Net equity'}
         primaryValue={formatCurrency(datum?.netEquity ?? 0)}
         supportingRows={[
           Number.isFinite(Number(datum?.propertyValue))
@@ -1456,7 +1465,7 @@ export default function PortfolioGrowthScenarios() {
               }
             : null,
         ].filter(Boolean)}
-        explanation="Projected value, debt reduction, and equity growth over time."
+        explanation="Illustrative projection based on assumed growth and loan conditions."
       />
     )
   }
@@ -1466,7 +1475,7 @@ export default function PortfolioGrowthScenarios() {
       preface="Your borrowing is assessed at ~8.5%, not your actual loan rate."
       insight={borrowingSensitivityInsight}
       confidenceLabel={borrowingSensitivityConfidence?.label}
-      traceability={`Inputs used: recorded income, liabilities, mortgages, and lender assessment rate · Assumptions: buffered serviceability at ${assessmentRateValue.toFixed(
+      traceability={`Inputs used: recorded income, liabilities, mortgages, and lender assessment rate ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· Assumptions: buffered serviceability at ${assessmentRateValue.toFixed(
         1
       )}%`}
       note="Borrowing capacity estimates may differ from lender assessments."
@@ -1547,7 +1556,7 @@ export default function PortfolioGrowthScenarios() {
     <GraphPanel
       title="Deposit vs purchase power"
       insight={depositPurchaseInsight}
-      traceability={`Inputs used: deployable capital and central borrowing capacity · Assumptions: ${Math.round(
+      traceability={`Inputs used: deployable capital and central borrowing capacity ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· Assumptions: ${Math.round(
         selectedDepositStrategy.depositRatio * 100
       )}% selected deposit strategy and ${(
         Number(scenarioModel.assumptions?.acquisitionCostRate || 0) * 100
@@ -1644,7 +1653,7 @@ export default function PortfolioGrowthScenarios() {
       title="Stress test: rate vs surplus"
       insight={stressTestInsight}
       confidenceLabel={stressTestConfidence?.label}
-      traceability={`Inputs used: recorded income, liabilities, mortgages, and serviceability surplus · Assumptions: lender assessment rates from ${STRESS_TEST_RATES[0].toFixed(
+      traceability={`Inputs used: recorded income, liabilities, mortgages, and serviceability surplus ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· Assumptions: lender assessment rates from ${STRESS_TEST_RATES[0].toFixed(
         1
       )}% to ${STRESS_TEST_RATES[STRESS_TEST_RATES.length - 1].toFixed(1)}%`}
     >
@@ -1708,22 +1717,22 @@ export default function PortfolioGrowthScenarios() {
   ) : null
   const equityCashFlowTradeOffChart = equityCashFlowTradeOffData.length > 0 ? (
     <GraphPanel
-      title="Equity vs cash flow trade-off"
-      insight={equityCashFlowInsight}
-      warning={
-        Number(recommendedScenario?.estimatedMonthlyCashFlow || 0) < -500
-          ? 'Warning: High negative cash flow may impact borrowing and lifestyle.'
+      title="How your wealth grows over time"
+      preface={
+        fiveYearEquitySourceOfTruth > 0
+          ? `~${formatCurrency(fiveYearEquitySourceOfTruth)} equity at 5 years`
           : null
       }
-      traceability={`Inputs used: scenario purchase price, loan, rent, and expenses · Assumptions: ${growthRateAssumptionPct.toFixed(
+      insight="Projected equity growth reflects assumed value growth and debt reduction over time."
+      traceability={`Inputs used: scenario purchase price, loan, rent, and expenses ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· Assumptions: ${growthRateAssumptionPct.toFixed(
         1
       )}% annual growth, ${Number(scenarioDebtRateAssumption || 0).toFixed(
         1
       )}% debt rate, and rental growth over time`}
     >
       <PremiumProjectionChart
-        title="Equity vs cash flow trade-off"
-        subtitle="See how long-term equity growth compares with the monthly cash-flow pressure of the suggested scenario."
+        title="How your wealth grows over time"
+        subtitle="Illustrative projection based on assumed growth and loan conditions"
         data={equityCashFlowTradeOffData}
         series={[
           {
@@ -1738,59 +1747,42 @@ export default function PortfolioGrowthScenarios() {
             color: '#94A3B8',
             yAxisId: 'left',
             strokeWidth: 2,
+            strokeOpacity: 0.55,
           },
           {
-            dataKey: 'monthlyCashFlow',
-            label: 'Monthly cash flow',
-            color: '#C2410C',
-            yAxisId: 'right',
-          },
-          {
-            dataKey: 'breakEvenMarker',
-            label: 'Break-even cash flow',
-            color: '#2563EB',
-            yAxisId: 'right',
-            showInTooltip: false,
-            showInLegend: false,
-            strokeWidth: 0,
-            dot: {
-              r: 5.5,
-              stroke: '#FFFFFF',
-              strokeWidth: 2.5,
-              fill: '#2563EB',
-            },
-            activeDot: false,
-            connectNulls: false,
-          },
-          {
-            dataKey: 'inflectionMarker',
-            label: 'Equity inflection',
-            color: '#16A34A',
+            dataKey: 'fiveYearProjectionMarker',
+            label: '5-year projection',
+            color: '#0F172A',
             yAxisId: 'left',
-            showInTooltip: false,
             showInLegend: false,
+            showInTooltip: false,
             strokeWidth: 0,
             dot: {
               r: 5.5,
               stroke: '#FFFFFF',
               strokeWidth: 2.5,
-              fill: '#16A34A',
+              fill: '#0F172A',
             },
-            activeDot: false,
+            activeDot: {
+              r: 6,
+              stroke: '#FFFFFF',
+              strokeWidth: 2.5,
+              fill: '#0F172A',
+            },
             connectNulls: false,
           },
         ]}
         xAxisKey="year"
+        xAxisType="number"
+        xAxisDomain={[0, 30]}
+        xAxisTicks={[0, 5, 10, 15, 20, 25, 30]}
+        xAxisTickFormatter={(value) => `${Number(value)}`}
         xAxisConfig={getScenarioXAxisLayout('Years')}
         xAxisLabel="Years"
         yAxisLabel="Net equity ($)"
-        rightYAxisLabel="Monthly cash flow ($)"
         tooltipContent={renderEquityCashFlowTooltip}
         height={320}
       />
-      <p className="mt-3 text-xs leading-5 text-gray-500">
-        Cash flow assumes rental growth over time.
-      </p>
     </GraphPanel>
   ) : null
 
@@ -1915,18 +1907,16 @@ export default function PortfolioGrowthScenarios() {
       </details>
       {selectedDepositStrategy.depositRatio < 0.2 ? (
         <div className="mt-4 flex flex-col gap-1 text-sm text-amber-700 md:flex-row md:items-center md:justify-between">
-          <p>Indicative only â€” actual LMI depends on lender, LVR, and borrower profile.</p>
+          <p>Indicative only - actual LMI depends on lender, LVR, and borrower profile.</p>
           <p>Lower deposits increase leverage, repayments, and risk.</p>
         </div>
       ) : null}
     </section>
   )
+  const showInlineRecommendedWealthSection = false
 
-  // Keep the analysis calculations available for future UI without rendering the graphs.
+  // Keep the primary-graph selection logic available even though advanced analysis now owns graph rendering.
   void primaryGraphKey
-  void borrowingSensitivityChart
-  void depositPurchasePowerChart
-  void stressTestChart
   void equityCashFlowTradeOffChart
 
   if (loading) {
@@ -1938,1416 +1928,414 @@ export default function PortfolioGrowthScenarios() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="mx-auto max-w-7xl px-4 py-8">
-        <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-8">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-            Growth Scenarios
-          </p>
-          <h1 className="mt-4 text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">
-            Portfolio Growth Scenarios
-          </h1>
-          <p className="mt-3 max-w-3xl text-sm leading-7 text-gray-600 md:text-base">
-            These scenarios show how current borrowing headroom and deployable equity can be
-            deployed into the next acquisition path using only the data already stored in Equifolio.
-          </p>
-        </section>
-
-        <section className="mt-5 rounded-3xl border border-gray-100 bg-white px-4 py-3 shadow-sm shadow-gray-100/70">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
-            <HeaderMetric label="Borrowing capacity" value={formatCurrency(scenarioModel.inputs.borrowingCapacity || 0)} />
-            {Number(scenarioModel.inputs.usableEquityAfterBuffer || 0) ===
-            Number(scenarioModel.inputs.totalDeployableCapital || 0) ? (
-              <HeaderMetric
-                label="Available capital"
-                value={formatCurrency(scenarioModel.inputs.totalDeployableCapital || 0)}
-              />
-            ) : (
-              <>
-                <HeaderMetric
-                  label="Usable equity (after buffer)"
-                  value={formatCurrency(scenarioModel.inputs.usableEquityAfterBuffer || 0)}
+    <PortfolioGrowthScenariosPremiumView
+      hero={{
+        eyebrow: 'Growth scenarios',
+        title: 'Portfolio Growth Scenarios',
+        description:
+          'These scenarios show how current borrowing headroom and deployable equity can be deployed into the next acquisition path using only the data already stored in Equifolio.',
+        kpis: [
+          {
+            label: 'Borrowing capacity',
+            value: formatCurrency(scenarioModel.inputs.borrowingCapacity || 0),
+          },
+          {
+            label: 'Available capital',
+            value: formatCurrency(
+              scenarioModel?.inputs?.totalDeployableCapital ??
+                scenarioModel?.viability?.availableCapital ??
+                0
+            ),
+          },
+          {
+            label: 'Limiting factor',
+            value:
+              scenarioModel?.viability?.limitingFactor === 'capital'
+                ? 'Equity / cash'
+                : scenarioModel?.viability?.limitingFactor === 'borrowing'
+                  ? 'Borrowing capacity'
+                  : 'Balanced',
+            helper: scenarioModel?.viability?.message || null,
+            tone:
+              scenarioModel?.viability?.limitingFactor === 'capital'
+                ? 'caution'
+                : scenarioModel?.viability?.limitingFactor === 'borrowing'
+                  ? 'danger'
+                  : 'neutral',
+          },
+        ],
+      }}
+      scenarioCards={
+        scenarioModel.recommendedStrategy
+          ? [
+              {
+                badge: 'Suggested',
+                title: topSuggestedScenario?.title || 'Buy 1 larger property',
+                description:
+                  topSuggestedScenario?.stateSummary ||
+                  topSuggestedScenario?.rationale ||
+                  topSuggestedScenario?.feasibilityMessage ||
+                  'Based on your current position and selected assumptions',
+                tone: 'suggested',
+                metrics: [
+                  {
+                    label: '5Y equity',
+                    value: formatCurrency(topSuggestedScenario?.fiveYearEquityProjection || 0),
+                  },
+                  {
+                    label: 'Purchase price',
+                    value: formatCurrency(topSuggestedScenario?.scenarioPurchasePrice || 0),
+                  },
+                  {
+                    label: 'Monthly cost',
+                    value: `${Number(topSuggestedScenario?.estimatedMonthlyCashFlow || 0) >= 0 ? '+' : '-'}${formatCurrency(
+                      Math.abs(Number(topSuggestedScenario?.estimatedMonthlyCashFlow || 0))
+                    )}/month`,
+                  },
+                  {
+                    label: 'Yield',
+                    value: `${Number(topSuggestedScenario?.estimatedGrossYield || 0).toFixed(1)}% gross`,
+                  },
+                ],
+                footer:
+                  Number(topSuggestedScenario?.requiredCapitalGap || 0) > 0
+                    ? `Capital shortfall: ${formatCurrency(topSuggestedScenario?.requiredCapitalGap || 0)}`
+                    : topSuggestedScenario?.feasibilityMessage ||
+                      topSuggestedScenario?.stateSummary ||
+                      topSuggestedScenario?.rationale ||
+                      'Fully funded based on current inputs',
+              },
+              topAlternativeScenario
+                ? {
+                    badge:
+                      String(topAlternativeScenario?.scenarioStateLabel || '').toLowerCase() ===
+                      'blocked'
+                        ? 'Blocked'
+                        : 'Alternative',
+                    title: topAlternativeScenario?.title || 'Additional scenario',
+                    description:
+                      topAlternativeScenario?.blockedExplanation ||
+                      topAlternativeScenario?.stateSummary ||
+                      topAlternativeScenario?.rationale ||
+                      topAlternativeScenario?.feasibilityMessage,
+                    tone:
+                      String(topAlternativeScenario?.scenarioStateLabel || '').toLowerCase() ===
+                      'blocked'
+                        ? 'blocked'
+                        : 'alternative',
+                    metrics: [
+                      {
+                        label: '5Y equity',
+                        value: formatCurrency(topAlternativeScenario?.fiveYearEquityProjection || 0),
+                      },
+                      {
+                        label: 'Purchase price',
+                        value: formatCurrency(topAlternativeScenario?.scenarioPurchasePrice || 0),
+                      },
+                      {
+                        label: 'Monthly cost',
+                        value: `${Number(topAlternativeScenario?.estimatedMonthlyCashFlow || 0) >= 0 ? '+' : '-'}${formatCurrency(
+                          Math.abs(Number(topAlternativeScenario?.estimatedMonthlyCashFlow || 0))
+                        )}/month`,
+                      },
+                      {
+                        label: 'Yield',
+                        value: `${Number(topAlternativeScenario?.estimatedGrossYield || 0).toFixed(1)}% gross`,
+                      },
+                    ],
+                    footer:
+                      topAlternativeScenario?.blockedReason ||
+                      topAlternativeScenario?.feasibilityMessage ||
+                      topAlternativeScenario?.stateSummary ||
+                      topAlternativeScenario?.rationale,
+                  }
+                : {
+                    badge: 'Alternative',
+                    title: 'Additional scenario',
+                    description:
+                      'Alternative scenario preview will appear when another computed scenario is available.',
+                    tone: 'neutral',
+                    metrics: [],
+                    footer: 'Waiting for an additional computed scenario',
+                  },
+            ]
+          : []
+      }
+      summaryStrip={{
+        eyebrow: 'Scenario summary',
+        title:
+          scenarioModel.recommendedStrategy && recommendedScenario && recommendedNextMoveSummary
+            ? `Estimated equity growth: ~${formatCurrency(
+                recommendedNextMoveSummary.fiveYearEquity
+              )} over 5 years`
+            : scenarioModel.viability?.message || 'Scenario overview',
+        description:
+          scenarioModel.recommendedStrategy && recommendedScenario
+            ? 'Based on your current position, borrowing capacity, and selected assumptions'
+            : 'Current purchase capacity based on the inputs already available in Equifolio.',
+        metrics:
+          scenarioModel.recommendedStrategy && recommendedScenario
+            ? [
+                {
+                  label: 'Purchase price',
+                  value:
+                    recommendedScenarioAnchorPrice !== null
+                      ? formatCurrency(recommendedScenarioAnchorPrice)
+                      : 'Unavailable',
+                },
+                {
+                  label: 'Loan amount',
+                  value:
+                    recommendedScenarioLoanAmount !== null
+                      ? formatCurrency(recommendedScenarioLoanAmount)
+                      : 'Unavailable',
+                },
+                {
+                  label: 'Deposit %',
+                  value:
+                    recommendedScenarioDepositPct !== null
+                      ? `${recommendedScenarioDepositPct.toFixed(0)}%`
+                      : 'Unavailable',
+                  helper:
+                    baselineCapitalGap > 0
+                      ? 'Additional funding required'
+                      : 'Fully funded based on your inputs',
+                  tone: baselineCapitalGap > 0 ? 'caution' : 'success',
+                },
+              ]
+            : [
+                {
+                  label: 'Borrowing capacity',
+                  value: formatCurrency(scenarioModel.inputs.borrowingCapacity || 0),
+                },
+                {
+                  label: 'Available capital',
+                  value: formatCurrency(scenarioModel.inputs.totalDeployableCapital || 0),
+                },
+                {
+                  label: 'Additional capital required',
+                  value: formatCurrency(baselineCapitalGap),
+                },
+              ],
+      }}
+      tabs={[
+        { id: 'wealth-growth', label: 'Wealth growth' },
+        { id: 'funding', label: 'Funding' },
+        { id: 'tax-cash-flow', label: 'Tax & cash flow' },
+      ]}
+      activeTab={activePremiumTab}
+      onTabChange={setActivePremiumTab}
+      wealthTab={{
+        title: 'How your wealth grows over time',
+        description: recommendedScenario
+          ? `Illustrative projection based on assumed growth and loan conditions. 5-year equity: ~${formatCurrency(
+              fiveYearEquitySourceOfTruth
+            )}.`
+          : 'Illustrative projection based on the currently selected scenario.',
+        chart: equityCashFlowTradeOffChart,
+      }}
+      fundingTab={{
+        eyebrow: 'Funding',
+        title: 'How this is funded',
+        description:
+          'Available capital, required capital, and any remaining shortfall using the current scenario assumptions.',
+        cards: [
+          {
+            label: 'Available capital',
+            value: formatCurrency(recommendedAvailableCapital + appliedSavingsToGap),
+            helper: 'Usable equity plus allocated savings',
+            tone: 'positive',
+            connector: '→',
+          },
+          {
+            label: 'Required capital',
+            value: formatCurrency(
+              recommendedWealthBreakdown?.totalRequiredCapital ?? recommendedTotalRequiredCapital
+            ),
+            helper: 'Deposit and acquisition costs',
+            tone: 'neutral',
+            connector: '→',
+          },
+          {
+            label: 'Shortfall',
+            value: formatCurrency(remainingCapitalGap),
+            helper:
+              remainingCapitalGap > 0
+                ? 'Additional capital still required'
+                : 'No additional upfront cash required based on current inputs',
+            tone: remainingCapitalGap > 0 ? 'danger' : 'positive',
+          },
+        ],
+        children: (
+          <>
+            {recommendedWealthBreakdown ? (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  This scenario uses your existing equity and allocated savings.
+                </p>
+                <ScenarioFundingBreakdown
+                  scenario={recommendedScenario}
+                  summaryText="View detailed breakdown"
                 />
-                <HeaderMetric label="Available capital" value={formatCurrency(scenarioModel.inputs.totalDeployableCapital || 0)} />
-              </>
-            )}
-            <HeaderMetric label="Additional capital required" value={formatCurrency(baselineCapitalGap)} />
-            <HeaderMetric
-              label="Debt rate assumption"
-              value={`${Number(scenarioDebtRateAssumption || 0).toFixed(1)}%`}
+              </div>
+            ) : null}
+          </>
+        ),
+      }}
+      taxTab={{
+        eyebrow: 'Tax & cash flow',
+        title: 'Tax & cash flow',
+        description: 'Monthly cost story based on the currently calculated tax-aware scenario values.',
+        cards: recommendedScenarioSafeTaxView
+          ? [
+              {
+                label: 'Pre-tax',
+                value: `${recommendedScenarioSafeTaxView.monthlyPreTaxPropertyCashFlow >= 0 ? '+' : '-'}${formatCurrency(
+                  Math.abs(recommendedScenarioSafeTaxView.monthlyPreTaxPropertyCashFlow)
+                )}`,
+                unit: 'per month',
+                helper: 'Monthly property result before tax is applied.',
+                tone: 'neutral',
+                connector: '+',
+              },
+              {
+                label: 'ATO benefit',
+                value: `+${formatCurrency(recommendedScenarioSafeTaxView.totalTaxBenefitMonthly)}`,
+                unit: 'per month',
+                helper: 'Indicative tax offset based on current ownership and income inputs.',
+                tone: 'positive',
+                connector: '=',
+              },
+              {
+                label: 'Net cost',
+                value: `${recommendedScenarioSafeTaxView.afterTaxMonthlyImpact >= 0 ? '+' : '-'}${formatCurrency(
+                  Math.abs(recommendedScenarioSafeTaxView.afterTaxMonthlyImpact)
+                )}`,
+                unit: 'per month',
+                helper: 'Estimated monthly cost after tax is taken into account.',
+                tone: 'caution',
+              },
+            ]
+          : [
+              {
+                label: 'Pre-tax',
+                value: `${Number(recommendedScenario?.estimatedMonthlyCashFlow || 0) >= 0 ? '+' : '-'}${formatCurrency(
+                  Math.abs(Number(recommendedScenario?.estimatedMonthlyCashFlow || 0))
+                )}`,
+                unit: 'per month',
+                helper: 'Monthly property result before tax is applied.',
+                tone: 'neutral',
+                connector: '+',
+              },
+              {
+                label: 'ATO benefit',
+                value: formatCurrency(0),
+                unit: 'per month',
+                helper: 'Add ownership and income details to estimate tax benefit.',
+                tone: 'positive',
+                connector: '=',
+              },
+              {
+                label: 'Net cost',
+                value: `${Number(recommendedScenario?.estimatedMonthlyCashFlow || 0) >= 0 ? '+' : '-'}${formatCurrency(
+                  Math.abs(Number(recommendedScenario?.estimatedMonthlyCashFlow || 0))
+                )}`,
+                unit: 'per month',
+                helper: 'Current monthly impact without a completed tax estimate.',
+                tone: 'caution',
+              },
+            ],
+        assumptionsLine: taxTraceability,
+        children: (
+          <div className="space-y-6">
+            <details className="rounded-xl border border-gray-100 bg-gray-50/70 px-4 py-3">
+              <summary className="cursor-pointer list-none text-sm font-medium text-gray-700 marker:hidden">
+                View tax settings
+              </summary>
+              <TaxAssumptionsContent
+                ownershipStructure={ownershipStructure}
+                ownershipSplitUserInput={ownershipSplitUserInput}
+                ownershipSplitPartnerInput={ownershipSplitPartnerInput}
+                ownershipSplitInlineError={ownershipSplitInlineError}
+                showJointOwnershipIncomeWarning={showJointOwnershipIncomeWarning}
+                onOwnershipStructureChange={handleOwnershipStructureChange}
+                onOwnershipSplitUserChange={handleOwnershipSplitUserChange}
+                onOwnershipSplitPartnerChange={handleOwnershipSplitPartnerChange}
+                taxIncomeBasisLabel={taxIncomeBasisLabel}
+                includeDepreciation={includeDepreciation}
+                annualDepreciation={annualDepreciation}
+              />
+              <DepreciationControls
+                includeDepreciation={includeDepreciation}
+                annualDepreciationInput={annualDepreciationInput}
+                annualDepreciation={annualDepreciation}
+                onIncludeDepreciationChange={setIncludeDepreciation}
+                onAnnualDepreciationChange={handleAnnualDepreciationChange}
+              />
+            </details>
+            <MonthlyCashFlowBreakdown
+              scenario={recommendedScenario}
+              taxOwnership={taxOwnership}
+              includeDepreciation={includeDepreciation}
+              annualDepreciation={annualDepreciation}
             />
           </div>
-          <div className="mt-3 flex flex-col gap-1 text-xs text-gray-500 md:flex-row md:items-center md:justify-between">
-            <p>
-              Includes a safety buffer to maintain liquidity and protect against unexpected costs.
-            </p>
-            <p>
-              Scenario modelling uses this debt rate; serviceability uses a separate lender assessment rate.
-            </p>
-          </div>
-        </section>
-
-        <section
-          className={`mt-5 rounded-[2rem] border border-gray-100 bg-white p-4 shadow-sm shadow-gray-100/70 ${
-            scenarioModel.recommendedStrategy ? 'hidden' : ''
-          }`}
-        >
-          <div className="rounded-2xl border border-gray-100 bg-gray-50/70 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-              Confidence
-            </p>
-            <p className="mt-1 text-base font-semibold text-gray-900">
-              {getConfidenceSummary(scenarioModel.confidence?.score || 0)}
-            </p>
-          </div>
-
-          <details className="group mt-4">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl border border-gray-100 bg-white px-4 py-3 marker:hidden">
+        ),
+      }}
+      assumptionsSection={{
+        eyebrow: 'Scenario assumptions',
+        title: 'What this scenario assumes',
+        description: 'Adjust deposit strategy and debt rate assumptions to see how outcomes change.',
+        content: scenarioAssumptionsSection?.props?.children ?? scenarioAssumptionsSection,
+      }}
+      advancedAnalysis={{
+        title: 'Advanced analysis',
+        description:
+          'Explore how changes in rates, deposits, and borrowing assumptions affect this scenario.',
+        toggleLabel: 'Show advanced analysis',
+        isOpen: isAdvancedAnalysisOpen,
+        onToggle: setIsAdvancedAnalysisOpen,
+        content: (
+          <>
+            <div className="space-y-3">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                  Scenario assumptions
+                <p className="text-sm font-semibold text-gray-900">
+                  Borrowing capacity sensitivity
                 </p>
                 <p className="mt-1 text-sm text-gray-600">
-                  Adjust deposit strategy and debt rate assumptions to see how outcomes change.
+                  See how borrowing capacity changes across different interest rates
                 </p>
               </div>
-              <ChevronRight
-                size={18}
-                className="shrink-0 text-gray-400 transition-transform duration-300 group-open:rotate-90"
-              />
-            </summary>
-
-            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <label className="block rounded-2xl border border-gray-100 bg-white p-4">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                  Deposit strategy
-                </span>
-                <select
-                  value={selectedDepositStrategy.value}
-                  onChange={(event) => setDepositStrategy(event.target.value || '20')}
-                  className="mt-3 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-primary-300"
-                >
-                  {DEPOSIT_STRATEGY_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <div className="rounded-2xl border border-gray-100 bg-white p-4">
-                <label className="block">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                    Interest rate assumption
-                  </span>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={
-                      interestRateInput === '' && selectedInterestRate === null
-                        ? defaultInterestRate.toFixed(1)
-                        : interestRateInput
-                    }
-                    onChange={(event) => {
-                      const nextValue = sanitizeDecimalInput(event.target.value)
-                      setInterestRateInput(nextValue)
-
-                      if (nextValue === '' || nextValue === '0.' || nextValue.endsWith('.')) return
-
-                      const parsedValue = Number(nextValue)
-                      if (!Number.isFinite(parsedValue)) return
-
-                      setSelectedInterestRate(
-                        normalizeInterestRateInput(parsedValue, defaultInterestRate)
-                      )
-                    }}
-                    onBlur={() => {
-                      const parsedValue = Number(interestRateInput)
-                      const fallbackRate = normalizeInterestRateInput(
-                        selectedInterestRate,
-                        defaultInterestRate
-                      )
-
-                      if (interestRateInput === '' || !Number.isFinite(parsedValue)) {
-                        setSelectedInterestRate(fallbackRate)
-                        setInterestRateInput(fallbackRate.toFixed(1))
-                        return
-                      }
-
-                      const normalizedValue = normalizeInterestRateInput(
-                        parsedValue,
-                        defaultInterestRate
-                      )
-                      setSelectedInterestRate(normalizedValue)
-                      setInterestRateInput(normalizedValue.toFixed(1))
-                    }}
-                    className="mt-3 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-primary-300"
-                  />
-                </label>
-                <p className="mt-2 text-sm text-gray-500">
-                  Adjust the assumed debt rate to see how strategy outcomes change.
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {INTEREST_RATE_QUICK_PICKS.map((rate) => (
-                    <button
-                      key={rate}
-                      type="button"
-                      onClick={() => {
-                        setSelectedInterestRate(rate)
-                        setInterestRateInput(rate.toFixed(1))
-                      }}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                        Math.abs(effectiveInterestRate - rate) < 0.001
-                          ? 'border-primary-200 bg-primary-50 text-primary-700'
-                          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      {rate.toFixed(1)}%
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {borrowingSensitivityChart}
             </div>
-          </details>
-          {selectedDepositStrategy.depositRatio < 0.2 ? (
-            <div className="mt-4 flex flex-col gap-1 text-sm text-amber-700 md:flex-row md:items-center md:justify-between">
-              <p>Indicative only — actual LMI depends on lender, LVR, and borrower profile.</p>
-              <p>Lower deposits increase leverage, repayments, and risk.</p>
-            </div>
-          ) : null}
-        </section>
-
-        {scenarioModel.recommendedStrategy && recommendedScenario ? (
-          <section className="mt-5 rounded-[2rem] border border-primary-100 bg-white p-6 shadow-sm shadow-gray-100/70">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary-700">
-              Suggested scenario
-            </p>
-            <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div className="max-w-3xl">
-                <div className="inline-flex items-center rounded-full border border-primary-100 bg-primary-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-700">
-                  {scenarioModel.recommendedStrategy.scenarioStateLabel}
-                </div>
-                <h2 className="mt-3 text-3xl font-semibold tracking-tight text-gray-900 md:text-[2.2rem]">
-                  {recommendedNextMoveSummary
-                    ? `Projected equity outcome: ~${formatCurrency(
-                        recommendedNextMoveSummary.fiveYearEquity
-                      )}`
-                    : scenarioModel.recommendedStrategy.title}
-                </h2>
-                {recommendedNextMoveSummary?.tenYearEquity > 0 ? (
-                  <p className="mt-2 text-base font-medium text-gray-700">
-                    This scenario compounds into ~{formatCurrency(recommendedNextMoveSummary.tenYearEquity)}+ over 10 years
-                  </p>
-                ) : null}
-                {Number(scenarioModel.recommendedStrategy.requiredCapitalGap || 0) > 0 ? (
-                  <>
-                    <div className="mt-8 border-t border-gray-100 pt-8">
-                      <p className="text-sm font-semibold text-gray-900">
-                        Funding required to execute this scenario
-                      </p>
-                      <div className="mt-4 space-y-4">
-                        <p className="text-sm text-gray-600">
-                          You only need {formatCurrency(baselineCapitalGap)} to execute this deal
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCashToDeploy(savingsSliderMax)
-                              setCashInputValue(String(savingsSliderMax))
-                            }}
-                            disabled={savingsSliderMax <= 0 || isSliderDisabled}
-                            className="inline-flex rounded-full border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-semibold text-primary-700 transition-colors hover:border-primary-300 hover:bg-primary-100 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
-                          >
-                            Use minimum (gap only)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCashToDeploy(recommendedSavingsToApply)
-                              setCashInputValue(String(recommendedSavingsToApply))
-                            }}
-                            disabled={recommendedSavingsToApply <= 0 || isSliderDisabled}
-                            className="inline-flex rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
-                          >
-                            Use recommended
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => savingsInputRef.current?.focus()}
-                            className="inline-flex rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50"
-                          >
-                            Use custom
-                          </button>
-                        </div>
-                        {enteredSavings > 0 ? (
-                          <div className="space-y-1 text-sm text-gray-700">
-                            <p>
-                              Savings entered:{' '}
-                              <span className="font-semibold text-gray-900">
-                                {formatCurrency(enteredSavings)}
-                              </span>
-                            </p>
-                            {unusedSavings > 0 ? (
-                              <>
-                                <p>
-                                  <span className="font-semibold text-gray-900">
-                                    {formatCurrency(appliedSavingsToGap)}
-                                  </span>{' '}
-                                  used to close the gap {'\u2192'} Remaining gap:{' '}
-                                  <span className="font-semibold text-gray-900">
-                                    {formatCurrency(remainingCapitalGap)}
-                                  </span>
-                                </p>
-                                <p>
-                                  <span className="font-semibold text-gray-900">
-                                    {formatCurrency(unusedSavings)}
-                                  </span>{' '}
-                                  of your savings was not required
-                                </p>
-                              </>
-                            ) : (
-                              <p>
-                                <span className="font-semibold text-gray-900">
-                                  {formatCurrency(appliedSavingsToGap)}
-                                </span>{' '}
-                                applied {'\u2192'} Remaining gap:{' '}
-                                <span className="font-semibold text-gray-900">
-                                  {formatCurrency(remainingCapitalGap)}
-                                </span>
-                              </p>
-                            )}
-                            <p>
-                              Savings remaining:{' '}
-                              <span className="font-semibold text-gray-900">
-                                {formatCurrency(remainingSavings)}
-                              </span>
-                            </p>
-                          </div>
-                        ) : null}
-                        {enteredSavings > 0 && remainingCapitalGap === 0 ? (
-                          <p className="text-sm font-medium text-emerald-700">
-                            You're ready to proceed with this investment
-                          </p>
-                        ) : enteredSavings > 0 ? (
-                          <p className="text-sm font-medium text-amber-700">
-                            You&apos;re close - a small funding gap remains
-                          </p>
-                        ) : null}
-                        {enteredSavings > 0 ? (
-                          <p className={`text-sm ${isBelowSafetyBuffer ? 'text-amber-700' : 'text-emerald-700'}`}>
-                            {isBelowSafetyBuffer
-                              ? 'Remaining savings is below your safety buffer'
-                              : 'Your remaining savings is above your safety buffer'}
-                          </p>
-                        ) : null}
-                        {baselineCapitalGap > 0 ? (
-                          <div>
-                            <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
-                              <div
-                                className="h-full rounded-full bg-gray-400 transition-[width] duration-300"
-                                style={{ width: `${Math.max(0, Math.min(capitalGapProgress * 100, 100))}%` }}
-                              />
-                            </div>
-                            <p className="mt-2 text-xs text-gray-500">
-                              {Math.round(capitalGapProgress * 100)}% of gap covered
-                            </p>
-                          </div>
-                        ) : null}
-                        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:gap-5">
-                          <div className="min-w-0 flex-1">
-                            <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                              How much savings do you want to use?
-                            </span>
-                            <div className="mt-3">
-                              <input
-                                type="range"
-                                min={0}
-                                max={savingsSliderMax}
-                                step={savingsSliderStep}
-                                value={appliedSavingsToGap}
-                                onChange={(event) => {
-                                  const nextValue = clampCashToDeploy(
-                                    event.target.value,
-                                    savingsSliderMax
-                                  )
-                                  setCashToDeploy(nextValue)
-                                  setCashInputValue(String(nextValue))
-                                }}
-                                disabled={isSliderDisabled || savingsSliderMax <= 0}
-                                className="w-full disabled:cursor-not-allowed disabled:opacity-50"
-                              />
-                            </div>
-                            {isSliderDisabled ? (
-                              <p className="mt-2 text-sm text-gray-500">
-                                Add cash in Financials to enable.
-                              </p>
-                            ) : null}
-                          </div>
-                          <label className="block lg:w-[160px]">
-                            <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                              Savings input
-                            </span>
-                            <input
-                              ref={savingsInputRef}
-                              type="text"
-                              inputMode="numeric"
-                              value={cashInputValue}
-                              onChange={(event) => {
-                                const sanitizedValue = sanitizeSavingsInput(event.target.value)
-                                setCashInputValue(sanitizedValue)
-
-                                if (sanitizedValue === '') {
-                                  setCashToDeploy(0)
-                                  return
-                                }
-
-                                setCashToDeploy(
-                                  clampCashToDeploy(sanitizedValue, maxCashAvailableForInvestment)
-                                )
-                              }}
-                              onBlur={() => {
-                                if (cashInputValue === '') return
-
-                                const normalizedValue = clampCashToDeploy(
-                                  cashInputValue,
-                                  maxCashAvailableForInvestment
-                                )
-                                setCashToDeploy(normalizedValue)
-                                setCashInputValue(String(normalizedValue))
-                              }}
-                              className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-primary-300"
-                            />
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-                    <ScenarioFundingBreakdown
-                      className="mt-8"
-                      scenario={recommendedScenario}
-                      summaryText="View funding breakdown"
-                    />
-                  </>
-                ) : null}
-                {recommendedScenarioAnchorPrice !== null ? (
-                  <p className="mt-3 text-sm font-medium text-gray-700">
-                    {`Scenario based on ~${formatCurrency(recommendedScenarioAnchorPrice)} purchase price`}
-                  </p>
-                ) : null}
-                {(recommendedScenarioDepositAmount !== null ||
-                  recommendedScenarioLoanAmount !== null ||
-                  recommendedScenarioDepositPct !== null) ? (
-                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <HeaderMetric
-                      label="Deposit"
-                      value={
-                        recommendedScenarioDepositAmount !== null
-                          ? formatCurrency(recommendedScenarioDepositAmount)
-                          : 'Unavailable'
-                      }
-                    />
-                    <HeaderMetric
-                      label="Loan"
-                      value={
-                        recommendedScenarioLoanAmount !== null
-                          ? formatCurrency(recommendedScenarioLoanAmount)
-                          : 'Unavailable'
-                      }
-                    />
-                    <HeaderMetric
-                      label="Deposit strategy"
-                      value={
-                        recommendedScenarioDepositPct !== null
-                          ? `${recommendedScenarioDepositPct.toFixed(0)}%`
-                          : 'Unavailable'
-                      }
-                    />
-                  </div>
-                ) : null}
-                {recommendedScenarioRangeLabel ? (
-                  <p className="mt-3 text-sm text-gray-600">
-                    Typical acquisition range: {recommendedScenarioRangeLabel}
-                  </p>
-                ) : null}
-                <p className="mt-3 text-sm leading-6 text-gray-600">
-                  {scenarioModel.recommendedStrategy.stateSummary ||
-                    (scenarioModel.viability?.limitingFactor === 'capital'
-                      ? 'Based on your inputs, capital is the main constraint rather than borrowing capacity.'
-                      : recommendedScenario?.rationale)}
-                </p>
-                <p className="mt-3 text-xs text-gray-500">
-                  Results are based on your inputs and assumptions and are for illustrative purposes only.
-                </p>
-                <AssumptionTrace text={recommendationTraceability} />
-                {recommendedWealthOutcome ? (
-                  <div className="mt-8 space-y-4 border-t border-gray-100 pt-8">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                      Projected wealth outcome
-                    </p>
-                    <p className="mt-2 text-sm text-gray-600">
-                      Estimated outcome after accounting for total capital deployed
-                    </p>
-                    <p className="mt-1 text-xs text-gray-500">
-                      Includes equity used, upfront costs, and holding contributions over time
-                    </p>
-                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                      <OutcomeMetric
-                        label="Equity gain"
-                        value={recommendedWealthOutcome.equityGain}
-                        forcePositive
-                      />
-                      <OutcomeMetric
-                        label="Total capital deployed"
-                        value={(recommendedWealthBreakdown?.totalCapitalDeployed ?? recommendedWealthOutcome.totalCashInvested) * -1}
-                      />
-                      <OutcomeMetric
-                        label="Net wealth created"
-                        value={recommendedWealthOutcome.netWealthCreated}
-                        emphasis
-                      />
-                    </div>
-                    <p className="mt-3 text-sm leading-6 text-gray-700">
-                      You deploy ~{formatCurrency(
-                        recommendedWealthBreakdown?.totalCapitalDeployed ??
-                          recommendedWealthOutcome.totalCashInvested
-                      )} (mostly existing equity + gradual contributions) to create ~{formatCurrency(
-                        recommendedWealthOutcome.equityGain
-                      )} in equity.
-                    </p>
-                    <p className="mt-2 text-sm font-medium text-gray-700">
-                      Net wealth created: ~{formatCurrency(recommendedWealthOutcome.netWealthCreated)}
-                    </p>
-                    {recommendedWealthBreakdown ? (
-                      <div className="space-y-4">
-                        <div className="border-l-2 border-emerald-500 pl-4">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-700">
-                            Funding status
-                          </p>
-                          <p className="mt-2 text-2xl font-bold tracking-tight text-emerald-700">
-                            {recommendedWealthBreakdown.upfrontCashToday === 0
-                              ? 'Fully funded - ready to execute'
-                              : formatCurrency(recommendedWealthBreakdown.upfrontCashToday)}
-                          </p>
-                          <p className="mt-2 text-xs text-emerald-800/80">
-                            {recommendedWealthBreakdown.upfrontCashToday === 0
-                              ? 'This purchase is funded using your existing equity and allocated savings'
-                              : 'Additional upfront cash is still required to execute this scenario'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                            Funding sources
-                          </p>
-                          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            <HeaderMetric
-                              label="Equity used (existing capital)"
-                              value={formatCurrency(recommendedWealthBreakdown.equityUsed)}
-                            />
-                            <HeaderMetric
-                              label="Savings used"
-                              value={formatCurrency(recommendedWealthBreakdown.cashUsed)}
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                            Commitment summary
-                          </p>
-                          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            <HeaderMetric
-                              label="Monthly impact"
-                              value={`${(recommendedScenarioSafeTaxView?.afterTaxMonthlyImpact ?? recommendedNextMoveSummary?.monthlyCashFlowImpact ?? 0) >= 0 ? '+' : '-'}${formatCurrency(
-                                Math.abs(
-                                  recommendedScenarioSafeTaxView?.afterTaxMonthlyImpact ??
-                                    recommendedNextMoveSummary?.monthlyCashFlowImpact ??
-                                    0
-                                )
-                              )}/month after tax`}
-                            />
-                            <HeaderMetric
-                              label="Ongoing contribution (over time)"
-                              value={formatCurrency(recommendedWealthBreakdown.ongoingContribution)}
-                            />
-                          </div>
-                          <p className="mt-3 text-xs text-gray-500">
-                            Spread over ~5 years (~{formatCurrency(
-                              Math.abs(
-                                recommendedScenarioSafeTaxView?.afterTaxMonthlyImpact ??
-                                  recommendedNextMoveSummary?.monthlyCashFlowImpact ??
-                                  0
-                              )
-                            )}/month after tax)
-                          </p>
-                        </div>
-                        <p className="mt-3 text-xs text-gray-500">
-                          {recommendedWealthBreakdown.cashUsed > 0
-                            ? 'A large portion of this capital comes from equity already available, with the remainder funded from your savings.'
-                            : 'A large portion of this capital comes from equity already available in your portfolio, not new cash.'}
-                        </p>
-                        <details className="rounded-xl border border-gray-100 px-4 py-3">
-                          <summary className="cursor-pointer list-none text-sm font-semibold text-gray-900 marker:hidden">
-                            View detailed breakdown
-                          </summary>
-                          <div className="mt-4 space-y-3">
-                            <BreakdownRow
-                              label="Equity used (existing capital)"
-                              helper="Equity used is accessed via refinance, not out-of-pocket cash"
-                              value={formatCurrency(recommendedWealthBreakdown.equityUsed)}
-                            />
-                            <BreakdownRow
-                              label="Savings used"
-                              value={formatCurrency(recommendedWealthBreakdown.cashUsed)}
-                            />
-                            {recommendedWealthBreakdown.upfrontCashToday > 0 ? (
-                              <BreakdownRow
-                                label="Upfront cash required"
-                                value={formatCurrency(recommendedWealthBreakdown.upfrontCashToday)}
-                              />
-                            ) : null}
-                            <BreakdownRow
-                              label="Ongoing contribution (over time)"
-                              value={formatCurrency(recommendedWealthBreakdown.ongoingContribution)}
-                            />
-                            <BreakdownRow
-                              label="Total capital deployed"
-                              value={formatCurrency(recommendedWealthBreakdown.totalCapitalDeployed)}
-                              strong
-                            />
-                          </div>
-                        </details>
-                      </div>
-                    ) : null}
-                    <p className="mt-3 text-sm leading-6 text-gray-600">
-                      Based on this scenario, an estimated{' '}
-                      {formatCurrency(
-                        recommendedWealthBreakdown?.totalCapitalDeployed ??
-                          recommendedWealthOutcome.totalCashInvested
-                      )} investment over 5
-                      years could result in ~{formatCurrency(recommendedWealthOutcome.equityGain)} in
-                      equity, creating ~{formatCurrency(recommendedWealthOutcome.netWealthCreated)} in
-                      net wealth.
-                    </p>
-                    {recommendedWealthOutcome.wealthMultiple !== null ? (
-                      <p className="mt-2 text-sm text-gray-600">
-                        ~{recommendedWealthOutcome.wealthMultiple.toFixed(1)}x multiple on invested
-                        capital (based on this scenario)
-                      </p>
-                    ) : null}
-                    {(recommendedScenarioSafeTaxView?.afterTaxMonthlyImpact ??
-                      recommendedNextMoveSummary?.monthlyCashFlowImpact ??
-                      0) > 0 ? (
-                      <p className="mt-2 text-sm text-gray-600">
-                        This scenario generates surplus cash flow, reducing your total invested capital
-                        over time.
-                      </p>
-                    ) : null}
-                    <p className="mt-3 text-xs text-gray-500">
-                      Estimates are based on your inputs and growth assumptions and are indicative only.
-                    </p>
-                  </div>
-                ) : null}
-                {recommendedNextMoveSummary ? (
-                  <div className="mt-4 space-y-3">
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <HeaderMetric
-                        label="5-year net equity"
-                        value={formatCurrency(recommendedNextMoveSummary.fiveYearEquity)}
-                      />
-                      <HeaderMetric
-                        label="Monthly cash flow impact"
-                        value={`${recommendedNextMoveSummary.monthlyCashFlowImpact >= 0 ? '+' : '-'}${formatCurrency(
-                          Math.abs(recommendedNextMoveSummary.monthlyCashFlowImpact)
-                        )}/month`}
-                      />
-                    </div>
-                    {recommendedScenarioSafeTaxView ? (
-                      <div className="rounded-2xl border border-gray-100 bg-gray-50/70 p-4">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                          Tax-Aware Monthly Impact
-                        </p>
-                        <p className="mt-2 text-xs text-gray-500">
-                          Tax estimates are indicative and may vary based on individual circumstances.
-                        </p>
-                        <AssumptionTrace text={taxTraceability} className="mt-2" />
-                        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                          <HeaderMetric
-                            label="Pre-tax cash flow"
-                            value={`${recommendedScenarioSafeTaxView.monthlyPreTaxPropertyCashFlow >= 0 ? '+' : '-'}${formatCurrency(
-                              Math.abs(recommendedScenarioSafeTaxView.monthlyPreTaxPropertyCashFlow)
-                            )}/month`}
-                          />
-                          <HeaderMetric
-                            label="Tax benefit"
-                            value={`+${formatCurrency(recommendedScenarioSafeTaxView.totalTaxBenefitMonthly)}/month`}
-                          />
-                          <HeaderMetric
-                            label="After-tax impact"
-                            value={`${recommendedScenarioSafeTaxView.afterTaxMonthlyImpact >= 0 ? '+' : '-'}${formatCurrency(
-                              Math.abs(recommendedScenarioSafeTaxView.afterTaxMonthlyImpact)
-                            )}/month`}
-                          />
-                        </div>
-                        <details className="mt-3 rounded-xl border border-gray-100 bg-white px-3 py-2">
-                          <summary className="cursor-pointer list-none text-xs font-medium text-gray-600 marker:hidden">
-                            Tax assumptions
-                          </summary>
-                          <TaxAssumptionsContent
-                            ownershipStructure={ownershipStructure}
-                            ownershipSplitUserInput={ownershipSplitUserInput}
-                            ownershipSplitPartnerInput={ownershipSplitPartnerInput}
-                            ownershipSplitInlineError={ownershipSplitInlineError}
-                            showJointOwnershipIncomeWarning={showJointOwnershipIncomeWarning}
-                            onOwnershipStructureChange={handleOwnershipStructureChange}
-                            onOwnershipSplitUserChange={handleOwnershipSplitUserChange}
-                            onOwnershipSplitPartnerChange={handleOwnershipSplitPartnerChange}
-                            taxIncomeBasisLabel={taxIncomeBasisLabel}
-                            includeDepreciation={includeDepreciation}
-                            annualDepreciation={annualDepreciation}
-                          />
-                        </details>
-                        <DepreciationControls
-                          includeDepreciation={includeDepreciation}
-                          annualDepreciationInput={annualDepreciationInput}
-                          annualDepreciation={annualDepreciation}
-                          onIncludeDepreciationChange={setIncludeDepreciation}
-                          onAnnualDepreciationChange={handleAnnualDepreciationChange}
-                        />
-                        {includeDepreciation ? (
-                          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            <HeaderMetric
-                              label="Annual depreciation estimate"
-                              value={formatCurrency(
-                                recommendedScenarioSafeTaxView.depreciationAnnual
-                              )}
-                            />
-                            <HeaderMetric
-                              label="Estimated additional tax benefit"
-                              value={`+${formatCurrency(
-                                recommendedScenarioSafeTaxView.depreciationTaxBenefitMonthly
-                              )}/month`}
-                            />
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : hasTaxableIncome ? (
-                      <div className="rounded-2xl border border-gray-100 bg-gray-50/70 p-4">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                          Tax-Aware Monthly Impact
-                        </p>
-                        <p className="mt-2 text-xs text-gray-500">
-                          Tax estimates are indicative and may vary based on individual circumstances.
-                        </p>
-                        <AssumptionTrace text={taxTraceability} className="mt-2" />
-                        {recommendedScenarioTaxView ? (
-                          <p className="mt-3 text-sm text-gray-600">
-                            Tax estimate unavailable until ownership inputs are complete.
-                          </p>
-                        ) : (
-                          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                            <HeaderMetric
-                              label="Pre-tax cash flow"
-                              value={`${Number(recommendedScenario?.estimatedMonthlyCashFlow || 0) >= 0 ? '+' : '-'}${formatCurrency(
-                                Math.abs(Number(recommendedScenario?.estimatedMonthlyCashFlow || 0))
-                              )}/month`}
-                            />
-                            <HeaderMetric
-                              label="Tax benefit"
-                              value="+$0/month"
-                            />
-                            <HeaderMetric
-                              label="After-tax impact"
-                              value={`${Number(recommendedScenario?.estimatedMonthlyCashFlow || 0) >= 0 ? '+' : '-'}${formatCurrency(
-                                Math.abs(Number(recommendedScenario?.estimatedMonthlyCashFlow || 0))
-                              )}/month`}
-                            />
-                          </div>
-                        )}
-                        <details className="mt-3 rounded-xl border border-gray-100 bg-white px-3 py-2">
-                          <summary className="cursor-pointer list-none text-xs font-medium text-gray-600 marker:hidden">
-                            Tax assumptions
-                          </summary>
-                          <TaxAssumptionsContent
-                            ownershipStructure={ownershipStructure}
-                            ownershipSplitUserInput={ownershipSplitUserInput}
-                            ownershipSplitPartnerInput={ownershipSplitPartnerInput}
-                            ownershipSplitInlineError={ownershipSplitInlineError}
-                            showJointOwnershipIncomeWarning={showJointOwnershipIncomeWarning}
-                            onOwnershipStructureChange={handleOwnershipStructureChange}
-                            onOwnershipSplitUserChange={handleOwnershipSplitUserChange}
-                            onOwnershipSplitPartnerChange={handleOwnershipSplitPartnerChange}
-                            taxIncomeBasisLabel={taxIncomeBasisLabel}
-                            includeDepreciation={includeDepreciation}
-                            annualDepreciation={annualDepreciation}
-                          />
-                        </details>
-                        <DepreciationControls
-                          includeDepreciation={includeDepreciation}
-                          annualDepreciationInput={annualDepreciationInput}
-                          annualDepreciation={annualDepreciation}
-                          onIncludeDepreciationChange={setIncludeDepreciation}
-                          onAnnualDepreciationChange={handleAnnualDepreciationChange}
-                        />
-                      </div>
-                    ) : (
-                      <div className="rounded-2xl border border-gray-100 bg-gray-50/70 p-4">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                          Tax-Aware Monthly Impact
-                        </p>
-                        <p className="mt-2 text-xs text-gray-500">
-                          Tax estimates are indicative and may vary based on individual circumstances.
-                        </p>
-                        <AssumptionTrace text={taxTraceability} className="mt-2" />
-                        <p className="mt-3 text-sm text-gray-600">
-                          Add income to estimate tax benefit
-                        </p>
-                        <details className="mt-3 rounded-xl border border-gray-100 bg-white px-3 py-2">
-                          <summary className="cursor-pointer list-none text-xs font-medium text-gray-600 marker:hidden">
-                            Tax assumptions
-                          </summary>
-                          <TaxAssumptionsContent
-                            ownershipStructure={ownershipStructure}
-                            ownershipSplitUserInput={ownershipSplitUserInput}
-                            ownershipSplitPartnerInput={ownershipSplitPartnerInput}
-                            ownershipSplitInlineError={ownershipSplitInlineError}
-                            showJointOwnershipIncomeWarning={showJointOwnershipIncomeWarning}
-                            onOwnershipStructureChange={handleOwnershipStructureChange}
-                            onOwnershipSplitUserChange={handleOwnershipSplitUserChange}
-                            onOwnershipSplitPartnerChange={handleOwnershipSplitPartnerChange}
-                            taxIncomeBasisLabel={taxIncomeBasisLabel}
-                            includeDepreciation={includeDepreciation}
-                            annualDepreciation={annualDepreciation}
-                          />
-                        </details>
-                        <DepreciationControls
-                          includeDepreciation={includeDepreciation}
-                          annualDepreciationInput={annualDepreciationInput}
-                          annualDepreciation={annualDepreciation}
-                          onIncludeDepreciationChange={setIncludeDepreciation}
-                          onAnnualDepreciationChange={handleAnnualDepreciationChange}
-                        />
-                      </div>
-                    )}
-                    <MonthlyCashFlowBreakdown
-                      scenario={recommendedScenario}
-                      taxOwnership={taxOwnership}
-                      includeDepreciation={includeDepreciation}
-                      annualDepreciation={annualDepreciation}
-                    />
-                  </div>
-                ) : null}
-                {Number(scenarioModel.recommendedStrategy.requiredCapitalGap || 0) < 0 ? (
-                  <>
-                    <div className="mt-4 rounded-2xl border border-gray-100 bg-gray-50/70 px-4 py-4">
-                      <p className="text-sm text-gray-700">
-                        You are{' '}
-                        <span className="font-semibold text-gray-900">
-                          {formatCurrency(scenarioModel.recommendedStrategy.requiredCapitalGap)}
-                        </span>{' '}
-                        away from this scenario
-                      </p>
-                      <div className="mt-4 space-y-3">
-                        <p className="text-sm text-gray-600">
-                          Use your savings to close this gap
-                        </p>
-                        {enteredSavings > 0 ? (
-                          <div className="space-y-1 text-sm text-gray-700">
-                            <p>
-                              Savings entered:{' '}
-                              <span className="font-semibold text-gray-900">
-                                {formatCurrency(enteredSavings)}
-                              </span>
-                            </p>
-                            {unusedSavings > 0 ? (
-                              <>
-                                <p>
-                                  <span className="font-semibold text-gray-900">
-                                    {formatCurrency(appliedSavingsToGap)}
-                                  </span>{' '}
-                                  used to close the gap {'\u2192'} Remaining gap:{' '}
-                                  <span className="font-semibold text-gray-900">
-                                    {formatCurrency(remainingCapitalGap)}
-                                  </span>
-                                </p>
-                                <p>
-                                  <span className="font-semibold text-gray-900">
-                                    {formatCurrency(unusedSavings)}
-                                  </span>{' '}
-                                  of your savings was not required
-                                </p>
-                              </>
-                            ) : (
-                              <p>
-                                <span className="font-semibold text-gray-900">
-                                  {formatCurrency(appliedSavingsToGap)}
-                                </span>{' '}
-                                applied {'\u2192'} Remaining gap:{' '}
-                                <span className="font-semibold text-gray-900">
-                                  {formatCurrency(remainingCapitalGap)}
-                                </span>
-                              </p>
-                            )}
-                            <p>
-                              Savings remaining:{' '}
-                              <span className="font-semibold text-gray-900">
-                                {formatCurrency(remainingSavings)}
-                              </span>
-                            </p>
-                          </div>
-                        ) : null}
-                        {enteredSavings > 0 && remainingCapitalGap === 0 ? (
-                          <p className="text-sm font-medium text-emerald-700">
-                            Gap fully covered — this scenario is now funded
-                          </p>
-                        ) : null}
-                        {enteredSavings > 0 ? (
-                          <p className={`text-sm ${isBelowSafetyBuffer ? 'text-amber-700' : 'text-emerald-700'}`}>
-                            {isBelowSafetyBuffer
-                              ? 'Remaining savings is below your safety buffer'
-                              : 'Your remaining savings is above your safety buffer'}
-                          </p>
-                        ) : null}
-                        {baselineCapitalGap > 0 ? (
-                          <div>
-                            <div className="h-2 overflow-hidden rounded-full bg-gray-100">
-                              <div
-                                className="h-full rounded-full bg-primary-600 transition-[width] duration-300"
-                                style={{ width: `${Math.max(0, Math.min(capitalGapProgress * 100, 100))}%` }}
-                              />
-                            </div>
-                            <p className="mt-2 text-xs text-gray-500">
-                              {Math.round(capitalGapProgress * 100)}% of gap covered
-                            </p>
-                          </div>
-                        ) : null}
-                        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:gap-5">
-                          <div className="min-w-0 flex-1">
-                            <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                              Savings to apply
-                            </span>
-                            <div className="mt-3">
-                              <input
-                                type="range"
-                                min={0}
-                                max={savingsSliderMax}
-                                step={savingsSliderStep}
-                                value={appliedSavingsToGap}
-                                onChange={(event) => {
-                                  const nextValue = clampCashToDeploy(
-                                    event.target.value,
-                                    savingsSliderMax
-                                  )
-                                  setCashToDeploy(nextValue)
-                                  setCashInputValue(String(nextValue))
-                                }}
-                                disabled={isSliderDisabled || savingsSliderMax <= 0}
-                                className="w-full disabled:cursor-not-allowed disabled:opacity-50"
-                              />
-                            </div>
-                            {savingsSliderMax > 0 ? (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setCashToDeploy(savingsSliderMax)
-                                  setCashInputValue(String(savingsSliderMax))
-                                }}
-                                className="mt-3 inline-flex rounded-full border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-semibold text-primary-700 transition-colors hover:border-primary-300 hover:bg-primary-100"
-                              >
-                                Use exact gap: {formatCurrency(savingsSliderMax)}
-                              </button>
-                            ) : null}
-                            {isSliderDisabled ? (
-                              <p className="mt-2 text-sm text-gray-500">
-                                Add cash in Financials to enable.
-                              </p>
-                            ) : null}
-                          </div>
-                          <label className="block lg:w-[160px]">
-                            <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                              Savings input
-                            </span>
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              value={cashInputValue}
-                              onChange={(event) => {
-                                const sanitizedValue = sanitizeSavingsInput(event.target.value)
-                                setCashInputValue(sanitizedValue)
-
-                                if (sanitizedValue === '') {
-                                  setCashToDeploy(0)
-                                  return
-                                }
-
-                                setCashToDeploy(
-                                  clampCashToDeploy(sanitizedValue, maxCashAvailableForInvestment)
-                                )
-                              }}
-                              onBlur={() => {
-                                if (cashInputValue === '') return
-
-                                const normalizedValue = clampCashToDeploy(
-                                  cashInputValue,
-                                  maxCashAvailableForInvestment
-                                )
-                                setCashToDeploy(normalizedValue)
-                                setCashInputValue(String(normalizedValue))
-                              }}
-                              className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-primary-300"
-                            />
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-                    <ScenarioFundingBreakdown
-                      className="mt-4"
-                      scenario={recommendedScenario}
-                      summaryText="View funding breakdown"
-                    />
-                  </>
-                ) : null}
-              </div>
-              <div className="rounded-2xl border border-gray-100 bg-gray-50/70 px-4 py-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                  Confidence
-                </p>
-                <p className="mt-1 text-base font-semibold text-gray-900">
-                  {getConfidenceSummary(recommendedScenario.confidenceScore || 0)}
-                </p>
-              </div>
-            </div>
-          </section>
-        ) : null}
-
-        {scenarioModel.recommendedStrategy ? scenarioAssumptionsSection : null}
-
-        {scenarioModel.recommendedStrategy ? (
-          <section className="mt-5 rounded-[2rem] border border-primary-100 bg-primary-50/60 p-6 shadow-sm shadow-primary-100/40">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary-700">
-              Why this strategy works
-            </p>
-            <div className="mt-3">
+            <div className="space-y-3">
               <div>
-                <h2 className="text-2xl font-semibold text-gray-900">
-                  {feasibleStrategyCount > 1
-                    ? `Option ${scenarioModel.recommendedStrategy.selectedOption}: ${scenarioModel.recommendedStrategy.title}`
-                    : scenarioModel.recommendedStrategy.title}
-                </h2>
-                <div className="mt-5 space-y-3 text-sm leading-6 text-gray-700">
-                  <p>• Strong equity growth from leveraged exposure</p>
-                  <p>• Within your current borrowing capacity</p>
-                  <p>• Achievable with minimal additional capital</p>
-                </div>
-                <div className="hidden mt-4 space-y-2 text-sm text-gray-700">
-                  {scenarioModel.recommendedStrategy.reasons.map((reason) => (
-                    <p key={reason}>• {reason}</p>
-                  ))}
-                </div>
-              </div>
-              <div className="hidden max-w-md">
-                <p className="text-sm font-semibold text-gray-900">Trade-offs</p>
-                <div className="mt-3 space-y-2 text-sm text-gray-700">
-                  {scenarioModel.recommendedStrategy.tradeOffs.map((tradeOff) => (
-                    <p key={tradeOff}>• {tradeOff}</p>
-                  ))}
-                </div>
-              </div>
-            </div>
-            {null}
-            {null}
-          </section>
-        ) : null}
-
-        {!scenarioModel.recommendedStrategy && scenarioModel.viability?.message ? (
-          <section className="mt-5 rounded-[2rem] border border-amber-100 bg-amber-50/70 p-6 shadow-sm shadow-amber-100/50">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-amber-700">
-              Market Feasibility
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold text-gray-900">
-              {scenarioModel.viability.message}
-            </h2>
-            <div className="mt-3 space-y-2 text-sm leading-6 text-gray-700">
-              <p>Improve capital, unlock more equity, or strengthen serviceability before targeting a realistic market entry point.</p>
-              {scenarioModel.viability?.requiredCapitalForMultiPropertyStrategy > 0 ? (
-                <p>
-                  Additional capital to unlock a multi-property scenario:{' '}
-                  <span className="font-semibold text-gray-900">
-                    {formatCurrency(scenarioModel.viability.requiredCapitalForMultiPropertyStrategy)}
-                  </span>
+                <p className="text-sm font-semibold text-gray-900">
+                  Interest rate stress test
                 </p>
-              ) : null}
-            </div>
-          </section>
-        ) : null}
-
-        {scenarioModel.viability?.limitingFactor === 'capital' ? (
-          <section className="mt-5 rounded-[2rem] border border-amber-100 bg-amber-50/70 p-6 shadow-sm shadow-amber-100/50">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-amber-700">
-              Limiting Factor
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold text-gray-900">
-              Based on your inputs, capital is the main constraint rather than borrowing capacity
-            </h2>
-            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-              <HeaderMetric label="Borrowing capacity" value={formatCurrency(scenarioModel.inputs.borrowingCapacity || 0)} />
-              <HeaderMetric label="Capital available for deposit & costs" value={formatCurrency(scenarioModel.viability?.availableCapital || 0)} />
-              <HeaderMetric label="Limiting factor" value="Equity / cash" />
-            </div>
-            <p className="mt-3 text-sm text-gray-600">
-              Used for deposit and acquisition costs — not the full property price.
-            </p>
-          </section>
-        ) : null}
-
-        {secondaryScenarios.length > 0 ? (
-          <div className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-2">
-            {secondaryScenarios.map((scenario) => (
-              (() => {
-                const simulatedScenario = simulatedScenarioLookup.get(scenario.id)
-                const displayScenario =
-                  effectiveCashToDeploy > 0 && simulatedScenario ? simulatedScenario : scenario
-                const displayGap = Number(displayScenario.requiredCapitalGap || 0)
-                const displayScenarioWealth = scenarioComparisonWealthMap.get(displayScenario.id)
-                const comparisonScenario =
-                  normalizedScenarios.find((candidate) => candidate.id !== displayScenario.id) || null
-                const comparisonScenarioWealth = comparisonScenario
-                  ? scenarioComparisonWealthMap.get(comparisonScenario.id)
-                  : null
-                const netWealthCreated = getSafeNumber(displayScenarioWealth?.netWealthCreated)
-                const comparisonNetWealth = getSafeNumber(comparisonScenarioWealth?.netWealthCreated)
-                const wealthDifference =
-                  netWealthCreated !== null && comparisonNetWealth !== null
-                    ? netWealthCreated - comparisonNetWealth
-                    : null
-
-                return (
-              <section
-                key={scenario.id}
-                className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                      {scenario.scenarioStateLabel}
-                    </p>
-                    <h2 className="mt-2 text-2xl font-semibold text-gray-900">{scenario.title}</h2>
-                  </div>
-                  <div className="rounded-2xl border border-primary-100 bg-primary-50 px-4 py-3 text-right">
-                    <p className="text-xs uppercase tracking-wide text-primary-700">You can acquire</p>
-                    <p className="mt-1 text-lg font-semibold text-primary-700">
-                      {scenario.propertyCount} {scenario.propertyCount === 1 ? 'property' : 'properties'}
-                    </p>
-                    <p className="mt-1 text-sm text-primary-700">{scenario.recommendedPurchaseRange.label}</p>
-                  </div>
-                </div>
-
-                <p className="mt-4 text-sm leading-6 text-gray-600">
-                  {scenario.stateSummary || scenario.rationale}
+                <p className="mt-1 text-sm text-gray-600">
+                  See how higher rates affect serviceability and funding pressure
                 </p>
-                {Number(scenario.requiredCapitalGap || 0) > 0 ? (
-                  <p className="mt-2 text-sm text-gray-600">
-                    Gap to unlock:{' '}
-                    <span className="font-semibold text-gray-900">
-                      {formatCurrency(displayGap)}
-                    </span>
-                  </p>
-                ) : null}
-                <ScenarioFundingBreakdown
-                  className="mt-4"
-                  scenario={displayScenario}
-                  summaryText="View funding breakdown"
-                />
-
-                <div className="mt-5 grid min-h-[248px] grid-cols-1 gap-3 sm:grid-cols-2">
-                  <ScenarioMetric label="Suggested range" value={scenario.recommendedPurchaseRange.label} />
-                  <ScenarioMetric label="Stretch range" value={scenario.stretchRange.label || 'Not currently suggested'} />
-                  <ScenarioMetric label="Deposit required" value={formatCurrency(scenario.depositRequired)} />
-                  <ScenarioMetric label="Acquisition costs" value={formatCurrency(scenario.estimatedAcquisitionCosts)} />
-                  <ScenarioMetric label="Loan size" value={formatCurrency(scenario.estimatedLoanSize)} />
-                  <ScenarioMetric
-                    label="Post-purchase surplus"
-                    value={formatCurrency(scenario.estimatedPostPurchaseSurplus)}
-                  />
-                  <ScenarioMetric
-                    label="Monthly cash flow"
-                    value={`${scenario.estimatedMonthlyCashFlow >= 0 ? '+' : '-'}${formatCurrency(
-                      Math.abs(scenario.estimatedMonthlyCashFlow)
-                    )}/month`}
-                  />
-                  <ScenarioMetric label="Yield" value={`${scenario.estimatedGrossYield.toFixed(1)}% gross`} />
-                  <ScenarioMetric
-                    label="5-year equity projection"
-                    value={formatCurrency(scenario.fiveYearEquityProjection)}
-                  />
-                  <ScenarioMetric
-                    label="Net wealth created"
-                    value={
-                      netWealthCreated !== null ? formatCurrency(netWealthCreated) : 'Unavailable'
-                    }
-                  />
-                  <ScenarioMetric
-                    label="Borrowing capacity after purchase"
-                    value={formatCurrency(scenario.borrowingCapacityAfterPurchase)}
-                  />
-                </div>
-                {wealthDifference !== null && comparisonScenario ? (
-                  <p className="mt-4 text-sm leading-6 text-gray-600">
-                    {wealthDifference >= 0
-                      ? `This scenario creates ~${formatCurrency(
-                          Math.abs(wealthDifference)
-                        )} more wealth over 5 years compared to the alternative.`
-                      : `This scenario creates ~${formatCurrency(
-                          Math.abs(wealthDifference)
-                        )} less wealth over 5 years compared to the alternative.`}
-                  </p>
-                ) : null}
-                <MonthlyCashFlowBreakdown
-                  className="mt-4"
-                  scenario={displayScenario}
-                  taxOwnership={taxOwnership}
-                  includeDepreciation={includeDepreciation}
-                  annualDepreciation={annualDepreciation}
-                />
-
-                <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
-                  <div className="rounded-2xl border border-gray-100 bg-gray-50/70 px-4 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                      Confidence
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-gray-900">
-                      {getConfidenceSummary(scenario.confidenceScore || 0)}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-gray-100 bg-gray-50/70 px-4 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                      Capital used
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-gray-900">
-                      {formatCurrency(scenario.depositRequired + scenario.estimatedAcquisitionCosts)}
-                    </p>
-                    <p className="mt-1 text-xs text-gray-500">
-                      LMI estimate: {formatCurrency(scenario.lmiEstimate ?? 0)}
-                    </p>
-                  </div>
-                </div>
-
-                {scenario.warnings?.length > 0 ? (
-                  <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50/60 p-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-amber-700">
-                      Warnings
-                    </p>
-                    <div className="mt-2 space-y-1.5 text-sm text-gray-700">
-                      {scenario.warnings.map((warning) => (
-                        <p key={warning}>• {warning}</p>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-
-                <details className="mt-5 rounded-2xl border border-gray-100 bg-gray-50/70 p-4">
-                  <summary className="cursor-pointer text-sm font-semibold text-gray-900">
-                    How this scenario is calculated
-                  </summary>
-
-                  <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                    <BreakdownBlock
-                      title="Capital"
-                      rows={[
-                        ['Usable equity before buffer', scenario.capitalBreakdown?.usableEquityBeforeBuffer ?? formatCurrency(0)],
-                        ['Usable equity after buffer', scenario.capitalBreakdown?.usableEquityAfterBuffer ?? formatCurrency(0)],
-                        ['Cash used', scenario.capitalBreakdown?.cashUsed ?? formatCurrency(0)],
-                        ['Total capital used', scenario.capitalBreakdown?.totalCapitalUsed ?? formatCurrency(0)],
-                        ['Buffer retained', scenario.capitalBreakdown?.bufferRetained ?? formatCurrency(0)],
-                        ['Total deployable capital', scenario.capitalBreakdown?.totalDeployableCapital ?? formatCurrency(0)],
-                      ]}
-                    />
-                    <BreakdownBlock
-                      title="Purchase Structure"
-                      rows={[
-                        ['Target price', scenario.purchaseStructure?.targetPrice ?? formatCurrency(0)],
-                        ['Deposit (%)', scenario.purchaseStructure?.depositPct ?? '0%'],
-                        ['Deposit amount', scenario.purchaseStructure?.depositAmount ?? formatCurrency(0)],
-                        ['Acquisition costs', scenario.purchaseStructure?.acquisitionCosts ?? formatCurrency(0)],
-                        ['LMI estimate', scenario.purchaseStructure?.lmiEstimate ?? formatCurrency(0)],
-                        ['Total capital required', scenario.purchaseStructure?.totalCapitalRequired ?? formatCurrency(0)],
-                      ]}
-                    />
-                    <BreakdownBlock
-                      title="Loan Structure"
-                      rows={[
-                        ['Base loan size', scenario.loanStructure?.baseLoanSize ?? formatCurrency(0)],
-                        ['LMI estimate', scenario.loanStructure?.lmiEstimate ?? formatCurrency(0)],
-                        ['Loan size', scenario.loanStructure?.loanSize ?? formatCurrency(0)],
-                        ['Interest rate assumption', scenario.loanStructure?.interestRate ?? '0.0%'],
-                        ['Monthly repayment', scenario.loanStructure?.monthlyRepayment ?? formatCurrency(0)],
-                      ]}
-                    />
-                    <BreakdownBlock
-                      title="Cash Flow"
-                      rows={[
-                        ['Rental income', scenario.cashFlowBreakdown?.rentalIncome ?? `${formatCurrency(0)}/month`],
-                        ['Expenses', scenario.cashFlowBreakdown?.expenses ?? `${formatCurrency(0)}/month`],
-                        ['Net cash flow', scenario.cashFlowBreakdown?.netCashFlow ?? `${formatCurrency(0)}/month`],
-                      ]}
-                    />
-                    <BreakdownBlock
-                      title="Serviceability Impact"
-                      rows={[
-                        ['Surplus before', scenario.serviceabilityImpact?.surplusBefore ?? formatCurrency(0)],
-                        ['Surplus after', scenario.serviceabilityImpact?.surplusAfter ?? formatCurrency(0)],
-                        ['Borrowing after purchase', scenario.serviceabilityImpact?.borrowingCapacityAfterPurchase ?? formatCurrency(0)],
-                      ]}
-                    />
-                    <BreakdownBlock
-                      title="Growth Assumptions"
-                      rows={[
-                        ['Growth rate', scenario.growthAssumptions?.growthRate ?? '0.0%'],
-                        ['5-year value', scenario.growthAssumptions?.fiveYearValue ?? formatCurrency(0)],
-                        ['Equity created', scenario.growthAssumptions?.equityCreated ?? formatCurrency(0)],
-                      ]}
-                    />
-                    <BreakdownBlock
-                      title="Constraints"
-                      rows={
-                        (scenario.constraints || []).length > 0
-                          ? scenario.constraints.map((constraint, index) => [
-                              `Constraint ${index + 1}`,
-                              constraint,
-                            ])
-                          : [['Status', 'No active cap beyond the core assumptions.']]
-                      }
-                    />
-                  </div>
-                </details>
-
-                <details className="mt-4 rounded-2xl border border-gray-100 bg-white p-4">
-                  <summary className="cursor-pointer text-sm font-semibold text-gray-900">
-                    View projection
-                  </summary>
-
-                  <div className="mt-4">
-                    <PremiumProjectionChart
-                      title="30-Year Projection"
-                      subtitle="Projected property value, loan balance, and net equity over time."
-                      data={scenario.projectionData}
-                      series={[
-                        { dataKey: 'propertyValue', label: 'Property value', color: '#0F172A' },
-                        { dataKey: 'loanBalance', label: 'Loan balance', color: '#C2410C' },
-                        { dataKey: 'netEquity', label: 'Net equity', color: '#2563EB' },
-                      ]}
-                      xAxisConfig={getScenarioXAxisLayout('Years')}
-                      tooltipContent={renderProjectionTooltip}
-                      height={300}
-                    />
-                    <ChartInsight
-                      text={
-                        projectionInsight ||
-                        'Over time, equity growth is driven by both value appreciation and debt reduction.'
-                      }
-                    />
-                    <AssumptionTrace
-                      text={`Inputs used: property value, loan balance, and net equity · Assumptions: ${Number(
-                        scenarioModel.assumptions?.growthRatePct || 0
-                      ).toFixed(1)}% annual growth and ${Number(
-                        scenarioDebtRateAssumption || 0
-                      ).toFixed(1)}% debt rate`}
-                    />
-                  </div>
-                </details>
-
-                <div className="mt-5 flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={() => navigate('/properties')}
-                    className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50"
-                  >
-                    Review portfolio
-                    <ChevronRight size={15} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navigate('/borrowing-power')}
-                    className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
-                  >
-                    View borrowing breakdown
-                    <ArrowRight size={15} />
-                  </button>
-                </div>
-              </section>
-                )
-              })()
-            ))}
-          </div>
-        ) : null}
-
-        {blockedScenarios.length > 0 ? (
-          <section className="mt-6 rounded-[2rem] border border-gray-200 bg-gray-50/70 p-6 shadow-sm shadow-gray-100/50">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-500">
-              Blocked strategies
-            </p>
-            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
-              {blockedScenarios.map((strategy) => (
-                (() => {
-                  const simulatedScenario = simulatedScenarioLookup.get(strategy.id)
-                  const displayScenario =
-                    effectiveCashToDeploy > 0 && simulatedScenario ? simulatedScenario : strategy
-                  const displayGap = Number(
-                    displayScenario.requiredCapitalGap ||
-                      displayScenario.additionalCapitalRequired ||
-                      0
-                  )
-
-                  return (
-                <div
-                  key={strategy.id}
-                  className="rounded-2xl border border-gray-200 bg-white/70 p-5"
-                >
-                  <div className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-600">
-                    {strategy.scenarioStateLabel}
-                  </div>
-                  <h3 className="mt-3 text-lg font-semibold text-gray-800">{strategy.title}</h3>
-                  <p className="mt-2 text-sm font-medium text-gray-700">
-                    {strategy.blockedReason || 'Scenario is not currently feasible'}
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-gray-600">
-                    {strategy.blockedExplanation || strategy.stateSummary}
-                  </p>
-                  <p className="mt-3 text-sm text-gray-600">
-                    Realistic entry floor:{' '}
-                    <span className="font-semibold text-gray-800">
-                      {formatCurrency(scenarioModel.viability?.realisticMarketEntryMin || 0)}
-                    </span>
-                  </p>
-                  <p className="mt-3 text-sm text-gray-600">
-                    Required action:{' '}
-                    <span className="font-semibold text-gray-800">
-                      {getBlockedStrategyAction(strategy)}
-                    </span>
-                  </p>
-                  {Number(strategy.requiredCapitalGap || strategy.additionalCapitalRequired || 0) > 0 ? (
-                    <p className="mt-2 text-sm text-gray-600">
-                      Gap to unlock: {' '}
-                      <span className="font-semibold text-gray-800">
-                        {formatCurrency(displayGap)}
-                      </span>
-                    </p>
-                  ) : null}
-                  <ScenarioFundingBreakdown
-                    className="mt-4"
-                    scenario={displayScenario}
-                    summaryText="View funding breakdown"
-                  />
-                </div>
-                  )
-                })()
-              ))}
+              </div>
+              {stressTestChart}
             </div>
-          </section>
-        ) : null}
-      </main>
-    </div>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-900">
+                  Deposit vs purchase power
+                </p>
+                <p className="mt-1 text-sm text-gray-600">
+                  See how deposit levels affect the purchase range this scenario can support
+                </p>
+              </div>
+              {depositPurchasePowerChart}
+            </div>
+          </>
+        ),
+      }}
+    />
   )
 }
-
 function getBlockedStrategyAction(strategy) {
   const reason = String(strategy?.reason || '').toLowerCase()
 
@@ -3474,7 +2462,7 @@ function ScenarioFundingBreakdown({ scenario, summaryText = 'View funding breakd
     <details className={`${className} rounded-2xl border border-gray-100 bg-gray-50/70 px-4 py-3`.trim()}>
       <summary className="cursor-pointer list-none text-sm text-gray-600 marker:hidden">
         {summaryText}
-        <span className="ml-2 font-semibold text-primary-700">View breakdown ▾</span>
+        <span className="ml-2 font-semibold text-primary-700">View breakdown ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¾</span>
       </summary>
 
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -3607,7 +2595,7 @@ function MonthlyCashFlowBreakdown({
           </p>
         ) : null}
         <AssumptionTrace
-          text={`Inputs used: rent, loan repayment, and property expenses · Assumptions: ${repaymentTypeLabel} repayment at ${scenarioRatePct.toFixed(
+          text={`Inputs used: rent, loan repayment, and property expenses ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· Assumptions: ${repaymentTypeLabel} repayment at ${scenarioRatePct.toFixed(
             1
           )}% and structured expense allowances`}
           className="mb-4"
@@ -3860,3 +2848,6 @@ function DepreciationControls({
     </div>
   )
 }
+
+
+
