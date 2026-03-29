@@ -1,6 +1,11 @@
 import { estimateRepayment } from './mortgageMath'
 
 const DEFAULT_DEBT_RATE_PCT = 5.8
+const PROPERTY_MANAGEMENT_RATE = 0.07
+const COUNCIL_WATER_MONTHLY = 350
+const INSURANCE_MONTHLY = 150
+const MAINTENANCE_ANNUAL_RATE = 0.002
+const VACANCY_BUFFER_RATE = 0.02
 
 const DEFAULT_CONFIG = {
   depositRatio: 0.2,
@@ -292,110 +297,37 @@ function getExpenseRatio(transactions) {
   return Math.min(Math.max(ratio, 0.18), 0.45)
 }
 
-function getScenarioExpenseComponentMix(properties = [], transactions = []) {
-  const investmentProperties = properties.filter((property) => property?.property_use === 'investment')
-  const safeTransactions = transactions.filter((transaction) => transaction?.type === 'expense')
-
-  const propertyFieldTotals = investmentProperties.reduce(
-    (accumulator, property) => ({
-      propertyManagement:
-        accumulator.propertyManagement + Number(property?.property_management_monthly || 0),
-      councilRates: accumulator.councilRates + Number(property?.council_rates_monthly || 0),
-      insurance: accumulator.insurance + Number(property?.insurance_monthly || 0),
-      maintenance: accumulator.maintenance + Number(property?.maintenance_monthly || 0),
-    }),
-    {
-      propertyManagement: 0,
-      councilRates: 0,
-      insurance: 0,
-      maintenance: 0,
-    }
+function buildModeledExpenseBreakdown({ propertyValue = 0, rent = 0 }) {
+  const safePropertyValue = Math.max(0, Number(propertyValue || 0))
+  const safeRent = Math.max(0, Number(rent || 0))
+  const propertyManagement = roundCurrency(safeRent * PROPERTY_MANAGEMENT_RATE)
+  const councilWaterMonthly = COUNCIL_WATER_MONTHLY
+  const insuranceMonthly = INSURANCE_MONTHLY
+  const maintenanceMonthly = roundCurrency((safePropertyValue * MAINTENANCE_ANNUAL_RATE) / 12)
+  const vacancyMonthly = roundCurrency(safeRent * VACANCY_BUFFER_RATE)
+  const totalExpenses = roundCurrency(
+    propertyManagement +
+      councilWaterMonthly +
+      insuranceMonthly +
+      maintenanceMonthly +
+      vacancyMonthly
   )
-
-  const transactionTotals = safeTransactions.reduce(
-    (accumulator, transaction) => {
-      const category = String(transaction?.category || '').trim().toLowerCase()
-      const monthlyAmount = toMonthly(transaction?.amount, transaction?.frequency)
-
-      if (category.includes('property management')) {
-        accumulator.propertyManagement += monthlyAmount
-      } else if (category.includes('council') || category.includes('water') || category.includes('strata')) {
-        accumulator.councilRates += monthlyAmount
-      } else if (category.includes('insurance')) {
-        accumulator.insurance += monthlyAmount
-      } else if (
-        category.includes('maintenance') ||
-        category.includes('repair') ||
-        category.includes('advertising') ||
-        category.includes('letting')
-      ) {
-        accumulator.maintenance += monthlyAmount
-      }
-
-      return accumulator
-    },
-    {
-      propertyManagement: 0,
-      councilRates: 0,
-      insurance: 0,
-      maintenance: 0,
-    }
-  )
-
-  return {
-    propertyManagement: Math.max(
-      propertyFieldTotals.propertyManagement,
-      transactionTotals.propertyManagement
-    ),
-    councilRates: Math.max(propertyFieldTotals.councilRates, transactionTotals.councilRates),
-    insurance: Math.max(propertyFieldTotals.insurance, transactionTotals.insurance),
-    maintenance: Math.max(propertyFieldTotals.maintenance, transactionTotals.maintenance),
-  }
-}
-
-function scaleExpenseComponentsToMonthlyTotal(expenseComponents, monthlyPropertyCosts) {
-  const modeledTotal = Math.max(0, Number(monthlyPropertyCosts || 0))
-  const explicitTotal = Object.values(expenseComponents).reduce(
-    (sum, value) => sum + Math.max(0, Number(value || 0)),
-    0
-  )
-
-  if (modeledTotal <= 0) {
-    return {
-      propertyManagement: 0,
-      councilRates: 0,
-      insurance: 0,
-      maintenance: 0,
-      vacancyBuffer: 0,
-      totalExpenses: 0,
-    }
-  }
-
-  if (explicitTotal <= 0) {
-    return {
-      propertyManagement: 0,
-      councilRates: 0,
-      insurance: 0,
-      maintenance: 0,
-      vacancyBuffer: roundCurrency(modeledTotal),
-      totalExpenses: roundCurrency(modeledTotal),
-    }
-  }
-
-  const scalingFactor = modeledTotal / explicitTotal
-  const propertyManagement = roundCurrency(expenseComponents.propertyManagement * scalingFactor)
-  const councilRates = roundCurrency(expenseComponents.councilRates * scalingFactor)
-  const insurance = roundCurrency(expenseComponents.insurance * scalingFactor)
-  const maintenance = roundCurrency(expenseComponents.maintenance * scalingFactor)
-  const allocatedTotal = propertyManagement + councilRates + insurance + maintenance
 
   return {
     propertyManagement,
-    councilRates,
-    insurance,
-    maintenance,
-    vacancyBuffer: roundCurrency(Math.max(modeledTotal - allocatedTotal, 0)),
-    totalExpenses: roundCurrency(modeledTotal),
+    councilRates: councilWaterMonthly,
+    councilWater: councilWaterMonthly,
+    insurance: insuranceMonthly,
+    maintenance: maintenanceMonthly,
+    vacancyBuffer: vacancyMonthly,
+    totalExpenses,
+    assumptions: {
+      propertyManagementRate: PROPERTY_MANAGEMENT_RATE,
+      councilWaterMonthly,
+      insuranceMonthly,
+      maintenanceAnnualRate: MAINTENANCE_ANNUAL_RATE,
+      vacancyBufferRate: VACANCY_BUFFER_RATE,
+    },
   }
 }
 
@@ -457,7 +389,11 @@ function evaluateScenarioAtPrice({
   const lmiEstimate = roundCurrency(baseLoanSize * lmiRate)
   const estimatedLoanSize = roundCurrency(baseLoanSize + lmiEstimate)
   const monthlyGrossRent = (purchasePrice * (grossYieldPct / 100)) / 12
-  const monthlyPropertyCosts = monthlyGrossRent * expenseRatio
+  const expenseBreakdown = buildModeledExpenseBreakdown({
+    propertyValue: purchasePrice,
+    rent: monthlyGrossRent,
+  })
+  const monthlyPropertyCosts = expenseBreakdown.totalExpenses
   const monthlyLoanRepayment =
     safeRepaymentType === 'Interest Only'
       ? roundCurrency((estimatedLoanSize * (interestRatePct / 100)) / 12)
@@ -496,6 +432,7 @@ function evaluateScenarioAtPrice({
     estimatedLoanSize,
     monthlyGrossRent: roundCurrency(monthlyGrossRent),
     monthlyPropertyCosts: roundCurrency(monthlyPropertyCosts),
+    expenseBreakdown,
     incrementalMonthlyCashFlow,
     postPurchaseSurplus,
     monthlyLoanRepayment: roundCurrency(monthlyLoanRepayment),
@@ -669,7 +606,6 @@ function buildStrategyScenario({
   const depositRatio = normalizeDepositRatio(config.depositRatio)
   const usableEquityAfterBuffer = Math.max(0, usableEquity - liquidityBuffer)
   const totalDeployableCapital = Math.max(0, usableEquityAfterBuffer + availableCash)
-  const expenseComponentMix = getScenarioExpenseComponentMix(properties, transactions)
   const purchasePower = calculatePurchasePowerConstraints({
     depositAvailable: totalDeployableCapital,
     requiredDepositRatio: depositRatio,
@@ -716,15 +652,7 @@ function buildStrategyScenario({
     totalDeployableCapital,
     lmiRateTable: config.lmiRateTable,
   })
-  evaluation.expenseBreakdown = scaleExpenseComponentsToMonthlyTotal(
-    expenseComponentMix,
-    evaluation.monthlyPropertyCosts
-  )
   const fiveYearValue = representativePrice * Math.pow(1 + growthRate, 5)
-  const fiveYearEquityProjection = roundCurrency(fiveYearValue - evaluation.estimatedLoanSize)
-  const equityCreated = roundCurrency(
-    Math.max(fiveYearEquityProjection - evaluation.totalCapitalRequired, 0)
-  )
   const projectionData = generateScenarioProjectionData({
     purchasePrice: representativePrice,
     loanSize: evaluation.estimatedLoanSize,
@@ -735,6 +663,15 @@ function buildStrategyScenario({
     monthlyRentalIncome: evaluation.monthlyGrossRent,
     monthlyExpenses: evaluation.monthlyPropertyCosts,
   })
+  const fiveYearProjectionPoint =
+    projectionData.find((point) => Number(point.year) === 5) ||
+    projectionData[Math.min(5, projectionData.length - 1)]
+  const fiveYearEquityProjection = roundCurrency(
+    Number(fiveYearProjectionPoint?.netEquity ?? fiveYearValue - evaluation.estimatedLoanSize)
+  )
+  const equityCreated = roundCurrency(
+    Math.max(fiveYearEquityProjection - evaluation.totalCapitalRequired, 0)
+  )
 
   const constraints = []
   if (scenarioCap === debtCap) constraints.push('Borrowing capacity capped the recommended range.')

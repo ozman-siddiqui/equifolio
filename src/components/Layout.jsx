@@ -122,7 +122,7 @@ export default function Layout({ session, onSignOut }) {
         <div className="flex-1 min-w-0">
           {/* Desktop header */}
           <header className="hidden lg:block bg-white border-b border-gray-100">
-            <div className="px-6 py-4 flex items-center justify-end gap-4">
+            <div className="px-5 py-3.5 flex items-center justify-end gap-4">
               <span className="text-sm text-gray-500 hidden xl:block">
                 {session?.user?.email}
               </span>
@@ -138,12 +138,12 @@ export default function Layout({ session, onSignOut }) {
             </div>
           </header>
 
-          <main className="px-4 py-4 md:px-6 md:py-6 lg:p-6">
+          <main className="px-3 py-3 md:px-4 md:py-5 lg:p-5">
             <div className="min-w-0">
               <Outlet />
             </div>
           </main>
-          <footer className="border-t border-gray-100 px-4 py-4 md:px-6 lg:px-6">
+          <footer className="border-t border-gray-100 px-3 py-3 md:px-4 lg:px-5">
             <p className="text-xs text-gray-500">
               This tool provides general financial information only and does not constitute personal financial advice.
             </p>

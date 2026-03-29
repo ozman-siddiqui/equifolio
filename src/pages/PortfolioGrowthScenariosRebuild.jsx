@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import useFinancialData from '../hooks/useFinancialData'
 import usePortfolioData from '../hooks/usePortfolioData'
@@ -989,17 +989,21 @@ function ScenarioFundingBreakdown({ breakdown, className = '' }) {
   )
 }
 
-function ScenarioMetric({ label, value, className = '' }) {
+function ScenarioMetric({ label, value, className = '', valueClassName = '' }) {
   return (
     <div
-      className={`flex min-w-0 flex-col items-start gap-4 rounded-[16px] bg-slate-50/55 px-4 py-4 ${className}`.trim()}
+      className={`flex min-w-0 w-full overflow-hidden rounded-[16px] bg-slate-50/70 px-5 py-4 transition-[opacity,transform,background-color] duration-200 ${className}`.trim()}
     >
-      <p className="text-[11px] font-medium uppercase leading-none tracking-[0.16em] text-slate-400">
-        {label}
-      </p>
-      <p className="text-[31px] leading-none font-semibold tracking-[-0.03em] text-slate-950 md:text-[35px]">
-        {value}
-      </p>
+      <div className="flex min-w-0 w-full flex-col items-start gap-3">
+        <p className="text-[10px] font-medium uppercase leading-tight tracking-[0.16em] text-slate-500 md:text-[11px]">
+          {label}
+        </p>
+        <p
+          className={`min-w-0 max-w-full whitespace-nowrap text-[22px] font-semibold leading-none tracking-[-0.03em] text-slate-950 transition-[opacity,transform,color] duration-200 md:text-[24px] lg:text-[26px] ${valueClassName}`.trim()}
+        >
+          {value}
+        </p>
+      </div>
     </div>
   )
 }
@@ -1011,12 +1015,14 @@ export default function PortfolioGrowthScenariosRebuild() {
   const [includeDepreciation, setIncludeDepreciation] = useState(false)
   const [annualDepreciationInput, setAnnualDepreciationInput] = useState('8000')
   const [isAdvancedAnalysisOpen, setIsAdvancedAnalysisOpen] = useState(false)
+  const [isAdvancedAssumptionsOpen, setIsAdvancedAssumptionsOpen] = useState(false)
+  const [isScenarioRefreshing, setIsScenarioRefreshing] = useState(false)
   const [ownershipOverride, setOwnershipOverride] = useState(null)
   const [depositStrategy, setDepositStrategy] = useState('20')
   const [selectedInterestRate, setSelectedInterestRate] = useState(null)
   const [interestRateInput, setInterestRateInput] = useState('')
   const microLabelClass =
-    'text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500'
+    'text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500'
   const annualDepreciation = Math.max(
     0,
     Math.min(MAX_ANNUAL_DEPRECIATION, Number(annualDepreciationInput || 0))
@@ -1024,6 +1030,16 @@ export default function PortfolioGrowthScenariosRebuild() {
   const selectedDepositStrategy =
     DEPOSIT_STRATEGY_OPTIONS.find((option) => option.value === depositStrategy) ||
     DEPOSIT_STRATEGY_OPTIONS[0]
+  const depositSliderIndex = Math.max(
+    0,
+    DEPOSIT_STRATEGY_OPTIONS.findIndex((option) => option.value === selectedDepositStrategy.value)
+  )
+  const derivedDepositStrategyLabel =
+    selectedDepositStrategy.depositRatio <= 0.1
+      ? 'High leverage (LMI likely)'
+      : selectedDepositStrategy.depositRatio < 0.2
+        ? 'Standard lending'
+        : 'Low leverage'
   const borrowingAnalysis = useMemo(
     () =>
       calculateBorrowingPower({
@@ -1260,6 +1276,20 @@ export default function PortfolioGrowthScenariosRebuild() {
   const handleAnnualDepreciationChange = (nextValue) => {
     setAnnualDepreciationInput(sanitizeSavingsInput(nextValue))
   }
+  useEffect(() => {
+    setIsScenarioRefreshing(true)
+    const timeoutId = setTimeout(() => setIsScenarioRefreshing(false), 200)
+
+    return () => clearTimeout(timeoutId)
+  }, [
+    annualDepreciation,
+    depositStrategy,
+    effectiveInterestRate,
+    includeDepreciation,
+    ownershipSplitPartnerInput,
+    ownershipSplitUserInput,
+    ownershipStructure,
+  ])
   const recommendedScenarioTaxView = useMemo(() => {
     if (!recommendedScenario) return null
     if (!hasTaxableIncome) return null
@@ -1360,19 +1390,11 @@ export default function PortfolioGrowthScenariosRebuild() {
     taxIncomeBasisLabel,
   ])
   const recommendedNextMoveSummary = useMemo(() => {
-    if (!recommendedScenario?.projectionData?.length) return null
-
-    const fiveYearPoint =
-      recommendedScenario.projectionData.find((point) => Number(point.year) === 5) ||
-      recommendedScenario.projectionData[Math.min(5, recommendedScenario.projectionData.length - 1)]
+    if (!recommendedScenario) return null
 
     return {
-      fiveYearEquity: Number(
-        fiveYearPoint?.netEquity ??
-        fiveYearPoint?.equity ??
-          recommendedScenario?.fiveYearEquityProjection ??
-          0
-      ),
+      // Use the same canonical 5Y equity source as the scenario cards to avoid inconsistent headline values.
+      fiveYearEquity: Number(recommendedScenario?.fiveYearEquityProjection ?? 0),
     }
   }, [recommendedScenario])
   const centralBorrowingCapacity = Number(borrowingAnalysis?.borrowing_power_estimate || 0)
@@ -1698,40 +1720,298 @@ export default function PortfolioGrowthScenariosRebuild() {
 
   return (
     <div className="min-h-screen bg-stone-50">
-      <main className="mx-auto max-w-[1220px] px-5 py-14 md:px-8 md:py-24">
-        <section className="rounded-[30px] border border-slate-200/80 bg-white px-8 py-8 shadow-[0_6px_20px_rgba(15,23,42,0.03)] md:px-10 md:py-9">
+      <main className="mx-auto max-w-[1680px] px-3 py-6 md:px-4 md:py-10">
+        <section className="rounded-[30px] border border-slate-200/80 bg-white px-7 py-6 shadow-[0_6px_20px_rgba(15,23,42,0.03)] md:px-9 md:py-7">
           <div className="max-w-[900px]">
-            <p className="text-[12px] font-medium uppercase tracking-[0.30em] text-slate-500">
+            <p className="text-[11px] font-medium uppercase tracking-[0.30em] text-slate-500">
               Growth Scenarios
             </p>
 
-            <h1 className="mt-4 text-[32px] font-semibold leading-[1.06] tracking-[-0.03em] text-slate-950 md:text-[38px]">
+            <h1 className="mt-3 text-[26px] font-semibold leading-[1.06] tracking-[-0.03em] text-slate-950 md:text-[30px]">
               Portfolio Growth Scenarios
             </h1>
 
-            <p className="mt-5 max-w-[760px] text-[17px] leading-8 text-slate-600 md:text-[18px]">
+            <p className="mt-4 max-w-[760px] text-[14px] leading-7 text-slate-600 md:text-[15px]">
               Compare the next acquisition paths available from your current position and see which one creates the strongest 5-year outcome.
             </p>
           </div>
         </section>
 
-        <section className="mt-12 rounded-[30px] border border-slate-200/70 bg-white/50 px-6 py-6 md:px-8 md:py-8">
-          <div className="mb-6 md:mb-8">
+        <section className="sticky top-3 z-30 mt-5">
+          <div className="rounded-[1.9rem] border border-slate-200/80 bg-white/95 px-5 py-4 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.12)] backdrop-blur md:px-6 md:py-5">
+            <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-[1.25fr_1.2fr_0.95fr]">
+              <div className="min-w-0 h-full rounded-[1.4rem] border border-slate-200/70 bg-slate-50/70 px-4 py-4">
+                <div className="flex h-full flex-col justify-between">
+                  <div className="flex items-end justify-between gap-4">
+                    <div>
+                      <p className={microLabelClass}>Deposit %</p>
+                      <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">
+                        {Math.round(selectedDepositStrategy.depositRatio * 100)}%
+                      </p>
+                    </div>
+                    <p className="text-sm text-slate-500">Live capital structure</p>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max={Math.max(DEPOSIT_STRATEGY_OPTIONS.length - 1, 0)}
+                    step="1"
+                    value={depositSliderIndex}
+                    onChange={(event) => {
+                      const nextIndex = Number(event.target.value || 0)
+                      const nextOption = DEPOSIT_STRATEGY_OPTIONS[nextIndex] || DEPOSIT_STRATEGY_OPTIONS[0]
+                      setDepositStrategy(nextOption.value)
+                    }}
+                    className="mt-4 h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-emerald-700"
+                  />
+                </div>
+              </div>
+
+              <div className="min-w-0 h-full rounded-[1.4rem] border border-slate-200/70 bg-slate-50/70 px-4 py-4">
+                <div className="flex h-full flex-col justify-between">
+                  <div className="flex items-end justify-between gap-4">
+                    <div>
+                      <p className={microLabelClass}>Interest Rate</p>
+                      <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">
+                        {effectiveInterestRate.toFixed(1)}%
+                      </p>
+                    </div>
+                    <label className="min-w-[96px]">
+                      <span className="sr-only">Interest rate assumption</span>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={
+                          interestRateInput === '' && selectedInterestRate === null
+                            ? defaultInterestRate.toFixed(1)
+                            : interestRateInput
+                        }
+                        onChange={(event) => {
+                          const nextValue = sanitizeDecimalInput(event.target.value)
+                          setInterestRateInput(nextValue)
+
+                          if (nextValue === '' || nextValue === '0.' || nextValue.endsWith('.')) return
+
+                          const parsedValue = Number(nextValue)
+                          if (!Number.isFinite(parsedValue)) return
+
+                          setSelectedInterestRate(
+                            normalizeInterestRateInput(parsedValue, defaultInterestRate)
+                          )
+                        }}
+                        onBlur={() => {
+                          const parsedValue = Number(interestRateInput)
+                          const fallbackRate = normalizeInterestRateInput(
+                            selectedInterestRate,
+                            defaultInterestRate
+                          )
+
+                          if (interestRateInput === '' || !Number.isFinite(parsedValue)) {
+                            setSelectedInterestRate(fallbackRate)
+                            setInterestRateInput(fallbackRate.toFixed(1))
+                            return
+                          }
+
+                          const normalizedValue = normalizeInterestRateInput(
+                            parsedValue,
+                            defaultInterestRate
+                          )
+                          setSelectedInterestRate(normalizedValue)
+                          setInterestRateInput(normalizedValue.toFixed(1))
+                        }}
+                        className="w-full rounded-[0.95rem] border border-slate-200 bg-white px-3 py-2 text-right text-[0.98rem] font-medium text-slate-950 outline-none transition-colors focus:border-emerald-300"
+                      />
+                    </label>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {INTEREST_RATE_QUICK_PICKS.map((rate) => (
+                      <button
+                        key={rate}
+                        type="button"
+                        onClick={() => {
+                          setSelectedInterestRate(rate)
+                          setInterestRateInput(rate.toFixed(1))
+                        }}
+                        className={`inline-flex min-h-[36px] items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                          Math.abs(effectiveInterestRate - rate) < 0.001
+                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                            : 'border-slate-200/75 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        {rate.toFixed(1)}%
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="min-w-0 h-full rounded-[1.4rem] border border-slate-200/70 bg-slate-50/70 px-4 py-4">
+                <div className="flex h-full flex-col justify-between">
+                  <div>
+                    <p className={microLabelClass}>Ownership</p>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleOwnershipStructureChange('individual')}
+                        className={`rounded-[0.95rem] border px-3 py-2 text-sm font-medium transition-colors ${
+                          ownershipStructure !== 'joint'
+                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        Individual
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOwnershipStructureChange('joint')}
+                        className={`rounded-[0.95rem] border px-3 py-2 text-sm font-medium transition-colors ${
+                          ownershipStructure === 'joint'
+                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        Joint
+                      </button>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-sm text-slate-500">
+                    {ownershipStructure === 'joint' ? 'Split ownership enabled' : 'User-only ownership'}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              Adjust assumptions to stress your acquisition strategy
+            </p>
+          </div>
+        </section>
+
+        <section className="mt-4 rounded-[2rem] border border-slate-200/75 bg-white px-6 py-6 shadow-[0_20px_50px_-40px_rgba(15,23,42,0.12)] md:px-8 md:py-7">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className={microLabelClass}>Advanced model settings</p>
+              <h3 className="mt-2 text-[1.4rem] font-semibold tracking-tight text-slate-950">
+                Fine-tune the scenario model
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsAdvancedAssumptionsOpen((current) => !current)}
+              className="inline-flex items-center gap-3 rounded-full border border-slate-200/80 bg-slate-50 px-5 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+            >
+              <span>{isAdvancedAssumptionsOpen ? 'Hide advanced settings' : 'Show advanced settings'}</span>
+              <span
+                className={`text-base leading-none transition-transform ${
+                  isAdvancedAssumptionsOpen ? 'rotate-90' : ''
+                }`}
+              >
+                ›
+              </span>
+            </button>
+          </div>
+
+          {isAdvancedAssumptionsOpen ? (
+            <div className="mt-6 rounded-[1.9rem] border border-slate-200/80 bg-slate-50/60 px-6 py-6 md:px-7 md:py-7">
+              <div className="grid grid-cols-1 gap-5 xl:grid-cols-[0.85fr_1.15fr]">
+                <article className="rounded-[1.7rem] border border-slate-200/80 bg-white px-5 py-6 shadow-[0_18px_45px_-40px_rgba(15,23,42,0.18)] md:px-6 md:py-6">
+                  <p className={microLabelClass}>Deposit posture</p>
+                  <p className="mt-4 text-[1.05rem] font-semibold text-slate-950">
+                    {derivedDepositStrategyLabel}
+                  </p>
+                  <p className="mt-3 text-sm leading-7 text-slate-600">
+                    Driven directly by the deposit slider above so capital structure stays controlled in one place.
+                  </p>
+                </article>
+
+                <article className="rounded-[1.7rem] border border-slate-200/80 bg-white px-5 py-6 shadow-[0_18px_45px_-40px_rgba(15,23,42,0.18)] md:px-6 md:py-6">
+                  <p className={microLabelClass}>Tax settings</p>
+                  <div className="mt-4 space-y-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-sm text-slate-600">Income basis</span>
+                      <span className="text-right text-sm font-semibold text-slate-950">
+                        {taxIncomeBasisLabel}
+                      </span>
+                    </div>
+
+                    {ownershipStructure === 'joint' ? (
+                      <div className="space-y-3 rounded-[1.15rem] border border-slate-200/75 bg-slate-50/70 px-4 py-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <span className="text-sm text-slate-600">Ownership split</span>
+                          <span className="text-sm font-semibold text-slate-950">
+                            {`${ownershipSplitUserInput || '0'} / ${ownershipSplitPartnerInput || '0'}`}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          <div>
+                            <label className="mb-2 block text-sm text-slate-500">User %</label>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              value={ownershipSplitUserInput}
+                              onChange={(event) => handleOwnershipSplitUserChange(event.target.value)}
+                              className="w-full rounded-xl border border-slate-200/75 bg-white px-4 py-3 text-[1rem] font-medium text-slate-950 focus:outline-none focus:ring-2 focus:ring-emerald-600/30"
+                            />
+                          </div>
+                          <div>
+                            <label className="mb-2 block text-sm text-slate-500">Partner %</label>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              value={ownershipSplitPartnerInput}
+                              onChange={(event) => handleOwnershipSplitPartnerChange(event.target.value)}
+                              className="w-full rounded-xl border border-slate-200/75 bg-white px-4 py-3 text-[1rem] font-medium text-slate-950 focus:outline-none focus:ring-2 focus:ring-emerald-600/30"
+                            />
+                          </div>
+                        </div>
+                        {ownershipSplitInlineError ? (
+                          <p className="text-sm text-red-600">{ownershipSplitInlineError}</p>
+                        ) : null}
+                        {showJointOwnershipIncomeWarning ? (
+                          <p className="text-sm text-amber-700">
+                            Add partner income to estimate joint ownership tax benefit accurately.
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    <DepreciationControls
+                      includeDepreciation={includeDepreciation}
+                      annualDepreciationInput={annualDepreciationInput}
+                      annualDepreciation={annualDepreciation}
+                      onIncludeDepreciationChange={setIncludeDepreciation}
+                      onAnnualDepreciationChange={handleAnnualDepreciationChange}
+                    />
+                  </div>
+                  <p className="mt-4 text-sm leading-7 text-slate-600">
+                    Secondary tax assumptions stay here so the live decision controls above remain clean.
+                  </p>
+                </article>
+              </div>
+            </div>
+          ) : null}
+        </section>
+
+        <section className="mt-8 rounded-[30px] border border-slate-200/70 bg-white/50 px-6 py-5 md:px-8 md:py-6">
+          <div className="mb-5 md:mb-6">
             <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-slate-500">
               Scenario comparison
             </p>
-            <h2 className="mt-2 text-[24px] font-semibold leading-[1.12] tracking-[-0.02em] text-slate-950 md:text-[28px]">
+            <h2 className="mt-2 text-[20px] font-semibold leading-[1.12] tracking-[-0.02em] text-slate-950 md:text-[22px]">
               Compare your next acquisition paths
             </h2>
-            <p className="mt-3 max-w-[68ch] text-[15px] leading-7 text-slate-600 md:text-[16px]">
+            <p className="mt-2.5 max-w-[68ch] text-[14px] leading-6 text-slate-600 md:text-[15px]">
               Review the recommended and alternative paths side by side, including projected
               equity, acquisition size, yield, and execution constraints.
             </p>
           </div>
 
-          <div className="mt-0 grid grid-cols-1 items-stretch gap-6 xl:grid-cols-2 xl:gap-6">
-            <article className="flex h-full min-h-[540px] flex-col rounded-[24px] border border-slate-200/85 bg-white shadow-[0_14px_34px_rgba(15,23,42,0.06)] ring-1 ring-emerald-100">
-              <div className="flex h-full min-h-[540px] w-full flex-col bg-white px-6 py-6 md:px-10 md:py-8">
+          <div
+            className={`mt-0 grid grid-cols-1 items-stretch gap-6 transition-opacity duration-200 xl:grid-cols-2 xl:gap-6 ${
+              isScenarioRefreshing ? 'opacity-60' : 'opacity-100'
+            }`}
+          >
+            <article className="flex h-full min-h-[520px] flex-col rounded-[24px] border border-slate-200/85 bg-white shadow-[0_14px_34px_rgba(15,23,42,0.06)] ring-1 ring-emerald-100">
+              <div className="flex h-full min-h-[520px] w-full flex-col bg-white px-6 py-5 md:px-9 md:py-6">
                 <div>
                   <div className="flex items-start justify-between gap-6">
                     <div className="inline-flex items-center rounded-full bg-emerald-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-700 ring-1 ring-emerald-200">
@@ -1749,11 +2029,11 @@ export default function PortfolioGrowthScenariosRebuild() {
                     </div>
                   </div>
 
-                  <div className="mt-12 flex min-h-[132px] flex-col">
-                    <h2 className="max-w-[14ch] text-[28px] font-semibold leading-[1.12] tracking-[-0.025em] text-slate-950 md:text-[32px]">
+                  <div className="mt-7 flex min-h-[104px] flex-col">
+                    <h2 className="max-w-[14ch] text-[22px] font-semibold leading-[1.12] tracking-[-0.025em] text-slate-950 md:text-[24px]">
                       {topSuggestedScenario?.title}
                     </h2>
-                    <p className="mt-4 max-w-[58ch] text-[16px] leading-8 text-slate-600">
+                    <p className="mt-3 max-w-[58ch] text-[14px] leading-6 text-slate-600 md:text-[15px]">
                       {topSuggestedScenario?.stateSummary ||
                         topSuggestedScenario?.rationale ||
                         topSuggestedScenario?.feasibilityMessage}
@@ -1761,8 +2041,8 @@ export default function PortfolioGrowthScenariosRebuild() {
                   </div>
                 </div>
 
-                <div className="mt-10">
-                  <div className="grid grid-cols-2 gap-x-12 gap-y-10">
+                <div className="mt-7">
+                  <div className="grid grid-cols-2 gap-4 md:gap-5">
                     <ScenarioMetric
                       label="5Y Equity"
                       value={formatCurrency(topSuggestedScenario?.fiveYearEquityProjection || 0)}
@@ -1773,9 +2053,10 @@ export default function PortfolioGrowthScenariosRebuild() {
                     />
                     <ScenarioMetric
                       label="Monthly Cost"
+                      valueClassName="text-[20px] md:text-[22px]"
                       value={`${Number(topSuggestedScenario?.estimatedMonthlyCashFlow || 0) >= 0 ? '+' : '-'}${formatCurrency(
                         Math.abs(Number(topSuggestedScenario?.estimatedMonthlyCashFlow || 0))
-                      )}/month`}
+                      )}`}
                     />
                     <ScenarioMetric
                       label="Gross Yield"
@@ -1784,7 +2065,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                   </div>
                 </div>
 
-                <div className="mt-auto pt-8">
+                <div className="mt-auto pt-5">
                   <div
                     className={`flex min-h-[60px] items-center rounded-[16px] px-5 py-4 ${
                       Number(topSuggestedScenario?.requiredCapitalGap || 0) > 0
@@ -1802,8 +2083,8 @@ export default function PortfolioGrowthScenariosRebuild() {
               </div>
             </article>
 
-            <article className="flex h-full min-h-[540px] flex-col rounded-[24px] border border-slate-200/85 bg-white/95 shadow-[0_6px_18px_rgba(15,23,42,0.03)]">
-              <div className="flex h-full min-h-[540px] w-full flex-col bg-white px-6 py-6 md:px-9 md:py-8">
+            <article className="flex h-full min-h-[520px] flex-col rounded-[24px] border border-slate-200/85 bg-white/95 shadow-[0_6px_18px_rgba(15,23,42,0.03)]">
+              <div className="flex h-full min-h-[520px] w-full flex-col bg-white px-6 py-5 md:px-9 md:py-6">
                 <div>
                   <div className="flex items-start justify-between gap-6">
                     <div className="inline-flex items-center rounded-full bg-rose-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-rose-700 ring-1 ring-rose-200">
@@ -1821,11 +2102,11 @@ export default function PortfolioGrowthScenariosRebuild() {
                     </div>
                   </div>
 
-                  <div className="mt-12 flex min-h-[132px] flex-col">
-                    <h2 className="max-w-[14ch] text-[28px] font-semibold leading-[1.12] tracking-[-0.025em] text-slate-950 md:text-[32px]">
+                  <div className="mt-7 flex min-h-[104px] flex-col">
+                    <h2 className="max-w-[14ch] text-[22px] font-semibold leading-[1.12] tracking-[-0.025em] text-slate-950 md:text-[24px]">
                       {topAlternativeScenario?.title}
                     </h2>
-                    <p className="mt-4 max-w-[58ch] text-[16px] leading-8 text-slate-600">
+                    <p className="mt-3 max-w-[58ch] text-[14px] leading-6 text-slate-600 md:text-[15px]">
                       {topAlternativeScenario?.blockedExplanation ||
                         topAlternativeScenario?.stateSummary ||
                         topAlternativeScenario?.rationale ||
@@ -1834,8 +2115,8 @@ export default function PortfolioGrowthScenariosRebuild() {
                   </div>
                 </div>
 
-                <div className="mt-10">
-                  <div className="grid grid-cols-2 gap-x-12 gap-y-10">
+                <div className="mt-7">
+                  <div className="grid grid-cols-2 gap-4 md:gap-5">
                     <ScenarioMetric
                       label="5Y Equity"
                       value={formatCurrency(topAlternativeScenario?.fiveYearEquityProjection || 0)}
@@ -1846,9 +2127,10 @@ export default function PortfolioGrowthScenariosRebuild() {
                     />
                     <ScenarioMetric
                       label="Monthly Cost"
+                      valueClassName="text-[20px] md:text-[22px]"
                       value={`${Number(topAlternativeScenario?.estimatedMonthlyCashFlow || 0) >= 0 ? '+' : '-'}${formatCurrency(
                         Math.abs(Number(topAlternativeScenario?.estimatedMonthlyCashFlow || 0))
-                      )}/month`}
+                      )}`}
                     />
                     <ScenarioMetric
                       label="Gross Yield"
@@ -1857,7 +2139,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                   </div>
                 </div>
 
-                <div className="mt-auto pt-8">
+                <div className="mt-auto pt-5">
                   <div className="flex min-h-[60px] items-center rounded-[16px] bg-rose-50/55 px-5 py-4 ring-1 ring-rose-100">
                     <p className="text-[15px] font-medium leading-7 text-rose-700">
                       {String(topAlternativeScenario?.blockedReason || '').toLowerCase().includes('floor')
@@ -2039,7 +2321,7 @@ export default function PortfolioGrowthScenariosRebuild() {
           </article>
         </section>
 
-        <section className="mt-10 rounded-[2.25rem] border border-slate-200/80 bg-white px-7 py-8 shadow-[0_28px_80px_-58px_rgba(15,23,42,0.2)] md:px-10 md:py-10">
+        <section className="mt-9 rounded-[2.25rem] border border-slate-200/80 bg-white px-7 py-8 shadow-[0_28px_80px_-58px_rgba(15,23,42,0.2)] md:px-10 md:py-9">
           <p className={microLabelClass}>Wealth Outcome</p>
           <h3 className="mt-4 text-[2.15rem] font-semibold tracking-[-0.03em] text-slate-950">
             Economic outcome after capital and carry
@@ -2210,9 +2492,9 @@ export default function PortfolioGrowthScenariosRebuild() {
 
             <div className="mt-9 rounded-[1.9rem] border border-slate-100/90 bg-slate-50/40 px-6 py-8 md:px-8 md:py-10">
               <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_auto_1fr_auto_1fr] xl:items-center">
-                <article className="rounded-[2rem] border border-slate-200/75 bg-slate-50/70 px-7 py-8 text-center md:min-h-[285px] md:px-8 md:py-9">
+                <article className="min-w-0 w-full overflow-hidden rounded-[2rem] border border-slate-200/75 bg-slate-50/70 px-7 py-8 text-center md:min-h-[285px] md:px-8 md:py-9">
                   <p className={microLabelClass}>Pre-tax</p>
-                  <p className="mt-4 text-[2.15rem] font-semibold tracking-tight text-slate-950">
+                  <p className="mt-4 whitespace-nowrap text-[28px] font-semibold leading-tight tracking-[-0.03em] text-slate-950 md:text-[30px]">
                     {`${Number(
                       (recommendedScenarioSafeTaxView?.monthlyPreTaxPropertyCashFlow ??
                         recommendedScenario?.estimatedMonthlyCashFlow) ||
@@ -2225,7 +2507,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                             0
                         )
                       )
-                    )}/month`}
+                    )}`}
                   </p>
                   <p className="mt-5 text-base leading-8 text-slate-600">
                     Monthly operating result before any tax offset is recognised.
@@ -2236,10 +2518,10 @@ export default function PortfolioGrowthScenariosRebuild() {
                   +
                 </div>
 
-                <article className="rounded-[2rem] border border-emerald-200/75 bg-emerald-50/50 px-7 py-8 text-center md:min-h-[285px] md:px-8 md:py-9">
+                <article className="min-w-0 w-full overflow-hidden rounded-[2rem] border border-emerald-200/75 bg-emerald-50/50 px-7 py-8 text-center md:min-h-[285px] md:px-8 md:py-9">
                   <p className={microLabelClass}>ATO Benefit</p>
-                  <p className="mt-4 text-[2.15rem] font-semibold tracking-tight text-emerald-800">
-                    {`+${formatCurrency(recommendedScenarioSafeTaxView?.totalTaxBenefitMonthly || 0)}/month`}
+                  <p className="mt-4 whitespace-nowrap text-[28px] font-semibold leading-tight tracking-[-0.03em] text-emerald-800 md:text-[30px]">
+                    {`+${formatCurrency(recommendedScenarioSafeTaxView?.totalTaxBenefitMonthly || 0)}`}
                   </p>
                   <p className="mt-5 text-base leading-8 text-slate-600">
                     {recommendedScenarioSafeTaxView
@@ -2254,9 +2536,9 @@ export default function PortfolioGrowthScenariosRebuild() {
                   =
                 </div>
 
-                <article className="rounded-[2rem] border border-amber-200/75 bg-amber-50/50 px-7 py-8 text-center md:min-h-[285px] md:px-8 md:py-9">
+                <article className="min-w-0 w-full overflow-hidden rounded-[2rem] border border-amber-200/75 bg-amber-50/50 px-7 py-8 text-center md:min-h-[285px] md:px-8 md:py-9">
                   <p className={microLabelClass}>Net Cost</p>
-                  <p className="mt-4 text-[2.15rem] font-semibold tracking-tight text-amber-700">
+                  <p className="mt-4 whitespace-nowrap text-[28px] font-semibold leading-tight tracking-[-0.03em] text-amber-700 md:text-[30px]">
                     {`${Number(
                       (recommendedScenarioSafeTaxView?.afterTaxMonthlyImpact ??
                         recommendedScenario?.estimatedMonthlyCashFlow) ||
@@ -2269,7 +2551,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                             0
                         )
                       )
-                    )}/month`}
+                    )}`}
                   </p>
                   <p className="mt-5 text-base leading-8 text-slate-600">
                     Monthly carry cost after tax offsets are applied.
@@ -2335,182 +2617,6 @@ export default function PortfolioGrowthScenariosRebuild() {
           <p className="mt-3 max-w-[38rem] text-[1rem] leading-7 text-slate-600">
             Confidence reflects how complete and internally consistent the scenario inputs are.
           </p>
-        </section>
-
-        <section className="mt-8 rounded-[2.15rem] border border-slate-200/80 bg-white px-7 py-8 shadow-[0_24px_70px_-54px_rgba(15,23,42,0.16)] md:px-10 md:py-9">
-          <p className={microLabelClass}>Scenario Controls</p>
-          <h3 className="mt-4 text-[2rem] font-semibold tracking-tight text-slate-950">
-            Stress the scenario before you optimise it
-          </h3>
-          <p className="mt-4 max-w-[48rem] text-[1.02rem] leading-7 text-slate-600">
-            Change capital structure, debt pricing, and tax settings here to see how execution
-            quality changes before you move into optimisation.
-          </p>
-
-          <div className="mt-7 rounded-[1.9rem] border border-slate-200/80 bg-slate-50/60 px-6 py-6 md:px-7 md:py-7">
-            <div className="flex flex-col gap-5">
-              <div className="rounded-[1.7rem] border border-slate-200/80 bg-white px-5 py-5 shadow-[0_18px_45px_-40px_rgba(15,23,42,0.2)] md:px-6 md:py-6">
-                <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                  <div>
-                    <p className={microLabelClass}>Deposit Control</p>
-                    <p className="mt-2 text-[1.65rem] font-semibold tracking-tight text-slate-950">
-                      {Math.round(selectedDepositStrategy.depositRatio * 100)}%
-                    </p>
-                  </div>
-                  <p className="max-w-[28rem] text-sm leading-7 text-slate-600">
-                    This control shifts the balance between upfront equity commitment and leverage.
-                  </p>
-                </div>
-                <div className="mt-5 rounded-full bg-[#dbe3ef] p-[3px]">
-                  <div className="relative h-[24px] rounded-full bg-[#dbe3ef]">
-                    <div
-                      className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-[#4a8f84] to-[#4f9388]"
-                      style={{ width: `${selectedDepositStrategy.depositRatio * 100}%` }}
-                    >
-                      <span className="absolute right-0 top-1/2 h-7 w-7 -translate-y-1/2 translate-x-1/2 rounded-full border border-slate-200 bg-white shadow-[0_10px_20px_-12px_rgba(15,23,42,0.45)]" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_1fr_0.9fr]">
-                <label className="block rounded-[1.7rem] border border-slate-200/80 bg-white px-5 py-6 shadow-[0_18px_45px_-40px_rgba(15,23,42,0.18)] md:px-6 md:py-6">
-                  <span className={microLabelClass}>Deposit Strategy</span>
-                  <div className="mt-4 rounded-[1.15rem] border border-slate-200/75 bg-white px-5 py-4">
-                    <select
-                      value={selectedDepositStrategy.value}
-                      onChange={(event) => setDepositStrategy(event.target.value || '20')}
-                      className="w-full bg-transparent text-[1.05rem] font-medium text-slate-950 outline-none"
-                    >
-                      {DEPOSIT_STRATEGY_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <p className="mt-4 text-sm leading-7 text-slate-600">
-                    Test which capital structure best balances upfront funding pressure and purchase power.
-                  </p>
-                </label>
-
-                <article className="rounded-[1.7rem] border border-slate-200/80 bg-white px-5 py-6 shadow-[0_18px_45px_-40px_rgba(15,23,42,0.18)] md:px-6 md:py-6">
-                  <label className="block">
-                    <span className={microLabelClass}>Interest Rate Assumption</span>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={
-                        interestRateInput === '' && selectedInterestRate === null
-                          ? defaultInterestRate.toFixed(1)
-                          : interestRateInput
-                      }
-                      onChange={(event) => {
-                        const nextValue = sanitizeDecimalInput(event.target.value)
-                        setInterestRateInput(nextValue)
-
-                        if (nextValue === '' || nextValue === '0.' || nextValue.endsWith('.')) return
-
-                        const parsedValue = Number(nextValue)
-                        if (!Number.isFinite(parsedValue)) return
-
-                        setSelectedInterestRate(
-                          normalizeInterestRateInput(parsedValue, defaultInterestRate)
-                        )
-                      }}
-                      onBlur={() => {
-                        const parsedValue = Number(interestRateInput)
-                        const fallbackRate = normalizeInterestRateInput(
-                          selectedInterestRate,
-                          defaultInterestRate
-                        )
-
-                        if (interestRateInput === '' || !Number.isFinite(parsedValue)) {
-                          setSelectedInterestRate(fallbackRate)
-                          setInterestRateInput(fallbackRate.toFixed(1))
-                          return
-                        }
-
-                        const normalizedValue = normalizeInterestRateInput(
-                          parsedValue,
-                          defaultInterestRate
-                        )
-                        setSelectedInterestRate(normalizedValue)
-                        setInterestRateInput(normalizedValue.toFixed(1))
-                      }}
-                      className="mt-4 w-full rounded-[1.15rem] border border-slate-200/75 bg-white px-5 py-4 text-[1.05rem] font-medium text-slate-950 outline-none transition-colors focus:border-emerald-300"
-                    />
-                  </label>
-                  <p className="mt-4 text-sm leading-7 text-slate-600">
-                    Stress debt pricing to see how serviceability, carry, and executable range respond.
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-3">
-                    {INTEREST_RATE_QUICK_PICKS.map((rate) => (
-                      <button
-                        key={rate}
-                        type="button"
-                        onClick={() => {
-                          setSelectedInterestRate(rate)
-                          setInterestRateInput(rate.toFixed(1))
-                        }}
-                        className={`inline-flex min-h-[42px] items-center rounded-full border px-4 py-2 text-[0.98rem] font-medium transition-colors ${
-                          Math.abs(effectiveInterestRate - rate) < 0.001
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                            : 'border-slate-200/75 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                        }`}
-                      >
-                        {rate.toFixed(1)}%
-                      </button>
-                    ))}
-                  </div>
-                </article>
-
-                <article className="rounded-[1.7rem] border border-slate-200/80 bg-white px-5 py-6 shadow-[0_18px_45px_-40px_rgba(15,23,42,0.18)] md:px-6 md:py-6">
-                  <p className={microLabelClass}>Ownership & Tax</p>
-                  <div className="mt-4 space-y-3">
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-sm text-slate-600">Ownership</span>
-                      <span className="text-sm font-semibold text-slate-950">
-                        {ownershipStructure === 'joint' ? 'Joint ownership' : 'Individual'}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-sm text-slate-600">Split</span>
-                      <span className="text-sm font-semibold text-slate-950">
-                        {ownershipStructure === 'joint'
-                          ? `${ownershipSplitUserInput || '0'} / ${ownershipSplitPartnerInput || '0'}`
-                          : '100 / 0'}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-sm text-slate-600">Income basis</span>
-                      <span className="text-right text-sm font-semibold text-slate-950">
-                        {taxIncomeBasisLabel}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-sm text-slate-600">Depreciation</span>
-                      <span className="text-right text-sm font-semibold text-slate-950">
-                        {includeDepreciation
-                          ? `${formatCurrency(annualDepreciation)}/year`
-                          : 'Not included'}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="mt-4 text-sm leading-7 text-slate-600">
-                    These settings feed directly into the tax benefit estimate and after-tax carry view.
-                  </p>
-                </article>
-              </div>
-            </div>
-          </div>
-
-          {selectedDepositStrategy.depositRatio < 0.2 ? (
-            <div className="mt-4 flex flex-col gap-1 text-sm text-amber-700 md:flex-row md:items-center md:justify-between">
-              <p>Indicative only - actual LMI depends on lender, LVR, and borrower profile.</p>
-              <p>Lower deposits increase leverage, repayments, and risk.</p>
-            </div>
-          ) : null}
         </section>
 
         <section className="mt-10 rounded-[2rem] border border-slate-200/75 bg-white px-7 py-8 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:px-10 md:py-9">
