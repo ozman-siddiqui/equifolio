@@ -36,6 +36,18 @@ function roundCurrency(value) {
   return Math.round(Number(value || 0))
 }
 
+export function calculateEconomicOutcome({
+  fiveYearEquity,
+  totalCapitalRequired,
+  monthlyAfterTaxCost,
+}) {
+  const holdingCost5Y = Number(monthlyAfterTaxCost || 0) * 12 * 5
+
+  return roundCurrency(
+    Number(fiveYearEquity || 0) - Number(totalCapitalRequired || 0) - holdingCost5Y
+  )
+}
+
 function formatCurrency(amount) {
   return new Intl.NumberFormat('en-AU', {
     style: 'currency',

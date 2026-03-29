@@ -3,7 +3,9 @@ import { useEffect, useMemo, useState } from 'react'
 import useFinancialData from '../hooks/useFinancialData'
 import usePortfolioData from '../hooks/usePortfolioData'
 import calculateBorrowingPower from '../lib/borrowingPowerEngine'
-import buildPortfolioGrowthScenarios from '../lib/portfolioGrowthScenarios'
+import buildPortfolioGrowthScenarios, {
+  calculateEconomicOutcome,
+} from '../lib/portfolioGrowthScenarios'
 import { calculateNegativeGearingTaxBenefit } from '../lib/negativeGearingTaxBenefit'
 import { calculateAfterTaxHoldingCost } from '../lib/afterTaxHoldingCost'
 import { normalizeTaxOwnership } from '../lib/taxOwnership'
@@ -43,6 +45,15 @@ function formatCurrency(amount) {
 function getSafeNumber(value) {
   const numericValue = Number(value)
   return Number.isFinite(numericValue) ? numericValue : null
+}
+
+function parseCurrencyAmount(value) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0
+
+  const normalizedValue = String(value ?? '').replace(/[^\d.-]/g, '')
+  const numericValue = Number(normalizedValue)
+
+  return Number.isFinite(numericValue) ? numericValue : 0
 }
 
 function sanitizeSavingsInput(value) {
@@ -992,14 +1003,14 @@ function ScenarioFundingBreakdown({ breakdown, className = '' }) {
 function ScenarioMetric({ label, value, className = '', valueClassName = '' }) {
   return (
     <div
-      className={`flex min-w-0 w-full overflow-hidden rounded-[16px] bg-slate-50/70 px-5 py-4 transition-[opacity,transform,background-color] duration-200 ${className}`.trim()}
+      className={`flex min-w-0 w-full overflow-hidden rounded-xl bg-slate-50 px-4 py-4 transition-[opacity,transform,background-color] duration-200 ${className}`.trim()}
     >
       <div className="flex min-w-0 w-full flex-col items-start gap-3">
         <p className="text-[10px] font-medium uppercase leading-tight tracking-[0.16em] text-slate-500 md:text-[11px]">
           {label}
         </p>
         <p
-          className={`min-w-0 max-w-full whitespace-nowrap text-[22px] font-semibold leading-none tracking-[-0.03em] text-slate-950 transition-[opacity,transform,color] duration-200 md:text-[24px] lg:text-[26px] ${valueClassName}`.trim()}
+          className={`min-w-0 max-w-full truncate whitespace-nowrap text-[20px] font-semibold leading-none tracking-tight text-slate-900 transition-[opacity,transform,color] duration-200 md:text-[22px] ${valueClassName}`.trim()}
         >
           {value}
         </p>
@@ -1022,7 +1033,7 @@ export default function PortfolioGrowthScenariosRebuild() {
   const [selectedInterestRate, setSelectedInterestRate] = useState(null)
   const [interestRateInput, setInterestRateInput] = useState('')
   const microLabelClass =
-    'text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500'
+    'text-[11px] uppercase tracking-[0.18em] text-slate-500'
   const annualDepreciation = Math.max(
     0,
     Math.min(MAX_ANNUAL_DEPRECIATION, Number(annualDepreciationInput || 0))
@@ -1148,7 +1159,6 @@ export default function PortfolioGrowthScenariosRebuild() {
     () => normalizedScenarios.filter((scenario) => scenario.scenarioState === 'blocked'),
     [normalizedScenarios]
   )
-  const topSuggestedScenario = recommendedScenario
   const topAlternativeScenario = blockedScenarios[0] || secondaryScenarios[0] || null
   const recommendedScenarioAnchorPrice = getSafeNumber(recommendedScenario?.scenarioPurchasePrice)
   const recommendedScenarioLoanAmount = getSafeNumber(recommendedScenario?.scenarioLoanAmount)
@@ -1163,26 +1173,46 @@ export default function PortfolioGrowthScenariosRebuild() {
     recommendedTotalRequiredCapital - recommendedAvailableCapital
   )
   const recommendedWealthBreakdown = useMemo(
-    () => ({
-      availableCapital:
+    () => {
+      const totalEquityAvailable = parseCurrencyAmount(
+        recommendedScenario?.capitalBreakdown?.usableEquityBeforeBuffer ??
+          scenarioModel.inputs?.usableEquity ??
+          0
+      )
+      const usableEquity = parseCurrencyAmount(
         recommendedScenario?.capitalBreakdown?.usableEquityAfterBuffer ??
-        formatCurrency(recommendedAvailableCapital),
-      depositRequired:
-        recommendedScenario?.purchaseStructure?.depositAmount ??
-        formatCurrency(recommendedScenario?.depositRequired || 0),
-      acquisitionCosts:
-        recommendedScenario?.purchaseStructure?.acquisitionCosts ??
-        formatCurrency(recommendedScenario?.estimatedAcquisitionCosts || 0),
-      totalRequiredCapital:
-        recommendedScenario?.purchaseStructure?.totalCapitalRequired ??
-        formatCurrency(recommendedTotalRequiredCapital),
-      remainingCapitalGap: formatCurrency(remainingCapitalGap),
-    }),
+          recommendedAvailableCapital
+      )
+      const bufferRetainedAmount = Math.max(totalEquityAvailable - usableEquity, 0)
+      const bufferRetainedPct =
+        totalEquityAvailable > 0 ? (bufferRetainedAmount / totalEquityAvailable) * 100 : 0
+
+      return {
+        availableCapital:
+          recommendedScenario?.capitalBreakdown?.usableEquityAfterBuffer ??
+          formatCurrency(recommendedAvailableCapital),
+        totalEquityAvailable: formatCurrency(totalEquityAvailable),
+        bufferRetained: formatCurrency(bufferRetainedAmount),
+        bufferRetainedPct: `${bufferRetainedPct.toFixed(1)}%`,
+        usableEquity: formatCurrency(usableEquity),
+        depositRequired:
+          recommendedScenario?.purchaseStructure?.depositAmount ??
+          formatCurrency(recommendedScenario?.depositRequired || 0),
+        acquisitionCosts:
+          recommendedScenario?.purchaseStructure?.acquisitionCosts ??
+          formatCurrency(recommendedScenario?.estimatedAcquisitionCosts || 0),
+        totalRequiredCapital:
+          recommendedScenario?.purchaseStructure?.totalCapitalRequired ??
+          formatCurrency(recommendedTotalRequiredCapital),
+        remainingCapitalGap: formatCurrency(remainingCapitalGap),
+      }
+    },
     [
       recommendedAvailableCapital,
       recommendedScenario,
       recommendedTotalRequiredCapital,
       remainingCapitalGap,
+      scenarioModel.inputs?.usableEquity,
     ]
   )
   const profileOwnership = useMemo(
@@ -1373,6 +1403,33 @@ export default function PortfolioGrowthScenariosRebuild() {
       depreciationTaxBenefitMonthly,
     }
   }, [recommendedScenarioTaxView])
+  const recommendedScenarioWithEconomicOutcome = useMemo(() => {
+    if (!recommendedScenario) return null
+    const fiveYearEquity = Number(recommendedScenario?.fiveYearEquityProjection || 0)
+    const monthlyAfterTaxCost =
+      recommendedScenarioSafeTaxView?.afterTaxMonthlyImpact ?? 0
+    const totalCapitalRequired = parseCurrencyAmount(
+      recommendedScenario?.purchaseStructure?.totalCapitalRequired || 0
+    )
+
+    return {
+      ...recommendedScenario,
+      economicOutcome5Y: calculateEconomicOutcome({
+        fiveYearEquity,
+        totalCapitalRequired,
+        monthlyAfterTaxCost: Math.abs(monthlyAfterTaxCost),
+      }),
+    }
+  }, [
+    recommendedScenario,
+    recommendedScenarioSafeTaxView?.afterTaxMonthlyImpact,
+  ])
+  // Source of truth for the displayed economic outcome card is the enriched recommended scenario.
+  const topSuggestedScenario = recommendedScenarioWithEconomicOutcome || recommendedScenario
+  const wealthOutcomeHoldingCost5Y = useMemo(
+    () => Math.abs(Number(recommendedScenarioSafeTaxView?.afterTaxMonthlyImpact ?? 0)) * 12 * 5,
+    [recommendedScenarioSafeTaxView?.afterTaxMonthlyImpact]
+  )
   const taxTraceability = useMemo(() => {
     const splitLabel =
       ownershipStructure === 'joint'
@@ -1398,6 +1455,32 @@ export default function PortfolioGrowthScenariosRebuild() {
     }
   }, [recommendedScenario])
   const centralBorrowingCapacity = Number(borrowingAnalysis?.borrowing_power_estimate || 0)
+  const recommendedPurchasePrice = Number(recommendedScenario?.scenarioPurchasePrice || 0)
+  const recommendedDepositAmount = Number(recommendedScenario?.depositRequired || 0)
+  const requiredLoan = Math.max(recommendedPurchasePrice - recommendedDepositAmount, 0)
+  const limitingFactor =
+    remainingCapitalGap > 0
+      ? 'capital'
+      : requiredLoan > centralBorrowingCapacity
+        ? 'borrowing'
+        : 'none'
+  const isCapitalConstraint = limitingFactor === 'capital'
+  const isBorrowingConstraint = limitingFactor === 'borrowing'
+  const limitingFactorHeading = isCapitalConstraint
+    ? 'Capital, not borrowing power, is the current constraint'
+    : isBorrowingConstraint
+      ? 'Borrowing power, not capital, is the current constraint'
+      : 'No binding constraint — scenario is executable'
+  const limitingFactorSummary = isCapitalConstraint
+    ? 'You appear to have enough borrowing capacity to support the next move, but execution is still limited by available upfront capital.'
+    : isBorrowingConstraint
+      ? 'Available capital is sufficient, but borrowing capacity does not fully support the loan required for the recommended acquisition.'
+      : 'Both available capital and borrowing capacity support the recommended acquisition.'
+  const limitingFactorActionLine = isCapitalConstraint
+    ? 'Closing the capital gap is the fastest way to unlock the recommended path.'
+    : isBorrowingConstraint
+      ? 'Improving serviceability or reducing purchase size is the fastest way to unlock execution.'
+      : 'Execution can proceed under the current scenario settings.'
   const assessmentRateValue = Number(
     borrowingAnalysis?.assumptions?.assessment_rate_pct ??
       borrowingAnalysis?.assumptions_detail?.assessment_rate_pct ??
@@ -1996,7 +2079,7 @@ export default function PortfolioGrowthScenariosRebuild() {
             <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-slate-500">
               Scenario comparison
             </p>
-            <h2 className="mt-2 text-[20px] font-semibold leading-[1.12] tracking-[-0.02em] text-slate-950 md:text-[22px]">
+            <h2 className="mt-2 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
               Compare your next acquisition paths
             </h2>
             <p className="mt-2.5 max-w-[68ch] text-[14px] leading-6 text-slate-600 md:text-[15px]">
@@ -2010,11 +2093,11 @@ export default function PortfolioGrowthScenariosRebuild() {
               isScenarioRefreshing ? 'opacity-60' : 'opacity-100'
             }`}
           >
-            <article className="flex h-full min-h-[520px] flex-col rounded-[24px] border border-slate-200/85 bg-white shadow-[0_14px_34px_rgba(15,23,42,0.06)] ring-1 ring-emerald-100">
-              <div className="flex h-full min-h-[520px] w-full flex-col bg-white px-6 py-5 md:px-9 md:py-6">
+            <article className="flex h-full min-h-[520px] flex-col rounded-[24px] border border-slate-200/70 bg-white shadow-[0_14px_34px_rgba(15,23,42,0.06)] ring-1 ring-emerald-100">
+              <div className="flex h-full min-h-[520px] w-full flex-col bg-white p-6 md:p-7">
                 <div>
-                  <div className="flex items-start justify-between gap-6">
-                    <div className="inline-flex items-center rounded-full bg-emerald-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-700 ring-1 ring-emerald-200">
+                  <div className="flex items-center justify-between gap-6">
+                    <div className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700 ring-1 ring-emerald-200">
                       Suggested
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1.5 pl-4 text-right">
@@ -2029,20 +2112,24 @@ export default function PortfolioGrowthScenariosRebuild() {
                     </div>
                   </div>
 
-                  <div className="mt-7 flex min-h-[104px] flex-col">
-                    <h2 className="max-w-[14ch] text-[22px] font-semibold leading-[1.12] tracking-[-0.025em] text-slate-950 md:text-[24px]">
-                      {topSuggestedScenario?.title}
-                    </h2>
-                    <p className="mt-3 max-w-[58ch] text-[14px] leading-6 text-slate-600 md:text-[15px]">
-                      {topSuggestedScenario?.stateSummary ||
-                        topSuggestedScenario?.rationale ||
-                        topSuggestedScenario?.feasibilityMessage}
-                    </p>
+                  <div className="mt-7">
+                    <div className="min-h-[56px] flex items-start">
+                      <h2 className="overflow-hidden text-ellipsis text-[20px] font-semibold tracking-tight text-slate-900 md:whitespace-nowrap md:text-[22px]">
+                        {topSuggestedScenario?.title}
+                      </h2>
+                    </div>
+                    <div className="min-h-[48px]">
+                      <p className="mt-2 text-[14px] leading-relaxed text-slate-600">
+                        {topSuggestedScenario?.stateSummary ||
+                          topSuggestedScenario?.rationale ||
+                          topSuggestedScenario?.feasibilityMessage}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="mt-7">
-                  <div className="grid grid-cols-2 gap-4 md:gap-5">
+                <div className="mt-6">
+                  <div className="grid grid-cols-2 gap-4">
                     <ScenarioMetric
                       label="5Y Equity"
                       value={formatCurrency(topSuggestedScenario?.fiveYearEquityProjection || 0)}
@@ -2083,11 +2170,11 @@ export default function PortfolioGrowthScenariosRebuild() {
               </div>
             </article>
 
-            <article className="flex h-full min-h-[520px] flex-col rounded-[24px] border border-slate-200/85 bg-white/95 shadow-[0_6px_18px_rgba(15,23,42,0.03)]">
-              <div className="flex h-full min-h-[520px] w-full flex-col bg-white px-6 py-5 md:px-9 md:py-6">
+            <article className="flex h-full min-h-[520px] flex-col rounded-[24px] border border-slate-200/70 bg-white/95 shadow-[0_6px_18px_rgba(15,23,42,0.03)]">
+              <div className="flex h-full min-h-[520px] w-full flex-col bg-white p-6 md:p-7">
                 <div>
-                  <div className="flex items-start justify-between gap-6">
-                    <div className="inline-flex items-center rounded-full bg-rose-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-rose-700 ring-1 ring-rose-200">
+                  <div className="flex items-center justify-between gap-6">
+                    <div className="inline-flex rounded-full bg-rose-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-rose-700 ring-1 ring-rose-200">
                       {String(topAlternativeScenario?.scenarioStateLabel || '').toLowerCase() === 'blocked'
                         ? 'Blocked'
                         : 'Alternative'}
@@ -2102,21 +2189,25 @@ export default function PortfolioGrowthScenariosRebuild() {
                     </div>
                   </div>
 
-                  <div className="mt-7 flex min-h-[104px] flex-col">
-                    <h2 className="max-w-[14ch] text-[22px] font-semibold leading-[1.12] tracking-[-0.025em] text-slate-950 md:text-[24px]">
-                      {topAlternativeScenario?.title}
-                    </h2>
-                    <p className="mt-3 max-w-[58ch] text-[14px] leading-6 text-slate-600 md:text-[15px]">
-                      {topAlternativeScenario?.blockedExplanation ||
-                        topAlternativeScenario?.stateSummary ||
-                        topAlternativeScenario?.rationale ||
-                        topAlternativeScenario?.feasibilityMessage}
-                    </p>
+                  <div className="mt-7">
+                    <div className="min-h-[56px] flex items-start">
+                      <h2 className="overflow-hidden text-ellipsis text-[20px] font-semibold tracking-tight text-slate-900 md:whitespace-nowrap md:text-[22px]">
+                        {topAlternativeScenario?.title}
+                      </h2>
+                    </div>
+                    <div className="min-h-[48px]">
+                      <p className="mt-2 text-[14px] leading-relaxed text-slate-600">
+                        {topAlternativeScenario?.blockedExplanation ||
+                          topAlternativeScenario?.stateSummary ||
+                          topAlternativeScenario?.rationale ||
+                          topAlternativeScenario?.feasibilityMessage}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="mt-7">
-                  <div className="grid grid-cols-2 gap-4 md:gap-5">
+                <div className="mt-6">
+                  <div className="grid grid-cols-2 gap-4">
                     <ScenarioMetric
                       label="5Y Equity"
                       value={formatCurrency(topAlternativeScenario?.fiveYearEquityProjection || 0)}
@@ -2160,9 +2251,71 @@ export default function PortfolioGrowthScenariosRebuild() {
           </div>
         </section>
 
-        <section className="mt-16 rounded-[2.1rem] border border-slate-200/80 bg-white px-7 py-8 shadow-[0_28px_80px_-58px_rgba(15,23,42,0.24)] md:px-10 md:py-9">
+        <section className="mt-10 md:mt-12">
+          <article
+            className={`rounded-[2.15rem] border px-6 pt-6 pb-6 shadow-[0_28px_80px_-50px_rgba(15,23,42,0.2)] md:px-8 ${
+              isCapitalConstraint || isBorrowingConstraint
+                ? 'border-amber-300/85 bg-gradient-to-r from-amber-50/95 via-amber-50/70 to-rose-50/55'
+                : 'border-slate-200/80 bg-white'
+            }`}
+          >
+            <p className={microLabelClass}>Limiting Factor</p>
+            <h3 className="mt-4 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
+              {limitingFactorHeading}
+            </h3>
+            <p className="mt-3 max-w-[56rem] text-[1.03rem] leading-8 text-slate-700">
+              {limitingFactorSummary}
+            </p>
+
+            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="rounded-[1.4rem] border border-white/80 bg-white/85 px-4 py-4 shadow-[0_16px_36px_-30px_rgba(15,23,42,0.16)]">
+                <p className={microLabelClass}>Borrowing Power</p>
+                <p className="mt-2 text-[1.35rem] font-semibold tracking-tight text-slate-950">
+                  {Number.isFinite(centralBorrowingCapacity)
+                    ? formatCurrency(centralBorrowingCapacity)
+                    : 'Unavailable'}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Current borrowing power available under the live lending assumptions.
+                </p>
+              </div>
+
+              <div className="rounded-[1.4rem] border border-white/80 bg-white/85 px-4 py-4 shadow-[0_16px_36px_-30px_rgba(15,23,42,0.16)]">
+                <p className={microLabelClass}>Capital Required</p>
+                <p className="mt-2 text-[1.35rem] font-semibold tracking-tight text-slate-950">
+                  {formatCurrency(recommendedTotalRequiredCapital)}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Upfront capital needed to execute the recommended scenario.
+                </p>
+              </div>
+
+              <div className="rounded-[1.4rem] border border-white/80 bg-white/85 px-4 py-4 shadow-[0_16px_36px_-30px_rgba(15,23,42,0.16)]">
+                <p className={microLabelClass}>Capital Shortfall</p>
+                <p
+                  className={`mt-2 text-[1.35rem] font-semibold tracking-tight ${
+                    remainingCapitalGap > 0 ? 'text-amber-700' : 'text-emerald-700'
+                  }`}
+                >
+                  {remainingCapitalGap > 0 ? formatCurrency(remainingCapitalGap) : 'No shortfall'}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  The residual gap that still blocks clean execution today.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 rounded-[1.5rem] border border-white/75 bg-white/85 px-5 py-4 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.18)]">
+              <p className="text-sm font-medium leading-7 text-slate-700">
+                {limitingFactorActionLine}
+              </p>
+            </div>
+          </article>
+        </section>
+
+        <section className="mt-10 rounded-[2.1rem] border border-slate-200/80 bg-white px-6 pt-6 pb-6 shadow-[0_28px_80px_-58px_rgba(15,23,42,0.24)] md:mt-12 md:px-8">
           <p className={microLabelClass}>Executive Summary</p>
-          <h2 className="mt-4 max-w-[18ch] text-[2.2rem] font-semibold tracking-[-0.035em] text-slate-950 md:text-[2.7rem]">
+          <h2 className="mt-4 max-w-[18ch] text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
             {recommendedNextMoveSummary
               ? `Estimated net equity outcome over 5 years: ${formatCurrency(
                   recommendedNextMoveSummary.fiveYearEquity
@@ -2215,10 +2368,10 @@ export default function PortfolioGrowthScenariosRebuild() {
           </div>
         </section>
 
-        <section className="mt-8">
-          <div className="rounded-[2.2rem] border border-slate-200/80 bg-white px-6 py-7 shadow-[0_24px_70px_-54px_rgba(15,23,42,0.18)] md:px-8 md:py-8">
+        <section className="mt-10 md:mt-12">
+          <div className="rounded-[2.2rem] border border-slate-200/80 bg-white px-6 pt-6 pb-6 shadow-[0_24px_70px_-54px_rgba(15,23,42,0.18)] md:px-8">
             <p className={microLabelClass}>Execution Readiness</p>
-          <h3 className="mt-4 text-[2rem] font-semibold tracking-tight text-slate-950">
+          <h3 className="mt-4 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
             Can this strategy be executed now?
           </h3>
           <p className="mt-4 max-w-[46rem] text-[1.03rem] leading-8 text-slate-600">
@@ -2235,6 +2388,30 @@ export default function PortfolioGrowthScenariosRebuild() {
                 <p className="mt-4 text-[1rem] leading-7 text-slate-600">
                   Deployable capital after liquidity buffers and reserve settings are retained.
                 </p>
+                <div className="mt-5 rounded-[1.25rem] border border-emerald-200/70 bg-white/75 px-4 py-4 text-left">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500">
+                    Available capital derived from equity
+                  </p>
+                  <div className="mt-3 space-y-2.5">
+                    <BreakdownRow
+                      label="Total equity available"
+                      value={recommendedWealthBreakdown.totalEquityAvailable}
+                    />
+                    <BreakdownRow
+                      label={`Buffer retained (${recommendedWealthBreakdown.bufferRetainedPct})`}
+                      value={`-${recommendedWealthBreakdown.bufferRetained}`}
+                    />
+                    <BreakdownRow
+                      label="Usable equity"
+                      value={recommendedWealthBreakdown.usableEquity}
+                      strong
+                    />
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-slate-600">
+                    A portion of your equity is retained as a safety buffer. The remaining usable
+                    equity can be deployed toward the next acquisition.
+                  </p>
+                </div>
               </article>
 
               <div className="hidden items-center justify-center text-3xl font-light text-slate-300 xl:flex">
@@ -2247,8 +2424,26 @@ export default function PortfolioGrowthScenariosRebuild() {
                   {formatCurrency(recommendedTotalRequiredCapital)}
                 </p>
                 <p className="mt-4 text-[1rem] leading-7 text-slate-600">
-                  Total upfront cheque required across deposit, stamp duty, and acquisition costs.
+                  Most of the upfront requirement comes from the deposit, with the remainder driven
+                  by stamp duty and acquisition costs.
                 </p>
+                <div className="mt-5 rounded-[1.25rem] border border-slate-200/80 bg-white/80 px-4 py-4 text-left">
+                  <div className="space-y-2.5">
+                    <BreakdownRow
+                      label="Deposit"
+                      value={recommendedWealthBreakdown.depositRequired}
+                    />
+                    <BreakdownRow
+                      label="Stamp duty + acquisition costs"
+                      value={recommendedWealthBreakdown.acquisitionCosts}
+                    />
+                    <BreakdownRow
+                      label="Total required"
+                      value={recommendedWealthBreakdown.totalRequiredCapital}
+                      strong
+                    />
+                  </div>
+                </div>
               </article>
 
               <div className="hidden items-center justify-center text-3xl font-light text-slate-300 xl:flex">
@@ -2280,50 +2475,9 @@ export default function PortfolioGrowthScenariosRebuild() {
           </div>
         </section>
 
-        <section className="mt-6">
-          <article className={`rounded-[2.15rem] border px-7 py-7 shadow-[0_28px_80px_-50px_rgba(15,23,42,0.2)] md:px-9 md:py-8 ${
-            scenarioModel?.viability?.limitingFactor || remainingCapitalGap > 0
-              ? 'border-amber-300/85 bg-gradient-to-r from-amber-50/95 via-amber-50/70 to-rose-50/55'
-              : 'border-emerald-200/80 bg-gradient-to-r from-emerald-50/85 to-white'
-          }`}>
-            <p className={microLabelClass}>Limiting Factor</p>
-            <h3
-              className={`mt-4 text-[1.85rem] font-semibold tracking-tight ${
-                scenarioModel?.viability?.limitingFactor || remainingCapitalGap > 0
-                  ? 'text-amber-900'
-                  : 'text-emerald-900'
-              }`}
-            >
-              {scenarioModel?.viability?.limitingFactor}
-            </h3>
-            <p
-              className={`mt-3 max-w-[52rem] text-[1.05rem] leading-8 ${
-                scenarioModel?.viability?.limitingFactor || remainingCapitalGap > 0
-                  ? 'text-amber-800'
-                  : 'text-slate-600'
-              }`}
-            >
-              {scenarioModel?.viability?.message}
-            </p>
-            <div className="mt-5 rounded-[1.5rem] border border-white/70 bg-white/80 px-5 py-4 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.18)]">
-              <p className="text-sm font-medium leading-7 text-slate-700">
-                {String(scenarioModel?.viability?.limitingFactor || '').toLowerCase().includes('capital')
-                  ? 'Capital remains the binding constraint for execution.'
-                  : String(scenarioModel?.viability?.limitingFactor || '').toLowerCase().includes('service')
-                    ? 'Borrowing is the limiting constraint even if capital is available.'
-                    : String(scenarioModel?.viability?.limitingFactor || '').toLowerCase().includes('floor')
-                      ? 'This scenario is blocked by market-floor constraints rather than serviceability.'
-                      : remainingCapitalGap > 0
-                        ? 'Borrowing is available, but upfront capital is still short.'
-                        : 'Current constraints appear manageable for execution.'}
-              </p>
-            </div>
-          </article>
-        </section>
-
-        <section className="mt-9 rounded-[2.25rem] border border-slate-200/80 bg-white px-7 py-8 shadow-[0_28px_80px_-58px_rgba(15,23,42,0.2)] md:px-10 md:py-9">
+        <section className="mt-10 rounded-[2.25rem] border border-slate-200/80 bg-white px-6 pt-6 pb-6 shadow-[0_28px_80px_-58px_rgba(15,23,42,0.2)] md:mt-12 md:px-8">
           <p className={microLabelClass}>Wealth Outcome</p>
-          <h3 className="mt-4 text-[2.15rem] font-semibold tracking-[-0.03em] text-slate-950">
+          <h3 className="mt-4 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
             Economic outcome after capital and carry
           </h3>
           <p className="mt-4 max-w-[50rem] text-[1.03rem] leading-8 text-slate-600">
@@ -2331,36 +2485,69 @@ export default function PortfolioGrowthScenariosRebuild() {
             capital is committed and the asset is carried through the hold period.
           </p>
 
-          <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-            {(recommendedScenario?.growthAssumptions?.equityCreated ||
-              recommendedScenario?.fiveYearEquityProjection) ? (
-              <article className="rounded-[1.8rem] border border-emerald-200/80 bg-emerald-50/55 px-6 py-6 shadow-[0_20px_50px_-42px_rgba(15,23,42,0.16)]">
-                <p className={microLabelClass}>Equity Created</p>
-                <p className="mt-3 text-[2.15rem] font-semibold tracking-tight text-slate-950">
-                  {recommendedScenario?.growthAssumptions?.equityCreated ||
-                    formatCurrency(recommendedScenario?.fiveYearEquityProjection || 0)}
-                </p>
-                <p className="mt-3 text-sm leading-7 text-slate-600">
-                  Projected equity expansion generated over the scenario horizon.
-                </p>
-              </article>
-            ) : null}
+          <div className="mt-8 flex flex-col gap-4 xl:flex-row xl:items-stretch xl:gap-5">
+            <article className="flex-1 rounded-[1.8rem] border border-slate-200/80 bg-slate-50/70 px-6 py-6 shadow-[0_20px_50px_-42px_rgba(15,23,42,0.14)]">
+              <p className={microLabelClass}>5Y Equity</p>
+              <p className="mt-3 text-[2.15rem] font-semibold tracking-tight text-slate-950">
+                {formatCurrency(topSuggestedScenario?.fiveYearEquityProjection || 0)}
+              </p>
+              <p className="mt-3 text-sm leading-7 text-slate-600">
+                Projected net equity after 5 years.
+              </p>
+            </article>
 
-            {recommendedWealthBreakdown?.totalRequiredCapital ? (
-              <article className="rounded-[1.8rem] border border-slate-200/80 bg-slate-50/70 px-6 py-6 shadow-[0_20px_50px_-42px_rgba(15,23,42,0.14)]">
-                <p className={microLabelClass}>Capital Invested</p>
-                <p className="mt-3 text-[2.15rem] font-semibold tracking-tight text-slate-950">
-                  {recommendedWealthBreakdown.totalRequiredCapital}
-                </p>
-                <p className="mt-3 text-sm leading-7 text-slate-600">
-                  Upfront capital committed to get the position on balance sheet.
-                </p>
-              </article>
-            ) : null}
+            <div className="flex items-center justify-center text-[2rem] font-light text-slate-300 xl:px-1">
+              &minus;
+            </div>
+
+            <article className="flex-1 rounded-[1.8rem] border border-slate-200/80 bg-slate-50/70 px-6 py-6 shadow-[0_20px_50px_-42px_rgba(15,23,42,0.14)]">
+              <p className={microLabelClass}>Capital Invested</p>
+              <p className="mt-3 text-[2.15rem] font-semibold tracking-tight text-slate-950">
+                {topSuggestedScenario?.purchaseStructure?.totalCapitalRequired ||
+                  recommendedWealthBreakdown.totalRequiredCapital}
+              </p>
+              <p className="mt-3 text-sm leading-7 text-slate-600">
+                Upfront capital committed.
+              </p>
+            </article>
+
+            <div className="flex items-center justify-center text-[2rem] font-light text-slate-300 xl:px-1">
+              &minus;
+            </div>
+
+            <article className="flex-1 rounded-[1.8rem] border border-slate-200/80 bg-slate-50/70 px-6 py-6 shadow-[0_20px_50px_-42px_rgba(15,23,42,0.14)]">
+              <p className={microLabelClass}>5Y Holding Cost</p>
+              <p className="mt-3 text-[2.15rem] font-semibold tracking-tight text-slate-950">
+                {formatCurrency(wealthOutcomeHoldingCost5Y)}
+              </p>
+              <p className="mt-3 text-sm leading-7 text-slate-600">
+                Total after-tax carry over 5 years.
+              </p>
+            </article>
+
+            <div className="flex items-center justify-center text-[2rem] font-light text-slate-300 xl:px-1">
+              =
+            </div>
+
+            <article
+              className={`flex-1 rounded-[1.8rem] border px-6 py-6 shadow-[0_20px_50px_-42px_rgba(15,23,42,0.16)] ${
+                Number(topSuggestedScenario?.economicOutcome5Y || 0) >= 0
+                  ? 'border-emerald-200/80 bg-emerald-50/55'
+                  : 'border-rose-200/80 bg-rose-50/55'
+              }`}
+            >
+              <p className={microLabelClass}>Economic Outcome (5Y)</p>
+              <p className="mt-3 text-[2.15rem] font-semibold tracking-tight text-slate-950">
+                {formatCurrency(topSuggestedScenario?.economicOutcome5Y || 0)}
+              </p>
+              <p className="mt-3 text-sm leading-7 text-slate-600">
+                Net wealth after capital and carry.
+              </p>
+            </article>
           </div>
         </section>
 
-        <section className="mt-12 border-b border-slate-200/75">
+        <section className="mt-10 border-b border-slate-200/75 md:mt-12">
           <div className="-mb-px flex flex-wrap gap-2.5 md:gap-3.5">
             <button
               type="button"
@@ -2399,10 +2586,10 @@ export default function PortfolioGrowthScenariosRebuild() {
         </section>
 
         {activeTab === 'wealth-growth' ? (
-          <section className="rounded-b-[2rem] rounded-tr-[2rem] border border-t-0 border-slate-200/75 bg-white px-6 py-9 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:px-10 md:py-11">
+          <section className="rounded-b-[2rem] rounded-tr-[2rem] border border-t-0 border-slate-200/75 bg-white px-6 pt-6 pb-6 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:px-8">
             <div>
               <p className={microLabelClass}>Wealth Growth</p>
-              <h3 className="mt-5 text-[2rem] font-semibold tracking-tight text-slate-950">
+              <h3 className="mt-5 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
                 How the balance sheet improves over time
               </h3>
               <p className="mt-6 max-w-[50rem] text-[1.04rem] leading-8 text-slate-600">
@@ -2411,18 +2598,14 @@ export default function PortfolioGrowthScenariosRebuild() {
               </p>
             </div>
 
-            <div className="mt-9 rounded-[1.9rem] border border-slate-100/90 bg-slate-50/40 px-6 py-8 md:px-8 md:py-10">
-              <div className="overflow-hidden rounded-[1.6rem] border border-slate-100/90 bg-white px-4 py-6 md:px-6 md:py-8">
-                {equityCashFlowTradeOffChart}
-              </div>
-            </div>
+            <div className="mt-6">{equityCashFlowTradeOffChart}</div>
           </section>
         ) : null}
 
         {activeTab === 'funding' ? (
-          <section className="rounded-b-[2rem] rounded-tr-[2rem] border border-t-0 border-slate-200/75 bg-white px-6 py-9 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:px-10 md:py-11">
+          <section className="rounded-b-[2rem] rounded-tr-[2rem] border border-t-0 border-slate-200/75 bg-white px-6 pt-6 pb-6 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:px-8">
             <p className={microLabelClass}>Funding</p>
-            <h3 className="mt-5 text-[2rem] font-semibold tracking-tight text-slate-950">
+            <h3 className="mt-5 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
               Capital required to execute
             </h3>
             <p className="mt-6 max-w-[48rem] text-[1.04rem] leading-8 text-slate-600">
@@ -2480,9 +2663,9 @@ export default function PortfolioGrowthScenariosRebuild() {
         ) : null}
 
         {activeTab === 'tax-cash-flow' ? (
-          <section className="rounded-b-[2rem] rounded-tr-[2rem] border border-t-0 border-slate-200/75 bg-white px-6 py-9 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:px-10 md:py-11">
+          <section className="rounded-b-[2rem] rounded-tr-[2rem] border border-t-0 border-slate-200/75 bg-white px-6 pt-6 pb-6 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:px-8">
             <p className={microLabelClass}>Tax &amp; Cash Flow</p>
-            <h3 className="mt-5 text-[2rem] font-semibold tracking-tight text-slate-950">
+            <h3 className="mt-5 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
               What the strategy costs to hold each month
             </h3>
             <p className="mt-6 max-w-[50rem] text-[1.04rem] leading-8 text-slate-600">
@@ -2609,9 +2792,9 @@ export default function PortfolioGrowthScenariosRebuild() {
           </section>
         ) : null}
 
-        <section className="mt-14 rounded-[2rem] border border-slate-200/75 bg-white px-7 py-8 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:px-10 md:py-9">
+        <section className="mt-10 rounded-[2rem] border border-slate-200/75 bg-white px-6 pt-6 pb-6 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:mt-12 md:px-8">
           <p className={microLabelClass}>Confidence</p>
-          <p className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">
+          <p className="mt-4 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
             {getConfidenceSummary(Number(scenarioModel.confidence?.score || 0))}
           </p>
           <p className="mt-3 max-w-[38rem] text-[1rem] leading-7 text-slate-600">
@@ -2619,9 +2802,9 @@ export default function PortfolioGrowthScenariosRebuild() {
           </p>
         </section>
 
-        <section className="mt-10 rounded-[2rem] border border-slate-200/75 bg-white px-7 py-8 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:px-10 md:py-9">
+        <section className="mt-10 rounded-[2rem] border border-slate-200/75 bg-white px-6 pt-6 pb-6 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:mt-12 md:px-8">
           <p className={microLabelClass}>Advanced analysis</p>
-          <h3 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950">
+          <h3 className="mt-4 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
             Optimise the scenario under tougher rates, tighter buffers, and different capital structures.
           </h3>
 
@@ -2642,7 +2825,7 @@ export default function PortfolioGrowthScenariosRebuild() {
 
           {isAdvancedAnalysisOpen ? (
             <div className="mt-9 space-y-10">
-              <article className="rounded-[2.1rem] border border-slate-200/80 bg-white px-6 py-7 shadow-[0_24px_70px_-54px_rgba(15,23,42,0.16)] md:px-8 md:py-8">
+              <article className="rounded-[2.1rem] border border-slate-200/80 bg-white px-6 pt-6 pb-6 shadow-[0_24px_70px_-54px_rgba(15,23,42,0.16)] md:px-8">
                 <p className={microLabelClass}>Rate Sensitivity</p>
                 <h4 className="mt-4 text-[1.7rem] font-semibold tracking-tight text-slate-950">
                   How much borrowing headroom is rate-sensitive?
@@ -2654,7 +2837,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                 <div className="mt-6">{borrowingSensitivityChart}</div>
               </article>
 
-              <article className="rounded-[2.1rem] border border-slate-200/80 bg-white px-6 py-7 shadow-[0_24px_70px_-54px_rgba(15,23,42,0.16)] md:px-8 md:py-8">
+              <article className="rounded-[2.1rem] border border-slate-200/80 bg-white px-6 pt-6 pb-6 shadow-[0_24px_70px_-54px_rgba(15,23,42,0.16)] md:px-8">
                 <p className={microLabelClass}>Stress Test</p>
                 <h4 className="mt-4 text-[1.7rem] font-semibold tracking-tight text-slate-950">
                   When does serviceability start to tighten?
