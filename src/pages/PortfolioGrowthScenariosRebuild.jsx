@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { startTransition, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import useFinancialData from '../hooks/useFinancialData'
 import usePortfolioData from '../hooks/usePortfolioData'
@@ -9,6 +9,7 @@ import buildPortfolioGrowthScenarios, {
 import { calculateNegativeGearingTaxBenefit } from '../lib/negativeGearingTaxBenefit'
 import { calculateAfterTaxHoldingCost } from '../lib/afterTaxHoldingCost'
 import { normalizeTaxOwnership } from '../lib/taxOwnership'
+import { useGrowthScenariosUiStore } from '../stores/growthScenariosUiStore'
 
 const MAX_ANNUAL_DEPRECIATION = 20000
 const HIGH_DEPRECIATION_WARNING_THRESHOLD = 15000
@@ -1020,20 +1021,63 @@ function ScenarioMetric({ label, value, className = '', valueClassName = '' }) {
 }
 
 export default function PortfolioGrowthScenariosRebuild() {
-  const { properties, loans, transactions } = usePortfolioData()
-  const { financialProfile, liabilities } = useFinancialData()
-  const [activeTab, setActiveTab] = useState('wealth-growth')
-  const [includeDepreciation, setIncludeDepreciation] = useState(false)
-  const [annualDepreciationInput, setAnnualDepreciationInput] = useState('8000')
-  const [isAdvancedAnalysisOpen, setIsAdvancedAnalysisOpen] = useState(false)
-  const [isAdvancedAssumptionsOpen, setIsAdvancedAssumptionsOpen] = useState(false)
+  const { properties, loans, transactions, loading: portfolioLoading } = usePortfolioData()
+  const { financialProfile, liabilities, loading: financialLoading } = useFinancialData()
   const [isScenarioRefreshing, setIsScenarioRefreshing] = useState(false)
-  const [ownershipOverride, setOwnershipOverride] = useState(null)
-  const [depositStrategy, setDepositStrategy] = useState('20')
-  const [selectedInterestRate, setSelectedInterestRate] = useState(null)
-  const [interestRateInput, setInterestRateInput] = useState('')
+  const [isDeferredAnalysisReady, setIsDeferredAnalysisReady] = useState(false)
+  const hasHydrated = useGrowthScenariosUiStore((state) => state.hasHydrated)
+  const scrollY = useGrowthScenariosUiStore((state) => state.scrollY)
+  const setScrollY = useGrowthScenariosUiStore((state) => state.setScrollY)
+  const activeTab = useGrowthScenariosUiStore((state) => state.activeTab)
+  const setActiveTab = useGrowthScenariosUiStore((state) => state.setActiveTab)
+  const includeDepreciation = useGrowthScenariosUiStore((state) => state.includeDepreciation)
+  const setIncludeDepreciation = useGrowthScenariosUiStore(
+    (state) => state.setIncludeDepreciation
+  )
+  const annualDepreciationInput = useGrowthScenariosUiStore(
+    (state) => state.annualDepreciationInput
+  )
+  const setAnnualDepreciationInput = useGrowthScenariosUiStore(
+    (state) => state.setAnnualDepreciationInput
+  )
+  const isAdvancedAnalysisOpen = useGrowthScenariosUiStore(
+    (state) => state.isAdvancedAnalysisOpen
+  )
+  const setIsAdvancedAnalysisOpen = useGrowthScenariosUiStore(
+    (state) => state.setIsAdvancedAnalysisOpen
+  )
+  const isAdvancedAssumptionsOpen = useGrowthScenariosUiStore(
+    (state) => state.isAdvancedAssumptionsOpen
+  )
+  const setIsAdvancedAssumptionsOpen = useGrowthScenariosUiStore(
+    (state) => state.setIsAdvancedAssumptionsOpen
+  )
+  const ownershipOverride = useGrowthScenariosUiStore((state) => state.ownershipOverride)
+  const setOwnershipOverride = useGrowthScenariosUiStore(
+    (state) => state.setOwnershipOverride
+  )
+  const depositStrategy = useGrowthScenariosUiStore((state) => state.depositStrategy)
+  const setDepositStrategy = useGrowthScenariosUiStore((state) => state.setDepositStrategy)
+  const selectedInterestRate = useGrowthScenariosUiStore(
+    (state) => state.selectedInterestRate
+  )
+  const setSelectedInterestRate = useGrowthScenariosUiStore(
+    (state) => state.setSelectedInterestRate
+  )
+  const interestRateInput = useGrowthScenariosUiStore((state) => state.interestRateInput)
+  const setInterestRateInput = useGrowthScenariosUiStore(
+    (state) => state.setInterestRateInput
+  )
+  const scrollSaveFrameRef = useRef(null)
+  const hasRestoredScrollRef = useRef(false)
   const microLabelClass =
     'text-[11px] uppercase tracking-[0.18em] text-slate-500'
+  const hasUsableScenarioInputs =
+    properties.length > 0 ||
+    loans.length > 0 ||
+    transactions.length > 0 ||
+    Boolean(financialProfile) ||
+    liabilities.length > 0
   const annualDepreciation = Math.max(
     0,
     Math.min(MAX_ANNUAL_DEPRECIATION, Number(annualDepreciationInput || 0))
@@ -1320,6 +1364,95 @@ export default function PortfolioGrowthScenariosRebuild() {
     ownershipSplitUserInput,
     ownershipStructure,
   ])
+  useEffect(() => {
+    if (!hasUsableScenarioInputs && (portfolioLoading || financialLoading)) {
+      setIsDeferredAnalysisReady(false)
+      return
+    }
+
+    const frameId = requestAnimationFrame(() => {
+      startTransition(() => {
+        setIsDeferredAnalysisReady(true)
+      })
+    })
+
+    return () => cancelAnimationFrame(frameId)
+  }, [financialLoading, hasUsableScenarioInputs, portfolioLoading])
+  useEffect(() => {
+    if (!hasHydrated) return undefined
+
+    const saveScrollPosition = () => {
+      if (scrollSaveFrameRef.current !== null) {
+        cancelAnimationFrame(scrollSaveFrameRef.current)
+      }
+
+      scrollSaveFrameRef.current = requestAnimationFrame(() => {
+        setScrollY(window.scrollY)
+        scrollSaveFrameRef.current = null
+      })
+    }
+
+    window.addEventListener('scroll', saveScrollPosition, { passive: true })
+
+    return () => {
+      window.removeEventListener('scroll', saveScrollPosition)
+      if (scrollSaveFrameRef.current !== null) {
+        cancelAnimationFrame(scrollSaveFrameRef.current)
+        scrollSaveFrameRef.current = null
+      }
+      setScrollY(window.scrollY)
+    }
+  }, [hasHydrated, setScrollY])
+  useLayoutEffect(() => {
+    if (hasRestoredScrollRef.current) return undefined
+    if (!hasHydrated) return undefined
+    if (!hasUsableScenarioInputs && (portfolioLoading || financialLoading)) return undefined
+
+    const targetScrollY = Number(scrollY || 0)
+    hasRestoredScrollRef.current = true
+
+    if (targetScrollY <= 0) {
+      return undefined
+    }
+
+    let frameId = null
+    let attempts = 0
+
+    const restoreScrollPosition = () => {
+      const maxScrollTop = Math.max(
+        document.documentElement.scrollHeight - window.innerHeight,
+        0
+      )
+      const nextScrollTop = Math.min(targetScrollY, maxScrollTop)
+
+      window.scrollTo({ top: nextScrollTop, behavior: 'auto' })
+
+      const reachedTarget = Math.abs(window.scrollY - nextScrollTop) <= 2
+      const hasEnoughHeight = maxScrollTop >= targetScrollY
+
+      if ((reachedTarget && hasEnoughHeight) || attempts >= 10) {
+        return
+      }
+
+      attempts += 1
+      frameId = requestAnimationFrame(restoreScrollPosition)
+    }
+
+    restoreScrollPosition()
+
+    return () => {
+      if (frameId !== null) {
+        cancelAnimationFrame(frameId)
+      }
+    }
+  }, [
+    financialLoading,
+    hasHydrated,
+    hasUsableScenarioInputs,
+    isDeferredAnalysisReady,
+    portfolioLoading,
+    scrollY,
+  ])
   const recommendedScenarioTaxView = useMemo(() => {
     if (!recommendedScenario) return null
     if (!hasTaxableIncome) return null
@@ -1487,6 +1620,7 @@ export default function PortfolioGrowthScenariosRebuild() {
       8.5
   )
   const borrowingSensitivityData = useMemo(() => {
+    if (!isDeferredAnalysisReady) return []
     if (!scenarioModel.recommendedStrategy) return []
 
     return [-1.5, -1.0, -0.5, 0, 0.5, 1.0].map((offset) => {
@@ -1515,6 +1649,7 @@ export default function PortfolioGrowthScenariosRebuild() {
   }, [
     assessmentRateValue,
     financialProfile,
+    isDeferredAnalysisReady,
     liabilities,
     loans,
     scenarioModel.recommendedStrategy,
@@ -1545,6 +1680,7 @@ export default function PortfolioGrowthScenariosRebuild() {
     }
   }, [borrowingSensitivityData])
   const stressTestData = useMemo(() => {
+    if (!isDeferredAnalysisReady) return []
     if (!scenarioModel.recommendedStrategy) return []
 
     return STRESS_TEST_RATES.map((rate) => {
@@ -1573,6 +1709,7 @@ export default function PortfolioGrowthScenariosRebuild() {
   }, [
     assessmentRateValue,
     financialProfile,
+    isDeferredAnalysisReady,
     liabilities,
     loans,
     scenarioModel.recommendedStrategy,
@@ -1599,6 +1736,7 @@ export default function PortfolioGrowthScenariosRebuild() {
     }
   }, [stressTestData])
   const depositPurchasePowerData = useMemo(() => {
+    if (!isDeferredAnalysisReady) return []
     if (!scenarioModel.recommendedStrategy || !Number.isFinite(centralBorrowingCapacity)) return []
 
     const totalDeployableCapital = Number(scenarioModel.inputs?.totalDeployableCapital || 0)
@@ -1627,6 +1765,7 @@ export default function PortfolioGrowthScenariosRebuild() {
     })
   }, [
     centralBorrowingCapacity,
+    isDeferredAnalysisReady,
     recommendedScenario?.estimatedAcquisitionCosts,
     recommendedScenario?.scenarioPurchasePrice,
     scenarioModel.assumptions?.acquisitionCostRate,
@@ -1635,6 +1774,7 @@ export default function PortfolioGrowthScenariosRebuild() {
     selectedDepositStrategy.depositRatio,
   ])
   const equityCashFlowTradeOffData = useMemo(() => {
+    if (!isDeferredAnalysisReady) return []
     if (!recommendedScenario?.projectionData?.length) return []
 
     return recommendedScenario.projectionData.map((point) => ({
@@ -1644,7 +1784,7 @@ export default function PortfolioGrowthScenariosRebuild() {
       loanBalance: Number(point?.loanBalance ?? 0),
       netEquity: Number(point?.netEquity ?? point?.equity ?? 0),
     }))
-  }, [recommendedScenario])
+  }, [isDeferredAnalysisReady, recommendedScenario])
   const hasLoanBalanceSeries = useMemo(
     () =>
       equityCashFlowTradeOffData.some(

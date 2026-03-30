@@ -10,6 +10,7 @@ import buildPortfolioGrowthScenarios, {
 import { calculateNegativeGearingTaxBenefit } from '../lib/negativeGearingTaxBenefit'
 import { calculateAfterTaxHoldingCost } from '../lib/afterTaxHoldingCost'
 import { normalizeTaxOwnership } from '../lib/taxOwnership'
+import { useGrowthScenariosUiStore } from '../stores/growthScenariosUiStore'
 import PremiumProjectionChart from '../components/charts/PremiumProjectionChart'
 import PortfolioGrowthScenariosPremiumView from '../components/scenarios/PortfolioGrowthScenariosPremiumView'
 import {
@@ -232,14 +233,32 @@ export default function PortfolioGrowthScenarios() {
   const maxCashAvailableForInvestment = Number.isFinite(Number(rawAvailableCashForInvestment))
     ? Math.max(0, Number(rawAvailableCashForInvestment))
     : 0
-  const [cashToDeploy, setCashToDeploy] = useState(0)
+  const cashToDeploy = useGrowthScenariosUiStore((state) => state.cashToDeploy)
+  const setCashToDeploy = useGrowthScenariosUiStore((state) => state.setCashToDeploy)
   const [cashInputValue, setCashInputValue] = useState('0')
   const savingsInputRef = useRef(null)
-  const [depositStrategy, setDepositStrategy] = useState('20')
-  const [selectedInterestRate, setSelectedInterestRate] = useState(null)
-  const [interestRateInput, setInterestRateInput] = useState('')
-  const [isAdvancedAnalysisOpen, setIsAdvancedAnalysisOpen] = useState(false)
-  const [activePremiumTab, setActivePremiumTab] = useState('wealth-growth')
+  const depositStrategy = useGrowthScenariosUiStore((state) => state.depositStrategy)
+  const setDepositStrategy = useGrowthScenariosUiStore((state) => state.setDepositStrategy)
+  const selectedInterestRate = useGrowthScenariosUiStore(
+    (state) => state.selectedInterestRate
+  )
+  const setSelectedInterestRate = useGrowthScenariosUiStore(
+    (state) => state.setSelectedInterestRate
+  )
+  const interestRateInput = useGrowthScenariosUiStore((state) => state.interestRateInput)
+  const setInterestRateInput = useGrowthScenariosUiStore(
+    (state) => state.setInterestRateInput
+  )
+  const isAdvancedAnalysisOpen = useGrowthScenariosUiStore(
+    (state) => state.isAdvancedAnalysisOpen
+  )
+  const setIsAdvancedAnalysisOpen = useGrowthScenariosUiStore(
+    (state) => state.setIsAdvancedAnalysisOpen
+  )
+  const activePremiumTab = useGrowthScenariosUiStore((state) => state.activePremiumTab)
+  const setActivePremiumTab = useGrowthScenariosUiStore(
+    (state) => state.setActivePremiumTab
+  )
   const effectiveCashToDeploy = clampCashToDeploy(
     Number.isFinite(Number(cashToDeploy)) ? Number(cashToDeploy) : 0,
     maxCashAvailableForInvestment
@@ -639,9 +658,20 @@ export default function PortfolioGrowthScenarios() {
       }),
     [financialProfile]
   )
-  const [ownershipOverride, setOwnershipOverride] = useState(null)
-  const [includeDepreciation, setIncludeDepreciation] = useState(false)
-  const [annualDepreciationInput, setAnnualDepreciationInput] = useState('8000')
+  const ownershipOverride = useGrowthScenariosUiStore((state) => state.ownershipOverride)
+  const setOwnershipOverride = useGrowthScenariosUiStore(
+    (state) => state.setOwnershipOverride
+  )
+  const includeDepreciation = useGrowthScenariosUiStore((state) => state.includeDepreciation)
+  const setIncludeDepreciation = useGrowthScenariosUiStore(
+    (state) => state.setIncludeDepreciation
+  )
+  const annualDepreciationInput = useGrowthScenariosUiStore(
+    (state) => state.annualDepreciationInput
+  )
+  const setAnnualDepreciationInput = useGrowthScenariosUiStore(
+    (state) => state.setAnnualDepreciationInput
+  )
   const ownershipStructure =
     ownershipOverride?.ownershipStructure ?? profileOwnership.ownershipStructure
   const ownershipSplitUserInput = String(
