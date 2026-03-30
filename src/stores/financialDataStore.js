@@ -122,4 +122,7 @@ export const useFinancialDataStore = create((set, get) => ({
 
     return financialFetchPromise
   },
+  async refreshFinancialData() {
+    return get().fetchFinancialData({ force: true })
+  },
 }))

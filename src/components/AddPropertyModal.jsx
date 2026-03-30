@@ -32,7 +32,7 @@ export default function AddPropertyModal({ onClose, onSave, userId }) {
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.from('properties').insert([{
+    const { error: insertError } = await supabase.from('properties').insert([{
       address: form.address,
       suburb: form.suburb,
       state: form.state,
@@ -57,8 +57,22 @@ export default function AddPropertyModal({ onClose, onSave, userId }) {
       user_id: userId,
     }])
 
-    if (error) { setError(error.message); setLoading(false) }
-    else { onSave(); onClose() }
+    if (insertError) {
+      setError(insertError.message)
+      setLoading(false)
+      return
+    }
+
+    try {
+      await onSave({ force: true })
+      onClose()
+    } catch (refreshError) {
+      setError(
+        refreshError?.message ||
+          'Property was added, but the latest portfolio data could not be refreshed.'
+      )
+      setLoading(false)
+    }
   }
 
   return (

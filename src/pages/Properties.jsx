@@ -28,6 +28,8 @@ export default function Properties() {
   const [propertyUseFilter, setPropertyUseFilter] = useState('all')
   const [sortBy, setSortBy] = useState('value_desc')
 
+  const handlePortfolioSave = (options) => fetchData(options)
+
   useEffect(() => {
     initialisePage()
   }, [])
@@ -250,7 +252,7 @@ export default function Properties() {
         <AddPropertyModal
           userId={session.user.id}
           onClose={() => setShowAddProperty(false)}
-          onSave={fetchData}
+          onSave={handlePortfolioSave}
         />
       )}
 
@@ -259,7 +261,7 @@ export default function Properties() {
           property={editingProperty}
           userId={session.user.id}
           onClose={() => setEditingProperty(null)}
-          onSave={fetchData}
+          onSave={handlePortfolioSave}
         />
       )}
 

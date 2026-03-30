@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { startTransition, useEffect, useMemo, useState } from 'react'
 
 import useFinancialData from '../hooks/useFinancialData'
 import usePortfolioData from '../hooks/usePortfolioData'
@@ -1025,9 +1025,6 @@ export default function PortfolioGrowthScenariosRebuild() {
   const { financialProfile, liabilities, loading: financialLoading } = useFinancialData()
   const [isScenarioRefreshing, setIsScenarioRefreshing] = useState(false)
   const [isDeferredAnalysisReady, setIsDeferredAnalysisReady] = useState(false)
-  const hasHydrated = useGrowthScenariosUiStore((state) => state.hasHydrated)
-  const scrollY = useGrowthScenariosUiStore((state) => state.scrollY)
-  const setScrollY = useGrowthScenariosUiStore((state) => state.setScrollY)
   const activeTab = useGrowthScenariosUiStore((state) => state.activeTab)
   const setActiveTab = useGrowthScenariosUiStore((state) => state.setActiveTab)
   const includeDepreciation = useGrowthScenariosUiStore((state) => state.includeDepreciation)
@@ -1068,8 +1065,6 @@ export default function PortfolioGrowthScenariosRebuild() {
   const setInterestRateInput = useGrowthScenariosUiStore(
     (state) => state.setInterestRateInput
   )
-  const scrollSaveFrameRef = useRef(null)
-  const hasRestoredScrollRef = useRef(false)
   const microLabelClass =
     'text-[11px] uppercase tracking-[0.18em] text-slate-500'
   const hasUsableScenarioInputs =
@@ -1203,6 +1198,7 @@ export default function PortfolioGrowthScenariosRebuild() {
     () => normalizedScenarios.filter((scenario) => scenario.scenarioState === 'blocked'),
     [normalizedScenarios]
   )
+  const hasExecutableScenario = Boolean(recommendedScenario?.isExecutable)
   const topAlternativeScenario = blockedScenarios[0] || secondaryScenarios[0] || null
   const recommendedScenarioAnchorPrice = getSafeNumber(recommendedScenario?.scenarioPurchasePrice)
   const recommendedScenarioLoanAmount = getSafeNumber(recommendedScenario?.scenarioLoanAmount)
@@ -1378,81 +1374,6 @@ export default function PortfolioGrowthScenariosRebuild() {
 
     return () => cancelAnimationFrame(frameId)
   }, [financialLoading, hasUsableScenarioInputs, portfolioLoading])
-  useEffect(() => {
-    if (!hasHydrated) return undefined
-
-    const saveScrollPosition = () => {
-      if (scrollSaveFrameRef.current !== null) {
-        cancelAnimationFrame(scrollSaveFrameRef.current)
-      }
-
-      scrollSaveFrameRef.current = requestAnimationFrame(() => {
-        setScrollY(window.scrollY)
-        scrollSaveFrameRef.current = null
-      })
-    }
-
-    window.addEventListener('scroll', saveScrollPosition, { passive: true })
-
-    return () => {
-      window.removeEventListener('scroll', saveScrollPosition)
-      if (scrollSaveFrameRef.current !== null) {
-        cancelAnimationFrame(scrollSaveFrameRef.current)
-        scrollSaveFrameRef.current = null
-      }
-      setScrollY(window.scrollY)
-    }
-  }, [hasHydrated, setScrollY])
-  useLayoutEffect(() => {
-    if (hasRestoredScrollRef.current) return undefined
-    if (!hasHydrated) return undefined
-    if (!hasUsableScenarioInputs && (portfolioLoading || financialLoading)) return undefined
-
-    const targetScrollY = Number(scrollY || 0)
-    hasRestoredScrollRef.current = true
-
-    if (targetScrollY <= 0) {
-      return undefined
-    }
-
-    let frameId = null
-    let attempts = 0
-
-    const restoreScrollPosition = () => {
-      const maxScrollTop = Math.max(
-        document.documentElement.scrollHeight - window.innerHeight,
-        0
-      )
-      const nextScrollTop = Math.min(targetScrollY, maxScrollTop)
-
-      window.scrollTo({ top: nextScrollTop, behavior: 'auto' })
-
-      const reachedTarget = Math.abs(window.scrollY - nextScrollTop) <= 2
-      const hasEnoughHeight = maxScrollTop >= targetScrollY
-
-      if ((reachedTarget && hasEnoughHeight) || attempts >= 10) {
-        return
-      }
-
-      attempts += 1
-      frameId = requestAnimationFrame(restoreScrollPosition)
-    }
-
-    restoreScrollPosition()
-
-    return () => {
-      if (frameId !== null) {
-        cancelAnimationFrame(frameId)
-      }
-    }
-  }, [
-    financialLoading,
-    hasHydrated,
-    hasUsableScenarioInputs,
-    isDeferredAnalysisReady,
-    portfolioLoading,
-    scrollY,
-  ])
   const recommendedScenarioTaxView = useMemo(() => {
     if (!recommendedScenario) return null
     if (!hasTaxableIncome) return null
@@ -1558,7 +1479,8 @@ export default function PortfolioGrowthScenariosRebuild() {
     recommendedScenarioSafeTaxView?.afterTaxMonthlyImpact,
   ])
   // Source of truth for the displayed economic outcome card is the enriched recommended scenario.
-  const topSuggestedScenario = recommendedScenarioWithEconomicOutcome || recommendedScenario
+  const topSuggestedScenario =
+    hasExecutableScenario ? recommendedScenarioWithEconomicOutcome || recommendedScenario : null
   const wealthOutcomeHoldingCost5Y = useMemo(
     () => Math.abs(Number(recommendedScenarioSafeTaxView?.afterTaxMonthlyImpact ?? 0)) * 12 * 5,
     [recommendedScenarioSafeTaxView?.afterTaxMonthlyImpact]
@@ -1592,24 +1514,35 @@ export default function PortfolioGrowthScenariosRebuild() {
   const recommendedDepositAmount = Number(recommendedScenario?.depositRequired || 0)
   const requiredLoan = Math.max(recommendedPurchasePrice - recommendedDepositAmount, 0)
   const limitingFactor =
-    remainingCapitalGap > 0
-      ? 'capital'
-      : requiredLoan > centralBorrowingCapacity
-        ? 'borrowing'
-        : 'none'
+    !hasExecutableScenario
+      ? String(scenarioModel.viability?.limitingFactor || 'capital')
+      : remainingCapitalGap > 0
+        ? 'capital'
+        : requiredLoan > centralBorrowingCapacity
+          ? 'borrowing'
+          : 'none'
   const isCapitalConstraint = limitingFactor === 'capital'
   const isBorrowingConstraint = limitingFactor === 'borrowing'
-  const limitingFactorHeading = isCapitalConstraint
+  const limitingFactorHeading = !hasExecutableScenario
+    ? 'No executable acquisition scenario under current settings'
+    : isCapitalConstraint
     ? 'Capital, not borrowing power, is the current constraint'
     : isBorrowingConstraint
       ? 'Borrowing power, not capital, is the current constraint'
       : 'No binding constraint — scenario is executable'
-  const limitingFactorSummary = isCapitalConstraint
+  const limitingFactorSummary = !hasExecutableScenario
+    ? scenarioModel.viability?.message ||
+      'Current capital, borrowing power, and realistic market-entry assumptions do not yet support a fundable acquisition path.'
+    : isCapitalConstraint
     ? 'You appear to have enough borrowing capacity to support the next move, but execution is still limited by available upfront capital.'
     : isBorrowingConstraint
       ? 'Available capital is sufficient, but borrowing capacity does not fully support the loan required for the recommended acquisition.'
       : 'Both available capital and borrowing capacity support the recommended acquisition.'
-  const limitingFactorActionLine = isCapitalConstraint
+  const limitingFactorActionLine = !hasExecutableScenario
+    ? limitingFactor === 'borrowing'
+      ? 'Improving serviceability or reducing purchase size is the fastest way to unlock execution.'
+      : 'Closing the capital gap is the fastest way to unlock a realistic acquisition path.'
+    : isCapitalConstraint
     ? 'Closing the capital gap is the fastest way to unlock the recommended path.'
     : isBorrowingConstraint
       ? 'Improving serviceability or reducing purchase size is the fastest way to unlock execution.'
@@ -2237,17 +2170,25 @@ export default function PortfolioGrowthScenariosRebuild() {
               <div className="flex h-full min-h-[520px] w-full flex-col bg-white p-6 md:p-7">
                 <div>
                   <div className="flex items-center justify-between gap-6">
-                    <div className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700 ring-1 ring-emerald-200">
-                      Suggested
+                    <div
+                      className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ring-1 ${
+                        hasExecutableScenario
+                          ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                          : 'bg-amber-50 text-amber-700 ring-amber-200'
+                      }`}
+                    >
+                      {hasExecutableScenario ? 'Suggested' : 'Not executable'}
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1.5 pl-4 text-right">
                       <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-slate-500">
-                        Recommended Path
+                        {hasExecutableScenario ? 'Recommended Path' : 'Current State'}
                       </p>
                       <p className="text-[14px] font-semibold tracking-[-0.01em] text-slate-800">
-                        {Number(topSuggestedScenario?.requiredCapitalGap || 0) > 0
-                          ? 'Capital-led path'
-                          : 'Ready to deploy'}
+                        {hasExecutableScenario
+                          ? Number(topSuggestedScenario?.requiredCapitalGap || 0) > 0
+                            ? 'Capital-led path'
+                            : 'Ready to deploy'
+                          : 'No live acquisition path'}
                       </p>
                     </div>
                   </div>
@@ -2255,14 +2196,19 @@ export default function PortfolioGrowthScenariosRebuild() {
                   <div className="mt-7">
                     <div className="min-h-[56px] flex items-start">
                       <h2 className="overflow-hidden text-ellipsis text-[20px] font-semibold tracking-tight text-slate-900 md:whitespace-nowrap md:text-[22px]">
-                        {topSuggestedScenario?.title}
+                        {hasExecutableScenario
+                          ? topSuggestedScenario?.title
+                          : 'No executable acquisition scenario under current settings'}
                       </h2>
                     </div>
                     <div className="min-h-[48px]">
                       <p className="mt-2 text-[14px] leading-relaxed text-slate-600">
-                        {topSuggestedScenario?.stateSummary ||
-                          topSuggestedScenario?.rationale ||
-                          topSuggestedScenario?.feasibilityMessage}
+                        {hasExecutableScenario
+                          ? topSuggestedScenario?.stateSummary ||
+                            topSuggestedScenario?.rationale ||
+                            topSuggestedScenario?.feasibilityMessage
+                          : scenarioModel.viability?.message ||
+                            'Current borrowing capacity, deployable capital, and realistic market-entry assumptions do not yet support a fundable acquisition path.'}
                       </p>
                     </div>
                   </div>
@@ -2271,23 +2217,41 @@ export default function PortfolioGrowthScenariosRebuild() {
                 <div className="mt-6">
                   <div className="grid grid-cols-2 gap-4">
                     <ScenarioMetric
-                      label="5Y Equity"
-                      value={formatCurrency(topSuggestedScenario?.fiveYearEquityProjection || 0)}
+                      label={hasExecutableScenario ? '5Y Equity' : 'Borrowing Power'}
+                      value={
+                        hasExecutableScenario
+                          ? formatCurrency(topSuggestedScenario?.fiveYearEquityProjection || 0)
+                          : formatCurrency(centralBorrowingCapacity || 0)
+                      }
                     />
                     <ScenarioMetric
-                      label="Purchase Price"
-                      value={formatCurrency(topSuggestedScenario?.scenarioPurchasePrice || 0)}
+                      label={hasExecutableScenario ? 'Purchase Price' : 'Deployable Capital'}
+                      value={
+                        hasExecutableScenario
+                          ? formatCurrency(topSuggestedScenario?.scenarioPurchasePrice || 0)
+                          : formatCurrency(Number(scenarioModel.inputs?.totalDeployableCapital || 0))
+                      }
                     />
                     <ScenarioMetric
-                      label="Monthly Cost"
+                      label={hasExecutableScenario ? 'Monthly Cost' : 'Market Entry Floor'}
                       valueClassName="text-[20px] md:text-[22px]"
-                      value={`${Number(topSuggestedScenario?.estimatedMonthlyCashFlow || 0) >= 0 ? '+' : '-'}${formatCurrency(
-                        Math.abs(Number(topSuggestedScenario?.estimatedMonthlyCashFlow || 0))
-                      )}`}
+                      value={
+                        hasExecutableScenario
+                          ? `${Number(topSuggestedScenario?.estimatedMonthlyCashFlow || 0) >= 0 ? '+' : '-'}${formatCurrency(
+                              Math.abs(Number(topSuggestedScenario?.estimatedMonthlyCashFlow || 0))
+                            )}`
+                          : formatCurrency(Number(scenarioModel.viability?.realisticMarketEntryMin || 0))
+                      }
                     />
                     <ScenarioMetric
-                      label="Gross Yield"
-                      value={`${Number(topSuggestedScenario?.estimatedGrossYield || 0).toFixed(1)}%`}
+                      label={hasExecutableScenario ? 'Gross Yield' : 'Unlock Focus'}
+                      value={
+                        hasExecutableScenario
+                          ? `${Number(topSuggestedScenario?.estimatedGrossYield || 0).toFixed(1)}%`
+                          : limitingFactor === 'borrowing'
+                            ? 'Borrowing uplift'
+                            : 'Capital build-up'
+                      }
                     />
                   </div>
                 </div>
@@ -2295,15 +2259,19 @@ export default function PortfolioGrowthScenariosRebuild() {
                 <div className="mt-auto pt-5">
                   <div
                     className={`flex min-h-[60px] items-center rounded-[16px] px-5 py-4 ${
-                      Number(topSuggestedScenario?.requiredCapitalGap || 0) > 0
+                      hasExecutableScenario && Number(topSuggestedScenario?.requiredCapitalGap || 0) > 0
                         ? 'bg-amber-50/45 text-amber-700 ring-1 ring-amber-100'
-                        : 'bg-emerald-50/50 text-emerald-800 ring-1 ring-emerald-100'
+                        : hasExecutableScenario
+                          ? 'bg-emerald-50/50 text-emerald-800 ring-1 ring-emerald-100'
+                          : 'bg-amber-50/45 text-amber-700 ring-1 ring-amber-100'
                     }`}
                   >
                     <p className="text-[15px] font-medium leading-7">
-                      {Number(topSuggestedScenario?.requiredCapitalGap || 0) > 0
-                        ? `Capital shortfall: ${formatCurrency(topSuggestedScenario?.requiredCapitalGap || 0)}`
-                        : 'Fully funded for execution'}
+                      {hasExecutableScenario
+                        ? Number(topSuggestedScenario?.requiredCapitalGap || 0) > 0
+                          ? `Capital shortfall: ${formatCurrency(topSuggestedScenario?.requiredCapitalGap || 0)}`
+                          : 'Fully funded for execution'
+                        : 'Blocked paths remain visible below only as non-executable reference scenarios.'}
                     </p>
                   </div>
                 </div>
@@ -2390,7 +2358,8 @@ export default function PortfolioGrowthScenariosRebuild() {
             </article>
           </div>
         </section>
-
+        {hasExecutableScenario ? (
+          <>
         <section className="mt-10 md:mt-12">
           <article
             className={`rounded-[2.15rem] border px-6 pt-6 pb-6 shadow-[0_28px_80px_-50px_rgba(15,23,42,0.2)] md:px-8 ${
@@ -2931,6 +2900,46 @@ export default function PortfolioGrowthScenariosRebuild() {
             </div>
           </section>
         ) : null}
+          </>
+        ) : (
+          <section className="mt-10 rounded-[2rem] border border-amber-200/80 bg-amber-50/55 px-6 py-6 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:mt-12 md:px-8">
+            <p className={microLabelClass}>Execution Status</p>
+            <h3 className="mt-4 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
+              No executable acquisition scenario under current settings
+            </h3>
+            <p className="mt-4 max-w-[48rem] text-[1.03rem] leading-8 text-slate-600">
+              Scenario ranking now excludes blocked paths. The next step is to improve the binding
+              constraint before treating any acquisition as a live option.
+            </p>
+
+            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="rounded-[1.4rem] border border-white/80 bg-white/85 px-4 py-4 shadow-[0_16px_36px_-30px_rgba(15,23,42,0.16)]">
+                <p className={microLabelClass}>Borrowing Power</p>
+                <p className="mt-2 text-[1.35rem] font-semibold tracking-tight text-slate-950">
+                  {Number.isFinite(centralBorrowingCapacity)
+                    ? formatCurrency(centralBorrowingCapacity)
+                    : 'Unavailable'}
+                </p>
+              </div>
+              <div className="rounded-[1.4rem] border border-white/80 bg-white/85 px-4 py-4 shadow-[0_16px_36px_-30px_rgba(15,23,42,0.16)]">
+                <p className={microLabelClass}>Deployable Capital</p>
+                <p className="mt-2 text-[1.35rem] font-semibold tracking-tight text-slate-950">
+                  {formatCurrency(Number(scenarioModel.inputs?.totalDeployableCapital || 0))}
+                </p>
+              </div>
+              <div className="rounded-[1.4rem] border border-white/80 bg-white/85 px-4 py-4 shadow-[0_16px_36px_-30px_rgba(15,23,42,0.16)]">
+                <p className={microLabelClass}>Market Entry Floor</p>
+                <p className="mt-2 text-[1.35rem] font-semibold tracking-tight text-slate-950">
+                  {formatCurrency(Number(scenarioModel.viability?.realisticMarketEntryMin || 0))}
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-5 text-sm font-medium leading-7 text-slate-700">
+              {limitingFactorActionLine}
+            </p>
+          </section>
+        )}
 
         <section className="mt-10 rounded-[2rem] border border-slate-200/75 bg-white px-6 pt-6 pb-6 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:mt-12 md:px-8">
           <p className={microLabelClass}>Confidence</p>

@@ -5,6 +5,7 @@ import { ChevronRight, Plus, Siren, Sparkles } from 'lucide-react'
 import AddPropertyModal from '../components/AddPropertyModal'
 import UpgradeModal from '../components/UpgradeModal'
 import ActionCard from '../components/dashboard/ActionCard'
+import AIOpportunityCard from '../components/dashboard/AIOpportunityCard'
 import CommandCentreCard from '../components/dashboard/CommandCentreCard'
 import DashboardPromptCard from '../components/dashboard/DashboardPromptCard'
 import DashboardBorrowingPowerCard from '../components/dashboard/BorrowingPowerCard'
@@ -340,6 +341,8 @@ export default function Dashboard({ session, subscription }) {
 
         <SetupProgress state={dashboardState} onOpenSection={(route) => navigate(route)} />
 
+        <AIOpportunityCard currentUserId={session.user.id} loans={loans} />
+
         {!dashboardState.hasProperties ? (
           <section className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-2">
             {dashboardState.missingSections.map((section) => (
@@ -501,7 +504,7 @@ export default function Dashboard({ session, subscription }) {
             </section>
 
             <section className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-[1.45fr,0.8fr]">
-              {dashboardState.canShowBorrowing ? (
+              {dashboardState.canShowBorrowing && commandCenter.capacityUseCases.length > 0 ? (
                 <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
                   <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
                     <div>
@@ -529,6 +532,42 @@ export default function Dashboard({ session, subscription }) {
                         rationale={scenario.outcome}
                         onExplore={() => navigate('/growth-scenarios')}
                       />
+                    ))}
+                  </div>
+                </section>
+              ) : dashboardState.canShowBorrowing ? (
+                <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+                      Growth
+                    </p>
+                    <h2 className="mt-2 text-2xl font-semibold text-gray-900">
+                      No executable acquisition scenario under current settings
+                    </h2>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+                      Current borrowing capacity, deployable capital, and realistic Australian market entry
+                      floors do not produce a fundable acquisition path yet.
+                    </p>
+                  </div>
+
+                  <div className="mt-5 space-y-3">
+                    {commandCenter.topActions.slice(0, 3).map((action) => (
+                      <button
+                        key={action.id}
+                        type="button"
+                        onClick={() => navigate(action.route)}
+                        className="flex w-full items-start justify-between gap-4 rounded-2xl border border-gray-100 bg-gray-50/70 px-4 py-4 text-left transition-colors hover:bg-gray-50"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-gray-900">{action.title}</p>
+                          <p className="mt-1 text-sm leading-6 text-gray-600">
+                            {action.whyItMatters || action.problem}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-sm font-semibold text-primary-600">
+                          Explore
+                        </span>
+                      </button>
                     ))}
                   </div>
                 </section>

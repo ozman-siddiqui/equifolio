@@ -64,6 +64,7 @@ const formatMonthLabel = (monthKey) => {
 
 export default function CashFlow() {
   const { properties, transactions, loading, fetchData } = usePortfolioData()
+  const handlePortfolioSave = (options) => fetchData(options)
 
   const [cashFlowPropertyId, setCashFlowPropertyId] = useState(null)
   const [editingTransaction, setEditingTransaction] = useState(null)
@@ -206,8 +207,14 @@ export default function CashFlow() {
 
   const handleDeleteTransaction = async (transactionId) => {
     if (!window.confirm('Delete this transaction?')) return
-    await supabase.from('transactions').delete().eq('id', transactionId)
-    fetchData()
+    const { error } = await supabase.from('transactions').delete().eq('id', transactionId)
+
+    if (error) {
+      window.alert(error.message)
+      return
+    }
+
+    await fetchData({ force: true })
   }
 
   if (loading) {
@@ -597,7 +604,7 @@ export default function CashFlow() {
           propertyId={cashFlowPropertyId}
           properties={properties}
           onClose={() => setCashFlowPropertyId(null)}
-          onSave={fetchData}
+          onSave={handlePortfolioSave}
         />
       )}
 
@@ -606,7 +613,7 @@ export default function CashFlow() {
           transaction={editingTransaction}
           propertyUse={editingTransaction.propertyUse}
           onClose={() => setEditingTransaction(null)}
-          onSave={fetchData}
+          onSave={handlePortfolioSave}
         />
       )}
     </div>

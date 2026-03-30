@@ -33,6 +33,19 @@ const formatCurrency = (amount) =>
 
 const formatPercent = (value) => `${Number(value || 0).toFixed(2)}%`
 
+const toFiniteNumber = (value) => {
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric : null
+}
+
+const formatConfidenceLabel = (value) => {
+  const normalized = String(value || '').trim().toLowerCase()
+  if (normalized === 'high') return 'High'
+  if (normalized === 'medium') return 'Medium'
+  if (normalized === 'low') return 'Low'
+  return 'Low'
+}
+
 function getRecommendationTone(type) {
   if (type === 'refinance') {
     return {
@@ -74,6 +87,12 @@ function getConfidenceBadgeClass(label) {
 export default function Mortgages({ session = null }) {
   const navigate = useNavigate()
   const { properties, loans, loading, fetchData } = usePortfolioData()
+  const handlePortfolioSave = async (options) => fetchData(options)
+  const handleLoanSave = async (options) => {
+    await fetchData(options)
+    await rerunOpportunityDetection()
+    await refreshOpportunities()
+  }
 
   const [showAddLoan, setShowAddLoan] = useState(false)
   const [editingLoan, setEditingLoan] = useState(null)
@@ -81,6 +100,9 @@ export default function Mortgages({ session = null }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [loanTypeFilter, setLoanTypeFilter] = useState('all')
   const [financialPrompt, setFinancialPrompt] = useState(null)
+  const [opportunitiesByLoanId, setOpportunitiesByLoanId] = useState({})
+  const [activeOpportunityId, setActiveOpportunityId] = useState(null)
+  const [opportunityActionError, setOpportunityActionError] = useState('')
 
   useEffect(() => {
     let active = true
@@ -136,6 +158,49 @@ export default function Mortgages({ session = null }) {
     }
 
     loadFinancialPrompt()
+
+    return () => {
+      active = false
+    }
+  }, [session])
+
+  useEffect(() => {
+    let active = true
+
+    const loadOpportunities = async () => {
+      try {
+        if (!session?.user?.id) {
+          if (active) setOpportunitiesByLoanId({})
+          return
+        }
+
+        const { data, error } = await supabase
+          .from('ai_opportunities')
+          .select(
+            'id, loan_id, property_id, title, narrative, annual_value_estimate, monthly_value_estimate, break_even_months, priority_score, confidence_level, status, metadata'
+          )
+          .eq('user_id', session.user.id)
+          .eq('opportunity_type', 'refinance')
+          .in('status', ['active', 'reviewing'])
+          .order('priority_score', { ascending: false })
+
+        if (error) throw error
+        if (!active) return
+
+        const nextByLoanId = {}
+        for (const row of data || []) {
+          const loanId = String(row.loan_id || '')
+          if (!loanId || nextByLoanId[loanId]) continue
+          nextByLoanId[loanId] = row
+        }
+
+        setOpportunitiesByLoanId(nextByLoanId)
+      } catch {
+        if (active) setOpportunitiesByLoanId({})
+      }
+    }
+
+    loadOpportunities()
 
     return () => {
       active = false
@@ -205,6 +270,189 @@ export default function Mortgages({ session = null }) {
     )
     return top?.loanId ?? null
   }, [refinanceAnalyses])
+
+  const refreshOpportunities = async () => {
+    if (!session?.user?.id) {
+      setOpportunitiesByLoanId({})
+      return
+    }
+
+    const { data, error } = await supabase
+      .from('ai_opportunities')
+      .select(
+        'id, loan_id, property_id, title, narrative, annual_value_estimate, monthly_value_estimate, break_even_months, priority_score, confidence_level, status, metadata'
+      )
+      .eq('user_id', session.user.id)
+      .eq('opportunity_type', 'refinance')
+      .in('status', ['active', 'reviewing'])
+      .order('priority_score', { ascending: false })
+
+    if (error) throw error
+
+    const nextByLoanId = {}
+    for (const row of data || []) {
+      const loanId = String(row.loan_id || '')
+      if (!loanId || nextByLoanId[loanId]) continue
+      nextByLoanId[loanId] = row
+    }
+
+    setOpportunitiesByLoanId(nextByLoanId)
+  }
+
+  const rerunOpportunityDetection = async () => {
+    if (!session?.user?.id) return
+
+    const { error } = await supabase.functions.invoke('detect-opportunities', {
+      body: { user_id: session.user.id },
+    })
+
+    if (error) throw error
+  }
+
+  const recalculateValueTracker = async (actedIncrement = 0) => {
+    if (!session?.user?.id) return
+
+    const { data: allRows, error: allRowsError } = await supabase
+      .from('ai_opportunities')
+      .select('annual_value_estimate, status')
+      .eq('user_id', session.user.id)
+
+    if (allRowsError) throw allRowsError
+
+    const cumulativeOpportunityValue = (allRows || [])
+      .filter((item) => ['active', 'reviewing', 'acted'].includes(String(item.status)))
+      .reduce((sum, item) => sum + Number(item.annual_value_estimate || 0), 0)
+
+    const { data: trackerRow, error: trackerRowError } = await supabase
+      .from('ai_value_tracker')
+      .select('user_id, acted_value, total_opportunities_detected')
+      .eq('user_id', session.user.id)
+      .maybeSingle()
+
+    if (trackerRowError) throw trackerRowError
+
+    const nextActedValue = Number(trackerRow?.acted_value || 0) + Number(actedIncrement || 0)
+
+    const { error: upsertError } = await supabase.from('ai_value_tracker').upsert(
+      {
+        user_id: session.user.id,
+        cumulative_opportunity_value: cumulativeOpportunityValue,
+        acted_value: nextActedValue,
+        total_opportunities_detected: Number(trackerRow?.total_opportunities_detected || 0),
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' }
+    )
+
+    if (upsertError) throw upsertError
+  }
+
+  const handleReviewOpportunity = async (opportunityId) => {
+    setActiveOpportunityId(opportunityId)
+    setOpportunityActionError('')
+    try {
+      const { error } = await supabase
+        .from('ai_opportunities')
+        .update({ status: 'reviewing' })
+        .eq('id', opportunityId)
+
+      if (error) throw error
+      await refreshOpportunities()
+    } catch (error) {
+      setOpportunityActionError(error?.message || 'Opportunity status could not be updated.')
+    } finally {
+      setActiveOpportunityId(null)
+    }
+  }
+
+  const handleDismissOpportunity = async (opportunity) => {
+    setActiveOpportunityId(opportunity.id)
+    setOpportunityActionError('')
+    try {
+      const { error } = await supabase
+        .from('ai_opportunities')
+        .update({
+          status: 'dismissed',
+          dismissed_at: new Date().toISOString(),
+        })
+        .eq('id', opportunity.id)
+
+      if (error) throw error
+      await recalculateValueTracker()
+      await refreshOpportunities()
+    } catch (error) {
+      setOpportunityActionError(error?.message || 'Opportunity could not be dismissed.')
+    } finally {
+      setActiveOpportunityId(null)
+    }
+  }
+
+  const handleActedOpportunity = async (opportunity, securedRate) => {
+    setActiveOpportunityId(opportunity.id)
+    setOpportunityActionError('')
+
+    let shouldRollbackOpportunity = false
+    try {
+      const rawRate = String(securedRate || '').trim()
+      const parsedRate = rawRate ? Number(rawRate) : null
+      const nextRate =
+        parsedRate !== null && Number.isFinite(parsedRate) && parsedRate > 0 ? parsedRate : null
+
+      if (rawRate && nextRate === null) {
+        throw new Error('Please enter a valid secured rate greater than 0, or leave it blank.')
+      }
+
+      const { error: updateOpportunityError } = await supabase
+        .from('ai_opportunities')
+        .update({
+          status: 'acted',
+          acted_at: new Date().toISOString(),
+          new_rate_secured: nextRate,
+        })
+        .eq('id', opportunity.id)
+
+      if (updateOpportunityError) throw updateOpportunityError
+      shouldRollbackOpportunity = nextRate !== null
+
+      if (nextRate !== null) {
+        if (!opportunity.loan_id) {
+          throw new Error(
+            'This opportunity is missing a linked loan and could not update the mortgage rate.'
+          )
+        }
+
+        const { error: updateLoanError } = await supabase
+          .from('loans')
+          .update({ interest_rate: nextRate })
+          .eq('id', opportunity.loan_id)
+
+        if (updateLoanError) throw updateLoanError
+        shouldRollbackOpportunity = false
+        await fetchData({ force: true })
+      }
+
+      await rerunOpportunityDetection()
+      await recalculateValueTracker(Number(opportunity.annual_value_estimate || 0))
+      await refreshOpportunities()
+      return true
+    } catch (error) {
+      if (shouldRollbackOpportunity) {
+        await supabase
+          .from('ai_opportunities')
+          .update({
+            status: opportunity.status || 'active',
+            acted_at: null,
+            new_rate_secured: null,
+          })
+          .eq('id', opportunity.id)
+      }
+
+      setOpportunityActionError(error?.message || 'The acted update could not be completed.')
+      return false
+    } finally {
+      setActiveOpportunityId(null)
+    }
+  }
 
   if (loading) {
     return (
@@ -397,7 +645,13 @@ export default function Mortgages({ session = null }) {
                 <MortgageAnalysisCard
                   key={analysis.loanId || `${analysis.propertyId}-${analysis.lender}`}
                   analysis={analysis}
+                  opportunity={opportunitiesByLoanId[String(analysis.loanId)] || null}
+                  activeOpportunityId={activeOpportunityId}
+                  actionError={opportunityActionError}
                   isTopOpportunity={String(analysis.loanId) === String(topOpportunityLoanId)}
+                  onReviewOpportunity={handleReviewOpportunity}
+                  onDismissOpportunity={handleDismissOpportunity}
+                  onActedOpportunity={handleActedOpportunity}
                   onExploreRefinance={() => {
                     const loan = loans.find((item) => String(item.id) === String(analysis.loanId))
                     const property = properties.find(
@@ -426,7 +680,7 @@ export default function Mortgages({ session = null }) {
           userId={session?.user?.id}
           properties={properties}
           onClose={() => setShowAddLoan(false)}
-          onSave={fetchData}
+          onSave={handleLoanSave}
         />
       ) : null}
 
@@ -434,7 +688,7 @@ export default function Mortgages({ session = null }) {
         <EditLoanModal
           loan={editingLoan}
           onClose={() => setEditingLoan(null)}
-          onSave={fetchData}
+          onSave={handleLoanSave}
         />
       ) : null}
 
@@ -451,12 +705,76 @@ export default function Mortgages({ session = null }) {
 
 function MortgageAnalysisCard({
   analysis,
+  opportunity = null,
+  activeOpportunityId = null,
+  actionError = '',
   isTopOpportunity = false,
+  onReviewOpportunity,
+  onDismissOpportunity,
+  onActedOpportunity,
   onExploreRefinance,
   onEdit,
   onViewProperty,
 }) {
-  const tone = getRecommendationTone(analysis.recommendationType)
+  const opportunityMetadata =
+    opportunity?.metadata && typeof opportunity.metadata === 'object' ? opportunity.metadata : {}
+  const opportunityMonthlySavings = toFiniteNumber(opportunity?.monthly_value_estimate)
+  const opportunityAnnualSavings =
+    opportunityMonthlySavings !== null
+      ? opportunityMonthlySavings * 12
+      : toFiniteNumber(opportunity?.annual_value_estimate)
+  const opportunityBreakEvenMonths = toFiniteNumber(opportunity?.break_even_months)
+  const opportunityBenchmarkRate = toFiniteNumber(opportunityMetadata?.benchmark_rate)
+  const opportunityRateGapPct = toFiniteNumber(opportunityMetadata?.rate_gap_pct)
+  const opportunityConfidenceLabel = formatConfidenceLabel(opportunity?.confidence_level)
+  const hasLiveOpportunity = Boolean(opportunity)
+  const tone = getRecommendationTone(
+    hasLiveOpportunity ? 'refinance' : analysis.recommendationType
+  )
+  const primaryDecisionTitle = hasLiveOpportunity
+    ? `Potential refinance value ~${formatCurrency(opportunityAnnualSavings)}/year`
+    : analysis.heroText
+  const primaryDecisionSummary = hasLiveOpportunity
+    ? opportunity?.status === 'reviewing'
+      ? 'This refinance opportunity is currently marked for review.'
+      : 'This refinance opportunity is active against the stored benchmark comparison.'
+    : analysis.refinanceRecommendation
+  const primaryDecisionMeta = hasLiveOpportunity
+    ? 'Source: active AI opportunity'
+    : `${analysis.estimateQualityLabel} | Benchmark: ${
+        analysis.benchmarkFallbackUsed ? 'Fallback estimate' : 'Market-sourced'
+      }`
+  const displayConfidenceLabel = hasLiveOpportunity
+    ? opportunityConfidenceLabel
+    : analysis.confidenceLabel
+  const benchmarkMetricValue = hasLiveOpportunity
+    ? opportunityBenchmarkRate !== null
+      ? formatPercent(opportunityBenchmarkRate)
+      : 'n/a'
+    : formatPercent(analysis.targetRate)
+  const rateGapMetricValue = hasLiveOpportunity
+    ? opportunityRateGapPct !== null
+      ? `${Math.round(opportunityRateGapPct * 100)} bps`
+      : 'n/a'
+    : `${analysis.rateDeltaBps} bps`
+  const monthlyMetricValue = hasLiveOpportunity
+    ? formatCurrency(opportunityMonthlySavings)
+    : formatCurrency(analysis.monthlySavings)
+  const breakEvenMetricValue = hasLiveOpportunity
+    ? Number.isFinite(opportunityBreakEvenMonths)
+      ? `${opportunityBreakEvenMonths} mo`
+      : 'n/a'
+    : Number.isFinite(analysis.breakEvenMonths)
+      ? `${analysis.breakEvenMonths} mo`
+      : 'n/a'
+  const recommendationBadgeLabel = hasLiveOpportunity
+    ? opportunity?.status === 'reviewing'
+      ? 'Reviewing opportunity'
+      : 'Refinance opportunity'
+    : analysis.refinanceRecommendation
+  const [showOpportunityDetails, setShowOpportunityDetails] = useState(false)
+  const [showActedForm, setShowActedForm] = useState(false)
+  const [securedRate, setSecuredRate] = useState('')
 
   return (
     <article
@@ -472,7 +790,7 @@ function MortgageAnalysisCard({
               {analysis.fixedVariable || 'Loan'}
             </span>
             <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${tone.badge}`}>
-              {analysis.refinanceRecommendation}
+              {recommendationBadgeLabel}
             </span>
             {isTopOpportunity ? (
               <span className="rounded-full bg-primary-100 px-2.5 py-1 text-xs font-medium text-primary-700">
@@ -506,53 +824,142 @@ function MortgageAnalysisCard({
               Primary decision
             </p>
             <p className="mt-2 text-xl font-bold text-gray-900">
-              {analysis.heroText}
+              {primaryDecisionTitle}
             </p>
             <p className="mt-2 text-sm text-gray-500">
-              {analysis.refinanceRecommendation}
+              {primaryDecisionSummary}
             </p>
             <p className="mt-2 text-xs text-gray-400">
-              {analysis.estimateQualityLabel} | Benchmark:{' '}
-              {analysis.benchmarkFallbackUsed ? 'Fallback estimate' : 'Market-sourced'}
+              {primaryDecisionMeta}
             </p>
           </div>
 
           <span
             className={`rounded-full px-2.5 py-1 text-xs font-medium ${getConfidenceBadgeClass(
-              analysis.confidenceLabel
+              displayConfidenceLabel
             )}`}
           >
-            Confidence {analysis.confidenceLabel}
+            Confidence {displayConfidenceLabel}
           </span>
         </div>
       </section>
 
+      {opportunity ? (
+        <section
+          className="mt-4 rounded-2xl border border-gray-100 bg-white p-5"
+          style={{ borderLeftWidth: 3, borderLeftColor: '#f59e0b' }}
+        >
+          <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+            Opportunity Detected
+          </p>
+          <p className="mt-2 text-sm font-semibold text-gray-900">
+            {formatCurrency(opportunityMonthlySavings)}/month estimated saving
+          </p>
+
+          <button
+            type="button"
+            onClick={() => setShowOpportunityDetails((current) => !current)}
+            className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-primary-600 transition-colors hover:text-primary-700"
+          >
+            {showOpportunityDetails ? 'Hide ↑' : 'View details →'}
+          </button>
+
+          {showOpportunityDetails ? (
+            <p className="mt-3 text-sm leading-6 text-gray-600">{opportunity.narrative}</p>
+          ) : null}
+
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => onReviewOpportunity?.(opportunity.id)}
+              disabled={activeOpportunityId === opportunity.id}
+              className={utilitySecondaryButtonClass}
+            >
+              Reviewing
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowActedForm((current) => !current)}
+              disabled={activeOpportunityId === opportunity.id}
+              className={utilityInlinePrimaryButtonClass}
+            >
+              I&apos;ve acted on this
+            </button>
+            <button
+              type="button"
+              onClick={() => onDismissOpportunity?.(opportunity)}
+              disabled={activeOpportunityId === opportunity.id}
+              className={utilitySecondaryButtonClass}
+            >
+              Dismiss
+            </button>
+          </div>
+
+          {actionError ? (
+            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {actionError}
+            </div>
+          ) : null}
+
+          {showActedForm ? (
+            <div className="mt-4 rounded-2xl border border-gray-100 bg-gray-50/70 p-4">
+              <label className="block text-sm font-medium text-gray-700">
+                What rate did you secure? (optional)
+              </label>
+              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <input
+                  type="number"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={securedRate}
+                  onChange={(event) => setSecuredRate(event.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-primary-400 sm:max-w-[220px]"
+                  placeholder="e.g. 5.89"
+                />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const wasSuccessful = await onActedOpportunity?.(opportunity, securedRate)
+                    if (!wasSuccessful) return
+                    setShowActedForm(false)
+                    setSecuredRate('')
+                  }}
+                  disabled={activeOpportunityId === opportunity.id}
+                  className={utilityInlinePrimaryButtonClass}
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
       <div className="mt-5 grid grid-cols-2 gap-3 text-sm text-gray-600 lg:grid-cols-5">
         <InlineMetric label="Current" value={formatPercent(analysis.currentRate)} />
-        <InlineMetric label="Benchmark" value={formatPercent(analysis.targetRate)} />
-        <InlineMetric label="Rate gap" value={`${analysis.rateDeltaBps} bps`} />
-        <InlineMetric label="Monthly" value={formatCurrency(analysis.monthlySavings)} />
-        <InlineMetric
-          label="Break-even"
-          value={
-            Number.isFinite(analysis.breakEvenMonths)
-              ? `${analysis.breakEvenMonths} mo`
-              : 'n/a'
-          }
-        />
+        <InlineMetric label="Benchmark" value={benchmarkMetricValue} />
+        <InlineMetric label="Rate gap" value={rateGapMetricValue} />
+        <InlineMetric label="Monthly" value={monthlyMetricValue} />
+        <InlineMetric label="Break-even" value={breakEvenMetricValue} />
       </div>
 
       <section className="mt-5 space-y-2">
-        <p className="text-sm text-gray-600">{analysis.reasons[0] || analysis.summary}</p>
-        <p className="text-sm text-gray-500">
-          Annual interest ~{formatCurrency(analysis.annualInterestPaid)} | Avoidable interest ~
-          {formatCurrency(analysis.avoidableInterest)}/year
-        </p>
-        {analysis.confidenceDrivers?.length > 0 ? (
-          <p className="text-xs text-gray-400">
-            Confidence drivers: {analysis.confidenceDrivers.join(' | ')}
-          </p>
-        ) : null}
+        {hasLiveOpportunity ? (
+          <p className="text-sm text-gray-600">{opportunity.narrative}</p>
+        ) : (
+          <>
+            <p className="text-sm text-gray-600">{analysis.reasons[0] || analysis.summary}</p>
+            <p className="text-sm text-gray-500">
+              Annual interest ~{formatCurrency(analysis.annualInterestPaid)} | Avoidable interest ~
+              {formatCurrency(analysis.avoidableInterest)}/year
+            </p>
+            {analysis.confidenceDrivers?.length > 0 ? (
+              <p className="text-xs text-gray-400">
+                Confidence drivers: {analysis.confidenceDrivers.join(' | ')}
+              </p>
+            ) : null}
+          </>
+        )}
       </section>
 
       <div className="mt-5 flex flex-wrap items-center gap-3">

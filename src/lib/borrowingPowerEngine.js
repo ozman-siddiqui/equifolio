@@ -269,7 +269,7 @@ function getLoanCommitmentMeta(loan, config = BORROWING_POWER_CONFIG) {
   const hasOriginalLoanAmount = Number.isFinite(originalLoanAmount) && originalLoanAmount > 0
   const hasCurrentRepayment = Number.isFinite(currentRepayment) && currentRepayment >= 0
   const repaymentType =
-    loan?.repayment_type === 'Interest Only' ? 'Interest Only' : 'Principal & Interest'
+    loan?.repayment_type === 'Interest Only' ? 'Interest Only' : 'Principal and Interest'
 
   if (!hasCurrentBalance && !hasCurrentRepayment) {
     return {

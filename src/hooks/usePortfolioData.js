@@ -9,6 +9,7 @@ export default function usePortfolioData() {
   const error = usePortfolioDataStore((state) => state.error)
   const hasLoaded = usePortfolioDataStore((state) => state.hasLoaded)
   const fetchData = usePortfolioDataStore((state) => state.fetchData)
+  const refreshData = usePortfolioDataStore((state) => state.refreshData)
 
   useEffect(() => {
     if (hasLoaded || loading) return
@@ -22,5 +23,6 @@ export default function usePortfolioData() {
     loading,
     error,
     fetchData,
+    refreshData,
   }
 }

@@ -644,13 +644,26 @@ function buildStrategyScenario({
   const finalCap = Math.max(0, Math.min(baseCap, surplusCap || baseCap))
 
   const minimumFeasiblePropertyPrice = Number(config.realisticMarketEntry?.minPrice || 0)
-  const baselineScenarioPrice = roundCurrency(minimumFeasiblePropertyPrice * propertyCount)
-  const scenarioCap = finalCap > 0 ? finalCap : baselineScenarioPrice
-  const recommendedMin = roundCurrency(scenarioCap * riskConfig.recommendedRangeFloorPct)
-  const recommendedMax = scenarioCap
-  const stretchMin = roundCurrency(scenarioCap * riskConfig.stretchRangeFloorPct)
-  const stretchMax = scenarioCap
-  const representativePrice = roundCurrency((recommendedMin + recommendedMax) / 2)
+  const minimumFeasibleTotalPrice = roundCurrency(minimumFeasiblePropertyPrice * propertyCount)
+  const scenarioCap = Math.max(0, Number(finalCap || 0))
+  const meetsMarketEntryFloor = scenarioCap >= minimumFeasibleTotalPrice
+  const recommendedMin = meetsMarketEntryFloor
+    ? Math.max(
+        roundCurrency(scenarioCap * riskConfig.recommendedRangeFloorPct),
+        minimumFeasibleTotalPrice
+      )
+    : minimumFeasibleTotalPrice
+  const recommendedMax = meetsMarketEntryFloor ? scenarioCap : minimumFeasibleTotalPrice
+  const stretchMin = meetsMarketEntryFloor
+    ? Math.max(
+        roundCurrency(scenarioCap * riskConfig.stretchRangeFloorPct),
+        minimumFeasibleTotalPrice
+      )
+    : minimumFeasibleTotalPrice
+  const stretchMax = meetsMarketEntryFloor ? scenarioCap : minimumFeasibleTotalPrice
+  const representativePrice = meetsMarketEntryFloor
+    ? roundCurrency((recommendedMin + recommendedMax) / 2)
+    : minimumFeasibleTotalPrice
   const evaluation = evaluateScenarioAtPrice({
     purchasePrice: representativePrice,
     propertyCount,
@@ -747,7 +760,7 @@ function buildStrategyScenario({
   let blockedReason = null
   let blockedExplanation = null
 
-  if (perPropertyRecommendedMax < minimumFeasiblePropertyPrice) {
+  if (!meetsMarketEntryFloor || perPropertyRecommendedMax < minimumFeasiblePropertyPrice) {
     blockedReason = 'Below realistic market price range'
     blockedExplanation = `The recommended range implies about ${formatCurrency(
       perPropertyRecommendedMax
@@ -777,7 +790,15 @@ function buildStrategyScenario({
         ? Math.max(additionalCapitalRequired, priceGap)
         : additionalCapitalRequired
   )
-  const isFeasible = !blockedReason
+  const hasSufficientCapital = capitalGap <= 0
+  const hasSufficientBorrowing = borrowingGap <= 0
+  const hasFundableDepositStructure = evaluation.totalCapitalRequired <= totalDeployableCapital
+  const isExecutable =
+    meetsMarketEntryFloor &&
+    hasSufficientCapital &&
+    hasSufficientBorrowing &&
+    hasFundableDepositStructure
+  const isFeasible = isExecutable
   const feasibilityMessage = blockedExplanation
   const scenarioState =
     isFeasible
@@ -866,6 +887,11 @@ function buildStrategyScenario({
     scenarioState,
     scenarioStateLabel,
     stateSummary,
+    meetsMarketEntryFloor,
+    hasSufficientCapital,
+    hasSufficientBorrowing,
+    hasFundableDepositStructure,
+    isExecutable,
     isFeasible,
     blockedReason,
     blockedExplanation,
@@ -1042,7 +1068,7 @@ export default function buildPortfolioGrowthScenarios({
     scenarios.push(twoPropertyScenario)
   }
 
-  const executableStrategies = scenarios.filter((scenario) => scenario.scenarioState !== 'blocked' && scenario.isFeasible)
+  const executableStrategies = scenarios.filter((scenario) => scenario.isExecutable)
   const nearViableStrategies = scenarios.filter((scenario) => scenario.scenarioState === 'near_viable')
   const blockedStrategies = scenarios.filter((scenario) => scenario.scenarioState === 'blocked')
 
@@ -1053,12 +1079,7 @@ export default function buildPortfolioGrowthScenarios({
           return b.estimatedPostPurchaseSurplus - a.estimatedPostPurchaseSurplus
         }
         return b.estimatedGrossYield - a.estimatedGrossYield
-      })[0] ||
-    nearViableStrategies
-      .sort((a, b) => (a.requiredCapitalGap || 0) - (b.requiredCapitalGap || 0))[0] ||
-    blockedStrategies
-      .sort((a, b) => (a.requiredCapitalGap || 0) - (b.requiredCapitalGap || 0))[0] ||
-    null
+      })[0] || null
 
   const classifiedScenarios = scenarios
     .map((scenario) => {
@@ -1073,7 +1094,7 @@ export default function buildPortfolioGrowthScenarios({
         }
       }
 
-      if (scenario.isFeasible) {
+      if (scenario.isExecutable) {
         return {
           ...scenario,
           scenarioState: 'stretch',
@@ -1155,9 +1176,7 @@ export default function buildPortfolioGrowthScenarios({
           tradeOffs: recommendedStrategy.tradeOffs,
         }
       : null,
-    feasibleStrategies: classifiedScenarios.filter((scenario) =>
-      ['recommended', 'stretch'].includes(scenario.scenarioState)
-    ),
+    feasibleStrategies: classifiedScenarios.filter((scenario) => scenario.isExecutable),
     nearViableStrategies: classifiedScenarios.filter(
       (scenario) => scenario.scenarioState === 'near_viable'
     ),

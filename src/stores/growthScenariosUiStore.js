@@ -3,7 +3,6 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 
 const DEFAULT_STATE = {
   cashToDeploy: 0,
-  scrollY: 0,
   activeTab: 'wealth-growth',
   activePremiumTab: 'wealth-growth',
   includeDepreciation: false,
@@ -30,10 +29,6 @@ export const useGrowthScenariosUiStore = create(
       setCashToDeploy: (cashToDeploy) =>
         set((state) => ({
           cashToDeploy: resolveUpdater(cashToDeploy, state.cashToDeploy),
-        })),
-      setScrollY: (scrollY) =>
-        set((state) => ({
-          scrollY: resolveUpdater(scrollY, state.scrollY),
         })),
       setActiveTab: (activeTab) =>
         set((state) => ({
@@ -101,7 +96,6 @@ export const useGrowthScenariosUiStore = create(
       },
       partialize: (state) => ({
         cashToDeploy: state.cashToDeploy,
-        scrollY: state.scrollY,
         activeTab: state.activeTab,
         activePremiumTab: state.activePremiumTab,
         includeDepreciation: state.includeDepreciation,

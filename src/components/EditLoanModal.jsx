@@ -88,17 +88,45 @@ export default function EditLoanModal({ loan, onClose, onSave }) {
       benchmark_rate: benchmarkRate,
     }
 
-    const { error } = await supabase.from('loans').update(loanPayload).eq('id', loan.id)
+    const { error: updateError } = await supabase.from('loans').update(loanPayload).eq('id', loan.id)
 
-    if (error) { setError(error.message); setLoading(false) }
-    else { onSave(); onClose() }
+    if (updateError) {
+      setError(updateError.message)
+      setLoading(false)
+      return
+    }
+
+    onClose()
+
+    void onSave({ force: true }).catch((refreshError) => {
+      console.error(
+        refreshError?.message ||
+          'Mortgage was updated, but the latest portfolio data could not be refreshed.'
+      )
+    })
   }
 
   const handleDelete = async () => {
     if (!window.confirm('Delete this mortgage?')) return
-    await supabase.from('loans').delete().eq('id', loan.id)
-    onSave()
+    setLoading(true)
+    setError(null)
+
+    const { error: deleteError } = await supabase.from('loans').delete().eq('id', loan.id)
+
+    if (deleteError) {
+      setError(deleteError.message)
+      setLoading(false)
+      return
+    }
+
     onClose()
+
+    void onSave({ force: true }).catch((refreshError) => {
+      console.error(
+        refreshError?.message ||
+          'Mortgage was deleted, but the latest portfolio data could not be refreshed.'
+      )
+    })
   }
 
   const isFixed = form.loan_type === 'Fixed'
@@ -254,10 +282,12 @@ export default function EditLoanModal({ loan, onClose, onSave }) {
 
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={handleDelete}
-              className="px-4 py-2.5 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50">
-              Delete
+              disabled={loading}
+              className="px-4 py-2.5 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 disabled:opacity-50">
+              {loading ? 'Working...' : 'Delete'}
             </button>
             <button type="button" onClick={onClose}
+              disabled={loading}
               className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
               Cancel
             </button>

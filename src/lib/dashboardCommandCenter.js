@@ -721,7 +721,7 @@ export default function buildDashboardCommandCenter({
     portfolioCashFlow: monthlyPropertyCashFlow,
   })
 
-  const capacityUseCases = growthScenarios.scenarios.map((scenario) => ({
+  const capacityUseCases = (growthScenarios.feasibleStrategies || []).map((scenario) => ({
     id: scenario.id,
     title: scenario.title,
     estimatedPriceRange: scenario.recommendedPurchaseRange.label,
@@ -779,7 +779,7 @@ export default function buildDashboardCommandCenter({
   }
 
   if (growthScenarios.viability?.state === 'READY') {
-    const buyNowScenario = growthScenarios.scenarios.find(
+    const buyNowScenario = (growthScenarios.feasibleStrategies || []).find(
       (scenario) =>
         scenario.strategyType === 'larger_property' ||
         scenario.strategyType === 'two_smaller_properties'
