@@ -32,7 +32,7 @@ export default function EditPropertyModal({ property, onClose, onSave }) {
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.from('properties').update({
+    const { error: updateError } = await supabase.from('properties').update({
       address: form.address,
       suburb: form.suburb,
       state: form.state,
@@ -56,15 +56,47 @@ export default function EditPropertyModal({ property, onClose, onSave }) {
           : null,
     }).eq('id', property.id)
 
-    if (error) { setError(error.message); setLoading(false) }
-    else { onSave(); onClose() }
+    if (updateError) {
+      setError(updateError.message)
+      setLoading(false)
+      return
+    }
+
+    try {
+      await onSave({ force: true })
+      onClose()
+    } catch (refreshError) {
+      setError(
+        refreshError?.message ||
+          'Property was updated, but the latest portfolio data could not be refreshed.'
+      )
+      setLoading(false)
+    }
   }
 
   const handleDelete = async () => {
     if (!window.confirm('Are you sure you want to delete this property? This will also delete all associated mortgages and transactions.')) return
-    await supabase.from('properties').delete().eq('id', property.id)
-    onSave()
-    onClose()
+    setLoading(true)
+    setError(null)
+
+    const { error: deleteError } = await supabase.from('properties').delete().eq('id', property.id)
+
+    if (deleteError) {
+      setError(deleteError.message)
+      setLoading(false)
+      return
+    }
+
+    try {
+      await onSave({ force: true })
+      onClose()
+    } catch (refreshError) {
+      setError(
+        refreshError?.message ||
+          'Property was deleted, but the latest portfolio data could not be refreshed.'
+      )
+      setLoading(false)
+    }
   }
 
   return (
@@ -222,10 +254,12 @@ export default function EditPropertyModal({ property, onClose, onSave }) {
 
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={handleDelete}
-              className="px-4 py-2.5 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50">
-              Delete
+              disabled={loading}
+              className="px-4 py-2.5 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 disabled:opacity-50">
+              {loading ? 'Working...' : 'Delete'}
             </button>
             <button type="button" onClick={onClose}
+              disabled={loading}
               className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
               Cancel
             </button>

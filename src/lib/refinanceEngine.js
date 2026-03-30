@@ -18,6 +18,13 @@ const RECOMMENDATION_ORDER = {
   insufficient_data: 0,
 }
 
+function normalizeRepaymentType(raw) {
+  if (!raw) return 'Principal and Interest'
+  const s = raw.trim().toLowerCase()
+  if (s.includes('interest only') || s === 'io') return 'Interest Only'
+  return 'Principal and Interest'
+}
+
 function formatMoney(value) {
   return `$${roundCurrency(value).toLocaleString('en-AU')}`
 }
@@ -303,7 +310,12 @@ function buildWarnings({
     warnings.push('Specify whether the loan is fixed or variable to improve benchmark comparison')
   }
 
-  if (loan?.repayment_type !== 'Interest Only' && loan?.repayment_type !== 'Principal & Interest') {
+  const normalizedRepaymentType = normalizeRepaymentType(loan?.repayment_type)
+
+  if (
+    normalizedRepaymentType !== 'Interest Only' &&
+    normalizedRepaymentType !== 'Principal and Interest'
+  ) {
     warnings.push('Repayment type is unclear, so principal and interest has been assumed where needed')
   }
 
@@ -407,8 +419,7 @@ export function buildRefinanceAnalysis(
     property?.usageType || property?.usage_type || property?.property_use
   )
   const fixedVariable = inferFixedVariable(loan)
-  const repaymentType =
-    loan?.repayment_type === 'Interest Only' ? 'Interest Only' : 'Principal & Interest'
+  const repaymentType = normalizeRepaymentType(loan?.repayment_type)
   const propertyValue = Number(property?.current_value || 0)
   const lvr = propertyValue > 0 && balance > 0 ? (balance / propertyValue) * 100 : 0
   const equity = propertyValue > 0 ? propertyValue - balance : 0

@@ -419,3 +419,15 @@ entrypoint = "./functions/ai-score-property/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/ai-score-property/*.html" ]
+
+[functions.detect-opportunities]
+enabled = true
+verify_jwt = false
+import_map = "./functions/detect-opportunities/deno.json"
+entrypoint = "./functions/detect-opportunities/index.ts"
+
+[functions.update-benchmarks]
+enabled = true
+verify_jwt = true
+import_map = "./functions/update-benchmarks/deno.json"
+entrypoint = "./functions/update-benchmarks/index.ts"

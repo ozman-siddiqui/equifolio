@@ -493,7 +493,7 @@ export default function Financials({ session = null }) {
       return
     }
 
-    await fetchFinancialData()
+    await fetchFinancialData({ force: true })
     setProfileDirty(false)
     setProfileState({
       loading: false,

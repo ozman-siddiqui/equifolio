@@ -72,4 +72,7 @@ export const usePortfolioDataStore = create((set, get) => ({
 
     return portfolioFetchPromise
   },
+  async refreshData() {
+    return get().fetchData({ force: true })
+  },
 }))

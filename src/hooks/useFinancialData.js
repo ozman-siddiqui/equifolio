@@ -8,6 +8,7 @@ export default function useFinancialData() {
   const error = useFinancialDataStore((state) => state.error)
   const hasLoaded = useFinancialDataStore((state) => state.hasLoaded)
   const fetchFinancialData = useFinancialDataStore((state) => state.fetchFinancialData)
+  const refreshFinancialData = useFinancialDataStore((state) => state.refreshFinancialData)
 
   useEffect(() => {
     if (hasLoaded || loading) return
@@ -20,5 +21,6 @@ export default function useFinancialData() {
     loading,
     error,
     fetchFinancialData,
+    refreshFinancialData,
   }
 }

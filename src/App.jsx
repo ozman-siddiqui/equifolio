@@ -5,6 +5,7 @@ import { supabase } from './supabase'
 import Auth from './pages/Auth'
 import BorrowingPowerExplained from './pages/BorrowingPowerExplained'
 import Dashboard from './pages/Dashboard'
+import AdminBenchmarks from './pages/AdminBenchmarks'
 import PortfolioGrowthScenariosRebuild from './pages/PortfolioGrowthScenariosRebuild'
 import Pricing from './pages/Pricing'
 import Properties from './pages/Properties'
@@ -166,35 +167,47 @@ export default function App() {
     return <Pricing session={session} existingPlan={null} />
   }
 
+  const cachedPages = {
+    dashboard: <Dashboard session={session} subscription={subscription} />,
+    properties: <Properties />,
+    cashflow: <CashFlow />,
+    mortgages: <Mortgages session={session} />,
+    growthScenarios: <PortfolioGrowthScenariosRebuild />,
+    financials: (
+      <FinancialsErrorBoundary>
+        <Suspense fallback={<FinancialsRouteFallback />}>
+          <Financials session={session} />
+        </Suspense>
+      </FinancialsErrorBoundary>
+    ),
+  }
+
   return (
     <Routes>
       <Route
         path="/"
-        element={<Layout session={session} subscription={subscription} onSignOut={signOut} />}
+        element={
+          <Layout
+            session={session}
+            subscription={subscription}
+            onSignOut={signOut}
+            cachedPages={cachedPages}
+          />
+        }
       >
-        <Route
-          index
-          element={<Dashboard session={session} subscription={subscription} />}
-        />
-        <Route path="properties" element={<Properties />} />
+        <Route index element={null} />
+        <Route path="dashboard" element={null} />
+        <Route path="properties" element={null} />
         <Route path="property/:id" element={<PropertyDetail />} />
-        <Route path="cashflow" element={<CashFlow />} />
-        <Route path="mortgages" element={<Mortgages session={session} />} />
-        <Route path="growth-scenarios" element={<PortfolioGrowthScenariosRebuild />} />
-        <Route
-          path="financials"
-          element={
-            <FinancialsErrorBoundary>
-              <Suspense fallback={<FinancialsRouteFallback />}>
-                <Financials session={session} />
-              </Suspense>
-            </FinancialsErrorBoundary>
-          }
-        />
+        <Route path="cashflow" element={null} />
+        <Route path="mortgages" element={null} />
+        <Route path="growth-scenarios" element={null} />
+        <Route path="financials" element={null} />
         <Route path="borrowing-power" element={<BorrowingPowerExplained />} />
         <Route path="alerts" element={<Alerts />} />
         <Route path="pricing" element={<Pricing session={session} existingPlan={subscription?.plan || null} />} />
         <Route path="settings" element={<Settings session={session} subscription={subscription} />} />
+        <Route path="admin/benchmarks" element={<AdminBenchmarks session={session} />} />
       </Route>
     </Routes>
   )

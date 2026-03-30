@@ -79,6 +79,25 @@ export default function PropertyDetail() {
   const [refinancingLoan, setRefinancingLoan] = useState(null)
   const [showOptimisationModal, setShowOptimisationModal] = useState(false)
 
+  const handlePortfolioSave = (options) => fetchData(options)
+  const handleLoanSave = async (options) => {
+    await fetchData(options)
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
+
+    if (userError) throw userError
+    if (!user?.id) return
+
+    const { error: detectError } = await supabase.functions.invoke('detect-opportunities', {
+      body: { user_id: user.id },
+    })
+
+    if (detectError) throw detectError
+  }
+
   const cashFlowSectionRef = useRef(null)
   const mortgageSectionRef = useRef(null)
 
@@ -334,8 +353,14 @@ export default function PropertyDetail() {
 
   const handleDeleteTransaction = async (txnId) => {
     if (!window.confirm('Delete this transaction?')) return
-    await supabase.from('transactions').delete().eq('id', txnId)
-    fetchData()
+    const { error } = await supabase.from('transactions').delete().eq('id', txnId)
+
+    if (error) {
+      window.alert(error.message)
+      return
+    }
+
+    await fetchData({ force: true })
   }
 
   if (loading) {
@@ -746,7 +771,7 @@ export default function PropertyDetail() {
           properties={[property]}
           preselectedPropertyId={property.id}
           onClose={() => setShowAddLoan(false)}
-          onSave={fetchData}
+          onSave={handleLoanSave}
         />
       )}
 
@@ -754,7 +779,7 @@ export default function PropertyDetail() {
         <EditLoanModal
           loan={editingLoan}
           onClose={() => setEditingLoan(null)}
-          onSave={fetchData}
+          onSave={handleLoanSave}
         />
       )}
 
@@ -762,7 +787,7 @@ export default function PropertyDetail() {
         <EditPropertyModal
           property={editingProperty}
           onClose={() => setEditingProperty(null)}
-          onSave={fetchData}
+          onSave={handlePortfolioSave}
         />
       )}
 
@@ -771,7 +796,7 @@ export default function PropertyDetail() {
           propertyId={cashFlowPropertyId}
           properties={[property]}
           onClose={() => setCashFlowPropertyId(null)}
-          onSave={fetchData}
+          onSave={handlePortfolioSave}
         />
       )}
 
@@ -780,7 +805,7 @@ export default function PropertyDetail() {
           transaction={editingTransaction}
           propertyUse={editingTransaction.propertyUse}
           onClose={() => setEditingTransaction(null)}
-          onSave={fetchData}
+          onSave={handlePortfolioSave}
         />
       )}
 
