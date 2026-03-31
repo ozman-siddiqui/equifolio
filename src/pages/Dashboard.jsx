@@ -13,6 +13,7 @@ import BorrowingPowerBreakdown from '../components/dashboard/BorrowingPowerBreak
 import PropertyCard from '../components/dashboard/PropertyCard'
 import ScenarioCard from '../components/dashboard/ScenarioCard'
 import SetupProgress from '../components/dashboard/SetupProgress'
+import GrowthPathways from '../components/dashboard/GrowthPathways'
 import { buildAlerts } from '../components/AlertsDropdown'
 import { utilityPrimaryButtonClass, utilitySecondaryButtonClass } from '../components/CardPrimitives'
 import useFinancialData from '../hooks/useFinancialData'
@@ -22,6 +23,7 @@ import buildDashboardCommandCenter from '../lib/dashboardCommandCenter'
 import buildDashboardCompleteness from '../lib/dashboardCompleteness'
 import buildDashboardFinancialAudit from '../lib/dashboardFinancialAudit'
 import buildDashboardStateResolver from '../lib/dashboardStateResolver'
+import { calculateYieldFirstScenario } from '../lib/yieldFirstStrategy'
 
 const PLAN_LIMITS = { starter: 3, investor: 10, premium: Infinity }
 
@@ -134,6 +136,8 @@ export default function Dashboard({ session, subscription }) {
       liabilities,
     ]
   )
+
+  const growthScenarios = commandCenter?.growthScenarios
 
   const borrowingRenderState = useMemo(() => {
     const setupComplete = Boolean(dashboardState?.setupComplete)
@@ -269,6 +273,50 @@ export default function Dashboard({ session, subscription }) {
   const totalPropertyValue = useMemo(
     () => properties.reduce((sum, property) => sum + Number(property?.current_value || 0), 0),
     [properties]
+  )
+
+  const yieldFirstScenario = useMemo(
+    () => {
+      if (!commandCenter || !borrowingPowerAnalysis || !growthScenarios) return null
+
+      const borrowingCapacity = Number(
+        borrowingPowerAnalysis?.borrowing_power_estimate
+      )
+      const deployableCapital = Number(
+        growthScenarios?.inputs?.totalDeployableCapital
+      )
+      const totalPortfolioValue = Number(totalPropertyValue)
+
+      if (
+        !Number.isFinite(borrowingCapacity) ||
+        !Number.isFinite(deployableCapital) ||
+        !Number.isFinite(totalPortfolioValue)
+      ) {
+        return null
+      }
+
+      const result = calculateYieldFirstScenario({
+        borrowingCapacity,
+        deployableCapital,
+        interestRatePct: Number(
+          growthScenarios?.assumptions?.interestRatePct ??
+            growthScenarios?.assumptions?.defaultInterestRatePct ??
+            5.8
+        ),
+        depositRatio: Number(growthScenarios?.assumptions?.depositRatio ?? 0.2),
+        acquisitionCostRate: Number(
+          growthScenarios?.assumptions?.acquisitionCostRate ?? 0.05
+        ),
+        netMonthlySurplus: Number(
+          borrowingPowerAnalysis?.net_monthly_surplus ?? 0
+        ),
+        totalPortfolioValue,
+        metroBlocked: (commandCenter?.capacityUseCases?.length || 0) === 0,
+      })
+
+      return result
+    },
+    [borrowingPowerAnalysis, commandCenter, growthScenarios, totalPropertyValue]
   )
 
   if (loading) {
@@ -536,41 +584,18 @@ export default function Dashboard({ session, subscription }) {
                   </div>
                 </section>
               ) : dashboardState.canShowBorrowing ? (
-                <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                      Growth
-                    </p>
-                    <h2 className="mt-2 text-2xl font-semibold text-gray-900">
-                      No executable acquisition scenario under current settings
-                    </h2>
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
-                      Current borrowing capacity, deployable capital, and realistic Australian market entry
-                      floors do not produce a fundable acquisition path yet.
-                    </p>
-                  </div>
-
-                  <div className="mt-5 space-y-3">
-                    {commandCenter.topActions.slice(0, 3).map((action) => (
-                      <button
-                        key={action.id}
-                        type="button"
-                        onClick={() => navigate(action.route)}
-                        className="flex w-full items-start justify-between gap-4 rounded-2xl border border-gray-100 bg-gray-50/70 px-4 py-4 text-left transition-colors hover:bg-gray-50"
-                      >
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-gray-900">{action.title}</p>
-                          <p className="mt-1 text-sm leading-6 text-gray-600">
-                            {action.whyItMatters || action.problem}
-                          </p>
-                        </div>
-                        <span className="shrink-0 text-sm font-semibold text-primary-600">
-                          Explore
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </section>
+                <GrowthPathways
+                  yieldFirst={yieldFirstScenario}
+                  topAction={commandCenter?.topActions?.[0] || null}
+                  borrowingCapacity={Number(
+                    borrowingPowerAnalysis?.borrowing_power_estimate ?? 0
+                  )}
+                  availableCapital={Number(
+                    growthScenarios?.inputs?.totalDeployableCapital ?? 0
+                  )}
+                  growthInputs={growthScenarios?.inputs ?? null}
+                  totalPortfolioValue={Number(totalPropertyValue)}
+                />
               ) : (
                 <LockedChecklistCard
                   eyebrow="Growth"
