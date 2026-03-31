@@ -1,19 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, ChevronRight } from 'lucide-react'
 
-const purchaseRangeLow = 475000
-const purchaseRangeHigh = 550000
-const fiveYearEquityUplift = 298638
-const monthlyHoldingCost = -982
-const grossYield = 5.5
-const currentEquity = 576500
-const year3Equity = 720000
-const year5Equity = 875138
-const unlockValue = 39016
-const acquisitionReadinessScore = 79
-const acquisitionReadinessLabel = 'Getting close'
-const isExecutable = true
-
 function formatCurrency(value) {
   return new Intl.NumberFormat('en-AU', {
     style: 'currency',
@@ -65,7 +52,20 @@ function StatTile({ eyebrow, value, detail, tone = 'default' }) {
   )
 }
 
-export default function HeroDecisionCard() {
+export default function HeroDecisionCard({
+  purchaseRangeLow = 475000,
+  purchaseRangeHigh = 550000,
+  fiveYearEquityUplift = 298638,
+  monthlyHoldingCost = -982,
+  grossYield = 5.5,
+  currentEquity = 576500,
+  year3Equity = 720000,
+  year5Equity = 875138,
+  acquisitionReadinessScore = 79,
+  acquisitionReadinessLabel = 'Getting close',
+  unlockValue = 39016,
+  isExecutable = true,
+}) {
   const pathRef = useRef(null)
   const fillRef = useRef(null)
   const rafRef = useRef([])
