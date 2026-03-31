@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, ChevronRight } from 'lucide-react'
 
 const purchaseRangeLow = 475000
@@ -43,14 +44,18 @@ function buildCurvePath(points) {
   return path
 }
 
+function pointToPercentX(pointX, viewBoxWidth = 520) {
+  return `${(pointX / viewBoxWidth) * 100}%`
+}
+
 function StatTile({ eyebrow, value, detail, tone = 'default' }) {
   const toneClasses =
     tone === 'highlight'
-      ? 'border-emerald-200/80 bg-emerald-50/80 shadow-[0_20px_45px_-34px_rgba(16,185,129,0.35)]'
-      : 'border-slate-200/80 bg-white/88 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.12)]'
+      ? 'border-emerald-200/80 bg-emerald-50/80 shadow-[0_20px_45px_-34px_rgba(16,185,129,0.35)] hover:border-[rgba(0,0,0,0.12)]'
+      : 'border-slate-200/80 bg-white/88 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.12)] hover:border-[rgba(0,0,0,0.12)]'
 
   return (
-    <div className={`rounded-[1.6rem] border p-4 md:p-5 ${toneClasses}`}>
+    <div className={`rounded-[1.6rem] border p-4 transition-[transform,box-shadow,border-color] duration-[120ms] ease-out will-change-transform hover:-translate-y-px hover:shadow-[0_2px_10px_rgba(0,0,0,0.04)] md:p-5 ${toneClasses}`}>
       <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
         {eyebrow}
       </p>
@@ -61,6 +66,69 @@ function StatTile({ eyebrow, value, detail, tone = 'default' }) {
 }
 
 export default function HeroDecisionCard() {
+  const pathRef = useRef(null)
+  const fillRef = useRef(null)
+  const rafRef = useRef([])
+  const pulseTimeoutRef = useRef(null)
+  const pulseResetTimeoutRef = useRef(null)
+  const [hasAnimated, setHasAnimated] = useState(false)
+  const [isEndpointPulsing, setIsEndpointPulsing] = useState(false)
+
+  useEffect(() => {
+    const pathElement = pathRef.current
+    const fillElement = fillRef.current
+    if (!pathElement) return undefined
+
+    const totalLength = pathElement.getTotalLength()
+    pathElement.style.strokeDasharray = `${totalLength}`
+    pathElement.style.strokeDashoffset = `${totalLength}`
+    pathElement.style.transition = 'none'
+
+    if (fillElement) {
+      fillElement.style.opacity = '0'
+      fillElement.style.transition = 'opacity 600ms ease-in 200ms'
+    }
+
+    setHasAnimated(false)
+    setIsEndpointPulsing(false)
+
+    const firstFrame = requestAnimationFrame(() => {
+      const secondFrame = requestAnimationFrame(() => {
+        pathElement.style.transition = 'stroke-dashoffset 900ms ease-in-out'
+        pathElement.style.strokeDashoffset = '0'
+        if (fillElement) {
+          fillElement.style.opacity = '1'
+        }
+        setHasAnimated(true)
+      })
+      rafRef.current.push(secondFrame)
+    })
+    rafRef.current = [firstFrame]
+
+    pulseTimeoutRef.current = window.setTimeout(() => {
+      setIsEndpointPulsing(true)
+      pulseResetTimeoutRef.current = window.setTimeout(() => {
+        setIsEndpointPulsing(false)
+      }, 400)
+    }, 950)
+
+    return () => {
+      rafRef.current.forEach((frame) => cancelAnimationFrame(frame))
+      rafRef.current = []
+      if (pulseTimeoutRef.current != null) {
+        clearTimeout(pulseTimeoutRef.current)
+      }
+      if (pulseResetTimeoutRef.current != null) {
+        clearTimeout(pulseResetTimeoutRef.current)
+      }
+      pathElement.style.transition = 'none'
+      pathElement.style.strokeDashoffset = `${totalLength}`
+      if (fillElement) {
+        fillElement.style.opacity = '0'
+      }
+    }
+  }, [])
+
   const chartValues = [currentEquity, year3Equity, year5Equity]
   const chartPoints = [
     { x: 36, y: 138, label: 'Today', value: currentEquity },
@@ -79,6 +147,13 @@ export default function HeroDecisionCard() {
 
       <div className="relative grid gap-8 xl:grid-cols-[minmax(0,1.55fr)_320px] xl:gap-7">
         <div className="min-w-0">
+          <style>{`
+            @keyframes heroDecisionEndDotPulse {
+              0% { transform: scale(1); }
+              50% { transform: scale(1.4); }
+              100% { transform: scale(1); }
+            }
+          `}</style>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500">
@@ -150,7 +225,7 @@ export default function HeroDecisionCard() {
             </div>
 
             <div className="mt-4 overflow-hidden rounded-[1.5rem] border border-white/70 bg-white/65 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] md:px-4">
-              <svg viewBox="0 0 520 200" className="h-[188px] w-full" role="img" aria-label="Portfolio wealth trajectory chart">
+              <svg viewBox="0 0 520 200" className="h-[188px] w-full" role="img" aria-label="Portfolio wealth trajectory chart" data-animated={hasAnimated ? 'true' : 'false'}>
                 <defs>
                   <linearGradient id="heroDecisionStroke" x1="0%" y1="0%" x2="100%" y2="0%">
                     <stop offset="0%" stopColor="#0f766e" />
@@ -163,13 +238,23 @@ export default function HeroDecisionCard() {
                   </linearGradient>
                 </defs>
 
-                <path d={areaPath} fill="url(#heroDecisionFill)" />
                 <path
+                  ref={fillRef}
+                  d={areaPath}
+                  fill="url(#heroDecisionFill)"
+                  style={{ opacity: 0 }}
+                />
+                <path
+                  ref={pathRef}
                   d={chartPath}
                   fill="none"
                   stroke="url(#heroDecisionStroke)"
                   strokeWidth="3.5"
                   strokeLinecap="round"
+                  style={{
+                    strokeDasharray: 1,
+                    strokeDashoffset: 1,
+                  }}
                 />
 
                 <line
@@ -189,6 +274,16 @@ export default function HeroDecisionCard() {
                       cy={point.y}
                       r={index === chartPoints.length - 1 ? 6.5 : 4}
                       fill={index === chartPoints.length - 1 ? '#059669' : '#10b981'}
+                      style={
+                        index === chartPoints.length - 1
+                          ? {
+                              transformOrigin: `${point.x}px ${point.y}px`,
+                              animation: isEndpointPulsing
+                                ? 'heroDecisionEndDotPulse 400ms ease-in-out'
+                                : 'none',
+                            }
+                          : undefined
+                      }
                     />
                     {index === chartPoints.length - 1 ? (
                       <circle cx={point.x} cy={point.y} r="12" fill="rgba(16,185,129,0.16)" />
@@ -197,13 +292,32 @@ export default function HeroDecisionCard() {
                 ))}
               </svg>
 
-              <div className="mt-1.5 grid gap-4 md:grid-cols-3">
+              <div className="relative mt-1.5 h-[52px]">
                 {[
-                  ['Today', formatCurrency(currentEquity)],
-                  ['Year 3', `~${formatCompactCurrency(year3Equity)}`],
-                  ['Year 5', `~${formatCurrency(year5Equity)}`],
-                ].map(([label, value]) => (
-                  <div key={label}>
+                  {
+                    label: 'Today',
+                    value: formatCurrency(currentEquity),
+                    point: chartPoints[0],
+                    alignClass: 'text-left translate-x-2',
+                  },
+                  {
+                    label: 'Year 3',
+                    value: `~${formatCompactCurrency(year3Equity)}`,
+                    point: chartPoints[1],
+                    alignClass: 'text-center -translate-x-1/2',
+                  },
+                  {
+                    label: 'Year 5',
+                    value: `~${formatCurrency(year5Equity)}`,
+                    point: chartPoints[2],
+                    alignClass: 'text-right -translate-x-[calc(100%+8px)]',
+                  },
+                ].map(({ label, value, point, alignClass }) => (
+                  <div
+                    key={label}
+                    className={`absolute top-0 ${alignClass}`}
+                    style={{ left: pointToPercentX(point.x) }}
+                  >
                     <p className="text-xs uppercase tracking-[0.18em] text-slate-400">{label}</p>
                     <p className="mt-1 text-base font-semibold tracking-tight text-slate-900">{value}</p>
                   </div>
@@ -230,7 +344,7 @@ export default function HeroDecisionCard() {
             <p className="text-[1.35rem] font-semibold tracking-tight">Deploy this strategy</p>
             <button
               type="button"
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-[1.15rem] bg-white px-4 py-3 text-sm font-semibold text-emerald-950 shadow-[0_18px_40px_-28px_rgba(255,255,255,0.28)] transition-transform hover:-translate-y-0.5"
+              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-[1.15rem] bg-white px-4 py-3 text-sm font-semibold text-emerald-950 shadow-[0_18px_40px_-28px_rgba(255,255,255,0.28)] transition-all duration-150 ease-out hover:bg-[#eef5f2] hover:shadow-[0_0_0_3px_rgba(29,158,117,0.25)]"
             >
               Deploy this strategy
               <ArrowRight size={16} />
@@ -246,7 +360,7 @@ export default function HeroDecisionCard() {
 
           <button
             type="button"
-            className="rounded-[1.6rem] border border-slate-200 bg-white px-5 py-4 text-left text-sm font-semibold text-slate-800 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.16)] transition-colors hover:bg-slate-50"
+            className="rounded-[1.6rem] border border-slate-200 bg-white px-5 py-4 text-left text-sm font-semibold text-slate-800 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.16)] transition-colors duration-150 ease-out hover:bg-[#eef5f2]"
           >
             View 30-year projection
           </button>

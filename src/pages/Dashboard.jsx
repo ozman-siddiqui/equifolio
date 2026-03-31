@@ -42,6 +42,7 @@ export default function Dashboard({ session, subscription }) {
 
   const [showAddProperty, setShowAddProperty] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [isDashboardMounted, setIsDashboardMounted] = useState(false)
 
   const handleOpenAddProperty = () => {
     const plan = (subscription?.plan || 'starter').toLowerCase()
@@ -54,6 +55,10 @@ export default function Dashboard({ session, subscription }) {
 
     setShowAddProperty(true)
   }
+
+  useEffect(() => {
+    setIsDashboardMounted(true)
+  }, [])
 
   const alerts = useMemo(() => buildAlerts(properties, loans), [properties, loans])
 
@@ -398,8 +403,27 @@ export default function Dashboard({ session, subscription }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <style>{`
+        .dashboard-mounted {
+          animation: dashboardFadeSlideIn 350ms ease-out both;
+        }
+
+        @keyframes dashboardFadeSlideIn {
+          from {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
       <main className="mx-auto max-w-7xl px-4 py-8">
-        <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-8">
+        <section
+          className={`rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-8 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+          style={isDashboardMounted ? { animationDelay: '0ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+        >
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-3xl">
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
@@ -437,7 +461,10 @@ export default function Dashboard({ session, subscription }) {
           </div>
         </section>
 
-        <section className="mt-4 rounded-3xl border border-gray-100 bg-white px-5 py-4 shadow-sm shadow-gray-100/70">
+        <section
+          className={`mt-4 rounded-3xl border border-gray-100 bg-white px-5 py-4 shadow-sm shadow-gray-100/70 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+          style={isDashboardMounted ? { animationDelay: '0ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+        >
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-wrap items-center gap-6">
               <StripMetric
@@ -456,7 +483,10 @@ export default function Dashboard({ session, subscription }) {
           </div>
         </section>
 
-        <div className="mt-5 mb-[22px]">
+        <div
+          className={`mt-5 mb-[22px] ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+          style={isDashboardMounted ? { animationDelay: '50ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+        >
           <HeroDecisionCard
             purchaseRangeLow={475000}
             purchaseRangeHigh={550000}
@@ -488,7 +518,10 @@ export default function Dashboard({ session, subscription }) {
           </section>
         ) : (
           <>
-            <section className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-3">
+            <section
+              className={`mt-6 grid grid-cols-1 gap-5 xl:grid-cols-3 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+              style={isDashboardMounted ? { animationDelay: '120ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+            >
               {dashboardState.canShowNetPosition ? (
                 <CommandCentreCard
                   eyebrow="Net Position"
@@ -655,7 +688,10 @@ export default function Dashboard({ session, subscription }) {
             </section>
 
             {dashboardState.canShowTopActions ? (
-              <section className="mt-6 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
+              <section
+                className={`mt-6 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+                style={isDashboardMounted ? { animationDelay: '180ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+              >
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
                     Actions
@@ -688,7 +724,10 @@ export default function Dashboard({ session, subscription }) {
                 </div>
               </section>
             ) : (
-              <section className="mt-6">
+              <section
+                className={`mt-6 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+                style={isDashboardMounted ? { animationDelay: '180ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+              >
                 <LockedChecklistCard
                   eyebrow="Actions"
                   title="Unlock your top actions"
@@ -699,7 +738,10 @@ export default function Dashboard({ session, subscription }) {
               </section>
             )}
 
-            <section className="mt-8">
+            <section
+              className={`mt-8 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+              style={isDashboardMounted ? { animationDelay: '210ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+            >
               <div className="flex items-center gap-4">
                 <div className="h-px flex-1 bg-[rgba(0,0,0,0.08)]" />
                 <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-gray-400">
@@ -721,7 +763,10 @@ export default function Dashboard({ session, subscription }) {
             )}
 
             {dashboardState.canShowBorrowing && commandCenter.compareOptions?.length > 0 ? (
-              <section className="mt-8 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
+              <section
+                className={`mt-8 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+                style={isDashboardMounted ? { animationDelay: '240ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+              >
                 <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
                   Trade-offs
                 </p>
@@ -740,7 +785,10 @@ export default function Dashboard({ session, subscription }) {
               </section>
             ) : null}
 
-            <section className="mt-5 grid grid-cols-1 gap-6 xl:grid-cols-[1.45fr,0.8fr]">
+            <section
+              className={`mt-5 grid grid-cols-1 gap-6 xl:grid-cols-[1.45fr,0.8fr] ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+              style={isDashboardMounted ? { animationDelay: '270ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+            >
               {dashboardState.canShowBorrowing && commandCenter.capacityUseCases.length > 0 ? (
                 <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
                   <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -784,7 +832,10 @@ export default function Dashboard({ session, subscription }) {
               )}
             </section>
 
-            <section className="mt-5 grid grid-cols-1 gap-[14px] xl:grid-cols-2 xl:items-stretch">
+            <section
+              className={`mt-5 grid grid-cols-1 gap-[14px] xl:grid-cols-2 xl:items-stretch ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+              style={isDashboardMounted ? { animationDelay: '300ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+            >
               <div className="h-full [&>section]:h-full">
                 <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
                   <div className="flex items-end justify-between gap-4 border-b border-[rgba(0,0,0,0.08)] pb-5">
@@ -843,7 +894,10 @@ export default function Dashboard({ session, subscription }) {
             </section>
 
             {dashboardState.canShowBorrowing && Array.isArray(borrowingPowerAnalysis?.topConstraints) && borrowingPowerAnalysis.topConstraints.length > 0 ? (
-              <section className="mt-5 rounded-[18px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-white p-6 shadow-[0_10px_24px_rgba(15,23,42,0.04)] transition-colors hover:border-[rgba(16,92,75,0.14)] md:p-7">
+              <section
+                className={`mt-5 rounded-[18px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-white p-6 shadow-[0_10px_24px_rgba(15,23,42,0.04)] transition-colors hover:border-[rgba(16,92,75,0.14)] md:p-7 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+                style={isDashboardMounted ? { animationDelay: '360ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+              >
                 <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
                   Constraints
                 </p>
@@ -870,7 +924,10 @@ export default function Dashboard({ session, subscription }) {
               </section>
             ) : null}
             {dashboardState.canShowBorrowing ? (
-              <section className="mt-5">
+              <section
+                className={`mt-5 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+                style={isDashboardMounted ? { animationDelay: '360ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+              >
                 <BorrowingPowerBreakdown
                   analysis={borrowingPowerAnalysis}
                   onViewFullBreakdown={() => navigate('/borrowing-power')}
@@ -879,7 +936,10 @@ export default function Dashboard({ session, subscription }) {
             ) : null}
 
             {commandCenter.urgentAlerts.length > 0 ? (
-              <section className="mt-5 rounded-[18px] border-[0.5px] border-[rgba(239,68,68,0.18)] bg-[linear-gradient(180deg,rgba(254,242,242,0.68),rgba(255,255,255,1))] p-6 shadow-[0_10px_24px_rgba(239,68,68,0.05)] md:p-7">
+              <section
+                className={`mt-5 rounded-[18px] border-[0.5px] border-[rgba(239,68,68,0.18)] bg-[linear-gradient(180deg,rgba(254,242,242,0.68),rgba(255,255,255,1))] p-6 shadow-[0_10px_24px_rgba(239,68,68,0.05)] md:p-7 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+                style={isDashboardMounted ? { animationDelay: '360ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+              >
                 <div className="flex items-center gap-2 text-red-700">
                   <Siren size={18} />
                   <p className="text-[11px] font-semibold uppercase tracking-[0.24em]">
@@ -907,7 +967,10 @@ export default function Dashboard({ session, subscription }) {
               </section>
             ) : null}
 
-            <section className="mt-5 rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.05)] bg-[rgba(248,250,252,0.7)] px-5 py-3 text-center text-[11px] leading-6 text-gray-400">
+            <section
+              className={`mt-5 rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.05)] bg-[rgba(248,250,252,0.7)] px-5 py-3 text-center text-[11px] leading-6 text-gray-400 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+              style={isDashboardMounted ? { animationDelay: '360ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+            >
               <p>Illustrative only. Not financial advice.</p>
             </section>
           </>
@@ -1002,7 +1065,7 @@ function CompareOptionCard({ option }) {
     Number(option.annualImpact) >= 0 ? 'text-primary-700' : 'text-red-500'
 
   return (
-    <article className="rounded-3xl border border-gray-100 bg-gray-50/70 p-5">
+    <article className="rounded-3xl border border-gray-100 bg-gray-50/70 p-5 transition-[transform,box-shadow] duration-150 ease-out will-change-transform hover:-translate-y-[2px] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
       <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
         {option.scenario}
       </p>

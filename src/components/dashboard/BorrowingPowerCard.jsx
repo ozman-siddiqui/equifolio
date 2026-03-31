@@ -18,7 +18,7 @@ export default function BorrowingPowerCard({
   onCta,
 }) {
   return (
-    <section className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-white px-[22px] py-[18px] shadow-[0_12px_30px_rgba(15,23,42,0.06)] transition-transform duration-150 ease-out hover:-translate-y-[2px]">
+    <section className="cursor-default rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-white px-[22px] py-[18px] shadow-[0_12px_30px_rgba(15,23,42,0.06)] transition-[transform,box-shadow] duration-150 ease-out will-change-transform hover:-translate-y-[2px] hover:shadow-[0_4px_16px_rgba(0,0,0,0.07)]">
       <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
         Borrowing Power
       </p>

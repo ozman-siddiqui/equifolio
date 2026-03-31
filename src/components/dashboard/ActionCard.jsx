@@ -25,7 +25,7 @@ export default function ActionCard({
   const accentClasses = featured
     ? {
         article:
-          'border-[0.5px] border-[rgba(29,158,117,0.22)] bg-[linear-gradient(180deg,rgba(240,253,248,0.86),rgba(255,255,255,1))] before:bg-[#1D9E75] hover:border-[rgba(29,158,117,0.36)] hover:before:bg-[#158763]',
+          'border-[0.5px] border-[rgba(29,158,117,0.22)] bg-[linear-gradient(180deg,rgba(240,253,248,0.86),rgba(255,255,255,1))] before:bg-[#1D9E75] hover:border-[rgba(29,158,117,0.36)] hover:before:bg-[#0F6E56]',
         badge: 'bg-[#d4f0e6] text-[#063d2e]',
         priority: 'bg-[#d4f0e6] text-[#063d2e]',
         chip: 'border border-emerald-200 bg-emerald-50/90 text-emerald-800',
@@ -33,7 +33,7 @@ export default function ActionCard({
       }
     : {
         article:
-          'border-[0.5px] border-[rgba(239,159,39,0.24)] bg-[linear-gradient(180deg,rgba(255,251,235,0.78),rgba(255,255,255,1))] before:bg-[#EF9F27] hover:border-[rgba(239,159,39,0.38)] hover:before:bg-[#d88914]',
+          'border-[0.5px] border-[rgba(239,159,39,0.24)] bg-[linear-gradient(180deg,rgba(255,251,235,0.78),rgba(255,255,255,1))] before:bg-[#EF9F27] hover:border-[rgba(239,159,39,0.38)] hover:before:bg-[#BA7517]',
         badge: 'bg-[#fce8ce] text-[#5a3005]',
         priority: 'bg-[#fce8ce] text-[#5a3005]',
         chip: 'border border-amber-200 bg-amber-50/90 text-amber-800',
@@ -42,7 +42,7 @@ export default function ActionCard({
 
   return (
     <article
-      className={`relative flex min-h-[264px] flex-col overflow-hidden rounded-r-[16px] rounded-l-none p-6 shadow-[0_12px_28px_rgba(15,23,42,0.05)] transition-all duration-150 ease-out hover:-translate-y-[2px] hover:shadow-[0_16px_34px_rgba(15,23,42,0.08)] before:absolute before:bottom-0 before:left-0 before:top-0 before:w-1 ${accentClasses.article}`}
+      className={`relative flex min-h-[264px] flex-col overflow-hidden rounded-r-[16px] rounded-l-none p-6 shadow-[0_12px_28px_rgba(15,23,42,0.05)] transition-[transform,border-color,box-shadow] duration-150 ease-out will-change-transform hover:-translate-y-[2px] hover:shadow-[0_4px_16px_rgba(0,0,0,0.07)] before:absolute before:bottom-0 before:left-0 before:top-0 before:w-1 ${accentClasses.article}`}
     >
       <div className="relative grid min-h-[32px] grid-cols-[auto,minmax(0,1fr)] items-start gap-4">
         <div
