@@ -86,7 +86,7 @@ export default function HeroDecisionCard() {
               </p>
               <div className="mt-4 flex flex-wrap items-center gap-2.5">
                 <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-700">
-                  {isExecutable ? 'Executable today' : 'In progress'}
+                  {isExecutable ? 'Appears executable' : 'In progress'}
                 </span>
                 <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600">
                   High confidence
@@ -103,11 +103,11 @@ export default function HeroDecisionCard() {
               </span>
             </h1>
             <p className="mt-5 max-w-2xl text-[1.05rem] leading-8 text-emerald-800">
-              Fully funded and executable today
+              Based on current inputs, this pathway
               <br />
-              under your current capital and
+              appears fundable and executable — subject
               <br />
-              borrowing settings.
+              to lender assessment and market conditions.
             </p>
           </div>
 

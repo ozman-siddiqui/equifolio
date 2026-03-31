@@ -14,11 +14,13 @@ export default function CommandCentreCard({
   helper,
   subtitle,
   metrics = [],
+  detailRows = [],
+  progressInfo = null,
   cta,
   onClick,
 }) {
   return (
-    <section className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-white p-7 shadow-[0_12px_30px_rgba(15,23,42,0.06)] transition-transform duration-200 hover:-translate-y-0.5">
+    <section className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-white px-[22px] py-[18px] shadow-[0_12px_30px_rgba(15,23,42,0.06)] transition-transform duration-150 ease-out hover:-translate-y-[2px]">
       <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
         {eyebrow}
       </p>
@@ -65,9 +67,42 @@ export default function CommandCentreCard({
           >
             {value == null ? '-' : formatCurrency(value)}
           </p>
-          <p className="mt-3 inline-flex w-fit items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800">
+          <p className="mt-3 inline-flex w-fit items-center rounded-[10px] bg-[#d4f0e6] px-[9px] py-[3px] text-[11px] font-medium text-[#063d2e]">
             {helper}
           </p>
+          {detailRows.length > 0 ? (
+            <div className="mt-5 border-t border-[rgba(0,0,0,0.08)] pt-4">
+              <div className="space-y-3">
+                {detailRows.map((row) => (
+                  <div key={row.label} className="flex items-start justify-between gap-4 text-sm">
+                    <span className="text-gray-600">{row.label}</span>
+                    <span className={`font-medium ${row.tone || 'text-gray-900'}`}>
+                      {row.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {progressInfo ? (
+            <div className="mt-5">
+              <div className="flex items-center justify-between gap-4 text-[11px] text-gray-400">
+                <span>{progressInfo.label}</span>
+                <span>{progressInfo.targetLabel}</span>
+              </div>
+              <div className="mt-2 h-[6px] overflow-hidden rounded-[999px] bg-[#edf2ef]">
+                <div
+                  className="h-full rounded-[999px] bg-[#1D9E75]"
+                  style={{ width: `${Math.max(0, Math.min(100, Number(progressInfo.valuePct || 0)))}%` }}
+                />
+              </div>
+              {progressInfo.note ? (
+                <p className="mt-2 text-[11px] leading-5 text-gray-400">
+                  {progressInfo.note}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </>
       )}
 

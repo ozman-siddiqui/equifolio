@@ -25,35 +25,35 @@ export default function ActionCard({
   const accentClasses = featured
     ? {
         article:
-          'border-emerald-200 bg-[linear-gradient(180deg,rgba(240,253,248,0.86),rgba(255,255,255,1))] before:bg-emerald-500 hover:border-emerald-300',
-        badge: 'border border-emerald-200 bg-emerald-50 text-emerald-800',
-        label: 'text-emerald-700',
+          'border-[0.5px] border-[rgba(29,158,117,0.22)] bg-[linear-gradient(180deg,rgba(240,253,248,0.86),rgba(255,255,255,1))] before:bg-[#1D9E75] hover:border-[rgba(29,158,117,0.36)] hover:before:bg-[#158763]',
+        badge: 'bg-[#d4f0e6] text-[#063d2e]',
+        priority: 'bg-[#d4f0e6] text-[#063d2e]',
         chip: 'border border-emerald-200 bg-emerald-50/90 text-emerald-800',
+        chipFill: 'bg-[#d4f0e6] text-[#063d2e]',
       }
     : {
         article:
-          'border-amber-200 bg-[linear-gradient(180deg,rgba(255,251,235,0.78),rgba(255,255,255,1))] before:bg-amber-400 hover:border-amber-300',
-        badge: 'border border-amber-200 bg-amber-50 text-amber-800',
-        label: 'text-amber-700',
+          'border-[0.5px] border-[rgba(239,159,39,0.24)] bg-[linear-gradient(180deg,rgba(255,251,235,0.78),rgba(255,255,255,1))] before:bg-[#EF9F27] hover:border-[rgba(239,159,39,0.38)] hover:before:bg-[#d88914]',
+        badge: 'bg-[#fce8ce] text-[#5a3005]',
+        priority: 'bg-[#fce8ce] text-[#5a3005]',
         chip: 'border border-amber-200 bg-amber-50/90 text-amber-800',
+        chipFill: 'bg-[#fce8ce] text-[#5a3005]',
       }
 
   return (
     <article
-      className={`relative flex min-h-[264px] flex-col overflow-hidden rounded-[16px] border-[0.5px] p-6 shadow-[0_12px_28px_rgba(15,23,42,0.05)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_34px_rgba(15,23,42,0.08)] before:absolute before:bottom-0 before:left-0 before:top-0 before:w-1 ${accentClasses.article}`}
+      className={`relative flex min-h-[264px] flex-col overflow-hidden rounded-r-[16px] rounded-l-none p-6 shadow-[0_12px_28px_rgba(15,23,42,0.05)] transition-all duration-150 ease-out hover:-translate-y-[2px] hover:shadow-[0_16px_34px_rgba(15,23,42,0.08)] before:absolute before:bottom-0 before:left-0 before:top-0 before:w-1 ${accentClasses.article}`}
     >
       <div className="relative grid min-h-[32px] grid-cols-[auto,minmax(0,1fr)] items-start gap-4">
         <div
-          className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-[11px] font-semibold tracking-[0.18em] ${accentClasses.badge}`}
+          className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-[11px] font-semibold ${accentClasses.badge}`}
         >
           #{rank}
         </div>
         <div className="justify-self-end max-w-[180px] text-right">
-          {sequenceLabel ? (
-            <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${accentClasses.label}`}>
-              {sequenceLabel}
-            </p>
-          ) : null}
+          <p className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-medium ${accentClasses.priority}`}>
+            {featured ? 'Start here' : 'Next priority'}
+          </p>
         </div>
       </div>
 
@@ -66,41 +66,7 @@ export default function ActionCard({
         </h3>
       </div>
 
-      <div className="relative mt-4 flex min-h-[74px] flex-wrap gap-2">
-        {borrowingImpact ? (
-          <p
-            className={`inline-flex max-w-full items-center rounded-full px-3 py-1.5 text-xs font-semibold break-words ${accentClasses.chip}`}
-            style={clamp(2)}
-          >
-            {borrowingImpact}
-          </p>
-        ) : impact ? (
-          <p
-            className={`inline-flex max-w-full items-center rounded-full px-3 py-1.5 text-xs font-semibold break-words ${accentClasses.chip}`}
-            style={clamp(2)}
-          >
-            {impact}
-          </p>
-        ) : null}
-        {monthlyImpact ? (
-          <p
-            className="inline-flex max-w-full items-center rounded-full border border-gray-200 bg-white/90 px-3 py-1.5 text-xs font-medium text-gray-700 break-words"
-            style={clamp(2)}
-          >
-            {monthlyImpact}
-          </p>
-        ) : null}
-        {yearlyImpact ? (
-          <p
-            className="inline-flex max-w-full items-center rounded-full border border-gray-200 bg-white/90 px-3 py-1.5 text-xs font-medium text-gray-700 break-words"
-            style={clamp(2)}
-          >
-            {yearlyImpact}
-          </p>
-        ) : null}
-      </div>
-
-      <div className="relative mt-4 min-h-[72px]">
+      <div className="relative mt-4 min-h-[84px]">
         {rankReason ? (
           <p
             className="text-sm font-medium leading-6 text-gray-900 break-words"
@@ -117,7 +83,41 @@ export default function ActionCard({
         </p>
       </div>
 
-      <div className="relative mt-auto pt-6">
+      <div className="relative mt-4 flex min-h-[74px] flex-wrap items-start gap-2">
+        {borrowingImpact ? (
+          <p
+            className={`inline-flex h-auto w-fit min-w-0 max-w-max flex-none items-center justify-center whitespace-nowrap rounded-[999px] px-3 py-1 text-[11px] font-medium break-normal ${accentClasses.chipFill}`}
+            style={clamp(2)}
+          >
+            {borrowingImpact}
+          </p>
+        ) : impact ? (
+          <p
+            className={`inline-flex h-auto w-fit min-w-0 max-w-max flex-none items-center justify-center whitespace-nowrap rounded-[999px] px-3 py-1 text-[11px] font-medium break-normal ${accentClasses.chipFill}`}
+            style={clamp(2)}
+          >
+            {impact}
+          </p>
+        ) : null}
+        {monthlyImpact ? (
+          <p
+            className={`inline-flex h-auto w-fit min-w-0 max-w-max flex-none items-center justify-center whitespace-nowrap rounded-[999px] px-3 py-1 text-[11px] font-medium break-normal ${accentClasses.chipFill}`}
+            style={clamp(2)}
+          >
+            {monthlyImpact}
+          </p>
+        ) : null}
+        {yearlyImpact ? (
+          <p
+            className={`inline-flex h-auto w-fit min-w-0 max-w-max flex-none items-center justify-center whitespace-nowrap rounded-[999px] px-3 py-1 text-[11px] font-medium break-normal ${accentClasses.chipFill}`}
+            style={clamp(2)}
+          >
+            {yearlyImpact}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="relative mt-auto pt-5">
         <button
           type="button"
           onClick={onExplore}
