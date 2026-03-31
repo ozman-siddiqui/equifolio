@@ -415,12 +415,6 @@ function evaluateScenarioAtPrice({
           repaymentType: 'Principal & Interest',
           remainingTermMonths: 360,
         })
-  console.log('Loan calc:', {
-    loan: estimatedLoanSize,
-    rate: interestRatePct,
-    type: safeRepaymentType,
-    monthly: monthlyLoanRepayment,
-  })
   const incrementalMonthlyCashFlow = roundCurrency(
     monthlyGrossRent - monthlyPropertyCosts - monthlyLoanRepayment
   )
