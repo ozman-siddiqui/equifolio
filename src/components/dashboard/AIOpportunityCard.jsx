@@ -406,6 +406,20 @@ export default function AIOpportunityCard({ currentUserId, loans = [] }) {
             <p className="mt-2 text-sm text-gray-500">
               We check your loans against current market benchmarks automatically.
             </p>
+
+            {cumulativeValue > 0 ? (
+              <div className="mt-3 rounded-[10px] border border-emerald-100 bg-[#f4faf7] px-[14px] py-[10px]">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">
+                  Total value identified since joining
+                </p>
+                <p className="mt-1 text-lg font-semibold text-gray-900">
+                  {formatCurrency(cumulativeValue)}
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  {totalDetected} opportunities detected since you joined
+                </p>
+              </div>
+            ) : null}
           </div>
         ) : (
           <div className="space-y-4">

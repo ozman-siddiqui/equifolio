@@ -12,6 +12,7 @@ function clamp(lines) {
 export default function ScenarioCard({
   label,
   title,
+  priceRangeLabel = null,
   priceRange,
   yieldText,
   metricText,
@@ -32,8 +33,13 @@ export default function ScenarioCard({
         </h3>
       </div>
 
-      <div className="mt-4 flex min-h-[72px] items-start">
-        <p className="text-3xl font-bold tracking-tight text-gray-900 break-words" style={clamp(2)}>
+      <div className="mt-4 min-h-[72px]">
+        {priceRangeLabel ? (
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-400">
+            {priceRangeLabel}
+          </p>
+        ) : null}
+        <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 break-words leading-tight">
           {priceRange}
         </p>
       </div>

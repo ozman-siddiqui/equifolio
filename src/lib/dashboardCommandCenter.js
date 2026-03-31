@@ -730,17 +730,16 @@ export default function buildDashboardCommandCenter({
     const executablePurchasePrice = Number(scenario.fallbackPrice ?? scenario.scenarioPurchasePrice ?? 0)
     const executablePurchaseBandLow = Math.round(executablePurchasePrice * 0.95)
     const executablePurchaseBandHigh = Math.round(executablePurchasePrice * 1.1)
+    const estimatedPriceRangeValue =
+      executablePurchasePrice > 0
+        ? formatRange(executablePurchaseBandLow, executablePurchaseBandHigh)
+        : scenario.recommendedPurchaseRange.label
 
     return {
       id: scenario.id,
       title: scenario.title,
-      estimatedPriceRange:
-        executablePurchasePrice > 0
-          ? `Estimated purchase range: ${formatRange(
-              executablePurchaseBandLow,
-              executablePurchaseBandHigh
-            )}`
-          : scenario.recommendedPurchaseRange.label,
+      estimatedPriceRangeLabel: executablePurchasePrice > 0 ? 'Estimated purchase range' : null,
+      estimatedPriceRange: estimatedPriceRangeValue,
       expectedRentalYield:
         scenario.estimatedGrossYield > 0
           ? `${scenario.estimatedGrossYield.toFixed(1)}% gross yield`

@@ -10,10 +10,10 @@ import CommandCentreCard from '../components/dashboard/CommandCentreCard'
 import DashboardPromptCard from '../components/dashboard/DashboardPromptCard'
 import DashboardBorrowingPowerCard from '../components/dashboard/BorrowingPowerCard'
 import BorrowingPowerBreakdown from '../components/dashboard/BorrowingPowerBreakdown'
+import HeroDecisionCard from '../components/dashboard/HeroDecisionCard'
 import PropertyCard from '../components/dashboard/PropertyCard'
 import ScenarioCard from '../components/dashboard/ScenarioCard'
 import SetupProgress from '../components/dashboard/SetupProgress'
-import GrowthPathways from '../components/dashboard/GrowthPathways'
 import { buildAlerts } from '../components/AlertsDropdown'
 import { utilityPrimaryButtonClass, utilitySecondaryButtonClass } from '../components/CardPrimitives'
 import useFinancialData from '../hooks/useFinancialData'
@@ -42,6 +42,7 @@ export default function Dashboard({ session, subscription }) {
 
   const [showAddProperty, setShowAddProperty] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [isDashboardMounted, setIsDashboardMounted] = useState(false)
 
   const handleOpenAddProperty = () => {
     const plan = (subscription?.plan || 'starter').toLowerCase()
@@ -54,6 +55,10 @@ export default function Dashboard({ session, subscription }) {
 
     setShowAddProperty(true)
   }
+
+  useEffect(() => {
+    setIsDashboardMounted(true)
+  }, [])
 
   const alerts = useMemo(() => buildAlerts(properties, loans), [properties, loans])
 
@@ -275,6 +280,17 @@ export default function Dashboard({ session, subscription }) {
     () => properties.reduce((sum, property) => sum + Number(property?.current_value || 0), 0),
     [properties]
   )
+  const netEquityDetailRows = useMemo(
+    () =>
+      (commandCenter?.portfolioProperties || [])
+        .filter((property) => property?.equity != null)
+        .slice(0, 2)
+        .map((property) => ({
+          label: property.address,
+          value: formatCurrency(property.equity),
+        })),
+    [commandCenter]
+  )
 
   const yieldFirstScenario = useMemo(
     () => {
@@ -387,8 +403,27 @@ export default function Dashboard({ session, subscription }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <style>{`
+        .dashboard-mounted {
+          animation: dashboardFadeSlideIn 350ms ease-out both;
+        }
+
+        @keyframes dashboardFadeSlideIn {
+          from {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
       <main className="mx-auto max-w-7xl px-4 py-8">
-        <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-8">
+        <section
+          className={`rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-8 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+          style={isDashboardMounted ? { animationDelay: '0ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+        >
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-3xl">
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
@@ -426,7 +461,10 @@ export default function Dashboard({ session, subscription }) {
           </div>
         </section>
 
-        <section className="mt-4 rounded-3xl border border-gray-100 bg-white px-5 py-4 shadow-sm shadow-gray-100/70">
+        <section
+          className={`mt-4 rounded-3xl border border-gray-100 bg-white px-5 py-4 shadow-sm shadow-gray-100/70 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+          style={isDashboardMounted ? { animationDelay: '0ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+        >
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-wrap items-center gap-6">
               <StripMetric
@@ -445,18 +483,25 @@ export default function Dashboard({ session, subscription }) {
           </div>
         </section>
 
-        {Number(dashboardState?.setupCompletionPct ?? 0) === 100 ? (
-          <section className="mt-6 rounded-2xl border border-gray-100 bg-white px-5 py-4">
-            <p className="text-sm text-gray-600">
-              Portfolio data complete · Decision confidence: {commandCenter.decisionConfidence} ·
-              {' '}Data coverage: {commandCenter.dataCoveragePct}%
-            </p>
-          </section>
-        ) : (
-          <SetupProgress state={dashboardState} onOpenSection={(route) => navigate(route)} />
-        )}
-
-        <AIOpportunityCard currentUserId={session.user.id} loans={loans} />
+        <div
+          className={`mt-5 mb-[22px] ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+          style={isDashboardMounted ? { animationDelay: '50ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+        >
+          <HeroDecisionCard
+            purchaseRangeLow={475000}
+            purchaseRangeHigh={550000}
+            fiveYearEquityUplift={298638}
+            monthlyHoldingCost={-982}
+            grossYield={5.5}
+            currentEquity={576500}
+            year3Equity={720000}
+            year5Equity={875138}
+            unlockValue={39016}
+            acquisitionReadinessScore={79}
+            acquisitionReadinessLabel="Getting close"
+            isExecutable={true}
+          />
+        </div>
 
         {!dashboardState.hasProperties ? (
           <section className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-2">
@@ -473,7 +518,10 @@ export default function Dashboard({ session, subscription }) {
           </section>
         ) : (
           <>
-            <section className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-3">
+            <section
+              className={`mt-6 grid grid-cols-1 gap-5 xl:grid-cols-3 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+              style={isDashboardMounted ? { animationDelay: '120ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+            >
               {dashboardState.canShowNetPosition ? (
                 <CommandCentreCard
                   eyebrow="Net Position"
@@ -486,7 +534,20 @@ export default function Dashboard({ session, subscription }) {
                   helper={
                     dashboardState.showNetPositionPartial
                       ? 'Asset-only view until all mortgages are recorded'
-                      : commandCenter.hero.netPosition.helper
+                      : 'Assets minus total debt'
+                  }
+                  detailRows={
+                    dashboardState.showNetPositionPartial ? [] : netEquityDetailRows
+                  }
+                  progressInfo={
+                    dashboardState.showNetPositionPartial
+                      ? null
+                      : {
+                          label: 'LVR',
+                          targetLabel: 'Target 60%',
+                          valuePct: 60,
+                          note: 'Hover: card lifts 2px, border darkens subtly',
+                        }
                   }
                   subtitle={
                     dashboardState.showNetPositionPartial
@@ -518,51 +579,33 @@ export default function Dashboard({ session, subscription }) {
                 <CommandCentreCard
                   eyebrow="Monthly Position"
                   title="Cash Flow and Surplus"
-                  metrics={[
-                    {
-                      label: 'Property cash flow',
-                      value: dashboardState.canShowPropertyCashFlow
-                        ? commandCenter.hero.monthlyPosition.propertyCashFlow
-                        : null,
-                      helper: dashboardState.canShowPropertyCashFlow
-                        ? 'Portfolio-level property inflows less property expenses'
-                        : 'Add rent and property expenses to unlock portfolio cash flow',
-                      tone:
-                        commandCenter.hero.monthlyPosition.propertyCashFlow >= 0
-                          ? 'text-green-600'
-                          : 'text-red-500',
-                    },
-                    {
-                      label: 'Actual monthly surplus',
-                      value: dashboardState.canShowActualMonthlySurplus
-                        ? borrowingPowerAnalysis?.actual_monthly_surplus
-                        : null,
-                      displayValue: dashboardState.canShowActualMonthlySurplus
-                        ? null
-                        : 'Incomplete',
-                      helper: dashboardState.canShowActualMonthlySurplus
-                        ? 'Estimated after tax. Uses after-tax income, recorded rent, property expenses, actual liabilities, and current mortgage repayments.'
-                        : 'Complete cash flow tracking to calculate your real monthly position.',
-                      tone:
-                        Number(borrowingPowerAnalysis?.actual_monthly_surplus) >= 0
-                          ? 'text-primary-700'
-                          : dashboardState.canShowActualMonthlySurplus
-                            ? 'text-red-500'
-                            : 'text-gray-500',
-                    },
-                    {
-                      label: 'Serviceability surplus',
-                      value: dashboardState.canShowHouseholdSurplus
-                        ? commandCenter.hero.monthlyPosition.householdSurplus
-                        : null,
-                      helper: dashboardState.canShowHouseholdSurplus
-                        ? 'Surplus after lender-style income shading, assessment buffers, and assessed commitments.'
-                        : 'Add Financials to unlock serviceability surplus analysis',
-                      tone:
-                        Number(commandCenter.hero.monthlyPosition.householdSurplus) >= 0
-                          ? 'text-primary-700'
-                          : 'text-red-500',
-                    },
+                  value={
+                    dashboardState.canShowActualMonthlySurplus
+                      ? borrowingPowerAnalysis?.actual_monthly_surplus
+                      : null
+                  }
+                  helper="After-tax household surplus"
+                  detailRows={[
+                    ...(dashboardState.canShowPropertyCashFlow
+                      ? [{
+                          label: 'Property cash flow',
+                          value: formatCurrency(commandCenter.hero.monthlyPosition.propertyCashFlow),
+                          tone:
+                            Number(commandCenter.hero.monthlyPosition.propertyCashFlow) >= 0
+                              ? 'text-green-600'
+                              : 'text-red-500',
+                        }]
+                      : []),
+                    ...(dashboardState.canShowHouseholdSurplus
+                      ? [{
+                          label: 'Lender serviceability view',
+                          value: formatCurrency(commandCenter.hero.monthlyPosition.householdSurplus),
+                          tone:
+                            Number(commandCenter.hero.monthlyPosition.householdSurplus) >= 0
+                              ? 'text-gray-900'
+                              : 'text-red-500',
+                        }]
+                      : []),
                   ]}
                   subtitle="Property cash flow, your real monthly position, and the lender view are shown separately."
                   cta={{
@@ -597,6 +640,32 @@ export default function Dashboard({ session, subscription }) {
                 <DashboardBorrowingPowerCard
                   currentCapacity={commandCenter.hero.borrowingPower.currentCapacity}
                   unlockPotential={commandCenter.hero.borrowingPower.unlockPotential}
+                  detailRows={[
+                    ...(commandCenter.hero.borrowingPower.unlockPotential != null
+                      ? [{
+                          label: 'Unlock via card limits',
+                          value: formatCurrency(commandCenter.hero.borrowingPower.unlockPotential),
+                          tone: 'text-green-600',
+                        }, {
+                          label: 'Post-unlock total',
+                          value: formatCurrency(
+                            Number(commandCenter.hero.borrowingPower.currentCapacity || 0) +
+                              Number(commandCenter.hero.borrowingPower.unlockPotential || 0)
+                          ),
+                          tone: 'text-green-600',
+                        }]
+                      : []),
+                    ...((borrowingPowerAnalysis?.assumptions?.assessment_rate_pct ??
+                      borrowingPowerAnalysis?.assumptions_detail?.assessment_rate_pct) != null
+                      ? [{
+                          label: 'Assessment rate',
+                          value: `${Number(
+                            borrowingPowerAnalysis?.assumptions?.assessment_rate_pct ??
+                              borrowingPowerAnalysis?.assumptions_detail?.assessment_rate_pct
+                          ).toFixed(1)}%`,
+                        }]
+                      : []),
+                  ]}
                   subtitle={
                     borrowingRenderState.state === 'warning'
                       ? 'Borrowing output is available, but confidence is reduced. Use the breakdown before acting.'
@@ -618,7 +687,108 @@ export default function Dashboard({ session, subscription }) {
               )}
             </section>
 
-            <section className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-[1.45fr,0.8fr]">
+            {dashboardState.canShowTopActions ? (
+              <section
+                className={`mt-6 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+                style={isDashboardMounted ? { animationDelay: '180ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+              >
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+                    Actions
+                  </p>
+                  <h2 className="mt-2 text-2xl font-semibold text-gray-900">
+                    What to fix first
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 text-gray-600">
+                    Ranked actions unlocked from validated portfolio, mortgage, and household inputs.
+                  </p>
+                </div>
+
+                <div className="mt-5 grid grid-cols-1 gap-[14px] xl:grid-cols-2">
+                  {commandCenter.topActions.slice(0, 2).map((action, index) => (
+                    <ActionCard
+                      key={action.id}
+                      rank={action.rank ?? index + 1}
+                      sequenceLabel={action.sequenceLabel}
+                      title={action.title}
+                      impact={action.impactLabel || action.impact}
+                      monthlyImpact={action.monthlyImpactDisplay}
+                      yearlyImpact={action.yearlyImpactDisplay}
+                      borrowingImpact={action.borrowingImpactDisplay}
+                      rankReason={action.sequenceReason}
+                      explanation={action.whyItMatters || action.problem}
+                      featured={index === 0}
+                      onExplore={() => navigate(action.route)}
+                    />
+                  ))}
+                </div>
+              </section>
+            ) : (
+              <section
+                className={`mt-6 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+                style={isDashboardMounted ? { animationDelay: '180ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+              >
+                <LockedChecklistCard
+                  eyebrow="Actions"
+                  title="Unlock your top actions"
+                  body={dashboardState.topActionsLockedReason}
+                  missingSections={dashboardState.missingSections}
+                  onAction={(route) => navigate(route)}
+                />
+              </section>
+            )}
+
+            <section
+              className={`mt-8 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+              style={isDashboardMounted ? { animationDelay: '210ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+            >
+              <div className="flex items-center gap-4">
+                <div className="h-px flex-1 bg-[rgba(0,0,0,0.08)]" />
+                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+                  Below the fold · compare paths
+                </p>
+                <div className="h-px flex-1 bg-[rgba(0,0,0,0.08)]" />
+              </div>
+            </section>
+
+            {Number(dashboardState?.setupCompletionPct ?? 0) === 100 ? (
+              <section className="hidden">
+                <p className="text-sm text-gray-600">
+                  Portfolio data complete · Decision confidence: {commandCenter.decisionConfidence} ·
+                  {' '}Data coverage: {commandCenter.dataCoveragePct}%
+                </p>
+              </section>
+            ) : (
+              <SetupProgress state={dashboardState} onOpenSection={(route) => navigate(route)} />
+            )}
+
+            {dashboardState.canShowBorrowing && commandCenter.compareOptions?.length > 0 ? (
+              <section
+                className={`mt-8 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+                style={isDashboardMounted ? { animationDelay: '240ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+                  Trade-offs
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold text-gray-900">
+                  Compare your options
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-gray-600">
+                  See the financial consequences of staying put, applying the top recommendation, or deploying capital now.
+                </p>
+
+                <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-3">
+                  {commandCenter.compareOptions.map((option) => (
+                    <CompareOptionCard key={option.id} option={option} />
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            <section
+              className={`mt-5 grid grid-cols-1 gap-6 xl:grid-cols-[1.45fr,0.8fr] ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+              style={isDashboardMounted ? { animationDelay: '270ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+            >
               {dashboardState.canShowBorrowing && commandCenter.capacityUseCases.length > 0 ? (
                 <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
                   <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -641,6 +811,7 @@ export default function Dashboard({ session, subscription }) {
                         key={scenario.id}
                         label={`Option ${String.fromCharCode(65 + index)}`}
                         title={scenario.title}
+                        priceRangeLabel={scenario.estimatedPriceRangeLabel}
                         priceRange={scenario.estimatedPriceRange}
                         yieldText={scenario.expectedRentalYield}
                         metricText={scenario.monthlyCashFlow}
@@ -650,21 +821,7 @@ export default function Dashboard({ session, subscription }) {
                     ))}
                   </div>
                 </section>
-              ) : dashboardState.canShowBorrowing ? (
-                <GrowthPathways
-                  yieldFirst={yieldFirstScenario}
-                  acquisitionReadiness={acquisitionReadiness}
-                  topAction={commandCenter?.topActions?.[0] || null}
-                  borrowingCapacity={Number(
-                    borrowingPowerAnalysis?.borrowing_power_estimate ?? 0
-                  )}
-                  availableCapital={Number(
-                    growthScenarios?.inputs?.totalDeployableCapital ?? 0
-                  )}
-                  growthInputs={growthScenarios?.inputs ?? null}
-                  totalPortfolioValue={Number(totalPropertyValue)}
-                />
-              ) : (
+              ) : dashboardState.canShowBorrowing ? null : (
                 <LockedChecklistCard
                   eyebrow="Growth"
                   title="Complete setup to unlock borrowing analysis"
@@ -673,82 +830,74 @@ export default function Dashboard({ session, subscription }) {
                   onAction={(route) => navigate(route)}
                 />
               )}
-
-              {dashboardState.canShowTopActions ? (
-                <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                      Actions
-                    </p>
-                    <h2 className="mt-2 text-2xl font-semibold text-gray-900">
-                      What to fix first
-                    </h2>
-                    <p className="mt-2 text-sm leading-6 text-gray-600">
-                      Ranked actions unlocked from validated portfolio, mortgage, and household inputs.
-                    </p>
-                  </div>
-
-                  <div className="mt-5 space-y-3">
-                    {commandCenter.topActions.map((action, index) => (
-                      <ActionCard
-                        key={action.id}
-                        rank={action.rank ?? index + 1}
-                        sequenceLabel={action.sequenceLabel}
-                        title={action.title}
-                        impact={action.impactLabel || action.impact}
-                        monthlyImpact={action.monthlyImpactDisplay}
-                        yearlyImpact={action.yearlyImpactDisplay}
-                        borrowingImpact={action.borrowingImpactDisplay}
-                        rankReason={action.sequenceReason}
-                        explanation={action.whyItMatters || action.problem}
-                        featured={index === 0}
-                        onExplore={() => navigate(action.route)}
-                      />
-                    ))}
-                  </div>
-                </section>
-              ) : (
-                <LockedChecklistCard
-                  eyebrow="Actions"
-                  title="Unlock your top actions"
-                  body={dashboardState.topActionsLockedReason}
-                  missingSections={dashboardState.missingSections}
-                  onAction={(route) => navigate(route)}
-                />
-              )}
             </section>
 
-            {dashboardState.canShowBorrowing ? (
-              <section className="mt-5">
-                <BorrowingPowerBreakdown
-                  analysis={borrowingPowerAnalysis}
-                  onViewFullBreakdown={() => navigate('/borrowing-power')}
-                />
-              </section>
-            ) : null}
+            <section
+              className={`mt-5 grid grid-cols-1 gap-[14px] xl:grid-cols-2 xl:items-stretch ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+              style={isDashboardMounted ? { animationDelay: '300ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+            >
+              <div className="h-full [&>section]:h-full">
+                <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
+                  <div className="flex items-end justify-between gap-4 border-b border-[rgba(0,0,0,0.08)] pb-5">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+                        Portfolio
+                      </p>
+                      <h2 className="mt-2 text-2xl font-semibold text-gray-900">
+                        Properties at a glance
+                      </h2>
+                      <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+                        Each property shows its current position, so you can spot where
+                        the next intervention matters most.
+                      </p>
+                    </div>
 
-            {dashboardState.canShowBorrowing && commandCenter.compareOptions?.length > 0 ? (
-              <section className="mt-5 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                  Trade-offs
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold text-gray-900">
-                  Compare your options
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-gray-600">
-                  See the financial consequences of staying put, applying the top recommendation, or deploying capital now.
-                </p>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/properties')}
+                      className="inline-flex items-center gap-2 text-sm font-semibold text-primary-600 transition-colors hover:text-primary-700"
+                    >
+                      View all
+                      <ChevronRight size={15} />
+                    </button>
+                  </div>
 
-                <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-3">
-                  {commandCenter.compareOptions.map((option) => (
-                    <CompareOptionCard key={option.id} option={option} />
-                  ))}
-                </div>
-              </section>
-            ) : null}
+                  <div className="mt-5 space-y-4">
+                    {commandCenter.portfolioProperties.length > 0 ? (
+                      commandCenter.portfolioProperties.map((property) => (
+                        <PropertyCard
+                          key={property.id}
+                          address={property.address}
+                          location={property.location}
+                          equity={property.equity}
+                          cashFlow={property.cashFlow}
+                          status={property.status}
+                          hasLoanCoverage={property.hasLoanCoverage}
+                          onExplore={() => navigate(property.route)}
+                        />
+                      ))
+                    ) : (
+                      <EmptyState
+                        title="No properties yet"
+                        description="Add your first property to activate the Command Centre."
+                        actionLabel="Add Property"
+                        onAction={handleOpenAddProperty}
+                      />
+                    )}
+                  </div>
+                </section>
+              </div>
+
+              <div className="h-full [&>*]:h-full">
+                <AIOpportunityCard currentUserId={session.user.id} loans={loans} />
+              </div>
+            </section>
 
             {dashboardState.canShowBorrowing && Array.isArray(borrowingPowerAnalysis?.topConstraints) && borrowingPowerAnalysis.topConstraints.length > 0 ? (
-              <section className="mt-5 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
+              <section
+                className={`mt-5 rounded-[18px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-white p-6 shadow-[0_10px_24px_rgba(15,23,42,0.04)] transition-colors hover:border-[rgba(16,92,75,0.14)] md:p-7 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+                style={isDashboardMounted ? { animationDelay: '360ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+              >
                 <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
                   Constraints
                 </p>
@@ -759,9 +908,9 @@ export default function Dashboard({ session, subscription }) {
                   Your borrowing is primarily limited by:
                 </p>
 
-                <ul className="mt-4 space-y-3 text-sm leading-6 text-gray-700">
+                <ul className="mt-5 space-y-3 text-sm leading-6 text-gray-700">
                   {borrowingPowerAnalysis.topConstraints.slice(0, 2).map((constraint) => (
-                    <li key={constraint.type} className="flex items-start gap-3">
+                    <li key={constraint.type} className="flex items-start gap-3 rounded-[14px] border border-[rgba(0,0,0,0.06)] bg-[rgba(248,250,252,0.78)] px-4 py-3.5">
                       <span className="mt-[10px] h-1.5 w-1.5 shrink-0 rounded-full bg-primary-600" />
                       <div>
                         <p className="font-medium text-gray-900">{constraint.message}</p>
@@ -774,91 +923,58 @@ export default function Dashboard({ session, subscription }) {
                 </ul>
               </section>
             ) : null}
+            {dashboardState.canShowBorrowing ? (
+              <section
+                className={`mt-5 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+                style={isDashboardMounted ? { animationDelay: '360ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+              >
+                <BorrowingPowerBreakdown
+                  analysis={borrowingPowerAnalysis}
+                  onViewFullBreakdown={() => navigate('/borrowing-power')}
+                />
+              </section>
+            ) : null}
+
+            {commandCenter.urgentAlerts.length > 0 ? (
+              <section
+                className={`mt-5 rounded-[18px] border-[0.5px] border-[rgba(239,68,68,0.18)] bg-[linear-gradient(180deg,rgba(254,242,242,0.68),rgba(255,255,255,1))] p-6 shadow-[0_10px_24px_rgba(239,68,68,0.05)] md:p-7 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+                style={isDashboardMounted ? { animationDelay: '360ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+              >
+                <div className="flex items-center gap-2 text-red-700">
+                  <Siren size={18} />
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em]">
+                    Smart Alerts
+                  </p>
+                </div>
+
+                <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  {commandCenter.urgentAlerts.map((alert) => (
+                    <button
+                      key={alert.id}
+                      type="button"
+                      onClick={() => navigate(alert.route)}
+                      className="rounded-[14px] border border-[rgba(239,68,68,0.14)] bg-white/88 p-5 text-left transition-all duration-200 hover:border-[rgba(239,68,68,0.22)] hover:bg-white"
+                    >
+                      <p className="text-sm font-semibold text-gray-900">{alert.title}</p>
+                      <p className="mt-2 text-sm font-medium text-red-700">{alert.impact}</p>
+                      <p className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary-600">
+                        Explore
+                        <ChevronRight size={15} />
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            <section
+              className={`mt-5 rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.05)] bg-[rgba(248,250,252,0.7)] px-5 py-3 text-center text-[11px] leading-6 text-gray-400 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+              style={isDashboardMounted ? { animationDelay: '360ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+            >
+              <p>Illustrative only. Not financial advice.</p>
+            </section>
           </>
         )}
-
-        {dashboardState.hasProperties && commandCenter.urgentAlerts.length > 0 ? (
-          <section className="mt-8 rounded-[2rem] border border-red-100 bg-red-50/70 p-6 md:p-7">
-            <div className="flex items-center gap-2 text-red-700">
-              <Siren size={18} />
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em]">
-                Smart Alerts
-              </p>
-            </div>
-
-            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-              {commandCenter.urgentAlerts.map((alert) => (
-                <button
-                  key={alert.id}
-                  type="button"
-                  onClick={() => navigate(alert.route)}
-                  className="rounded-2xl border border-red-100 bg-white/80 p-5 text-left transition-colors hover:bg-white"
-                >
-                  <p className="text-sm font-semibold text-gray-900">{alert.title}</p>
-                  <p className="mt-2 text-sm font-medium text-red-700">{alert.impact}</p>
-                  <p className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary-600">
-                    Explore
-                    <ChevronRight size={15} />
-                  </p>
-                </button>
-              ))}
-            </div>
-          </section>
-        ) : null}
-
-        {dashboardState.hasProperties ? (
-          <div className="mt-8">
-          <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
-            <div className="flex items-end justify-between gap-4">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                  Portfolio
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold text-gray-900">
-                  Properties at a glance
-                </h2>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
-                  Each property shows its current position, so you can spot where
-                  the next intervention matters most.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => navigate('/properties')}
-                className="inline-flex items-center gap-2 text-sm font-semibold text-primary-600 transition-colors hover:text-primary-700"
-              >
-                View all
-                <ChevronRight size={15} />
-              </button>
-            </div>
-
-            <div className="mt-5 space-y-4">
-              {commandCenter.portfolioProperties.length > 0 ? (
-                commandCenter.portfolioProperties.map((property) => (
-                  <PropertyCard
-                    key={property.id}
-                    address={property.address}
-                    location={property.location}
-                    equity={property.equity}
-                    cashFlow={property.cashFlow}
-                    status={property.status}
-                    hasLoanCoverage={property.hasLoanCoverage}
-                    onExplore={() => navigate(property.route)}
-                  />
-                ))
-              ) : (
-                <EmptyState
-                  title="No properties yet"
-                  description="Add your first property to activate the Command Centre."
-                  actionLabel="Add Property"
-                  onAction={handleOpenAddProperty}
-                />
-              )}
-            </div>
-          </section>
-          </div>
-        ) : null}
       </main>
 
       {showAddProperty ? (
@@ -949,7 +1065,7 @@ function CompareOptionCard({ option }) {
     Number(option.annualImpact) >= 0 ? 'text-primary-700' : 'text-red-500'
 
   return (
-    <article className="rounded-3xl border border-gray-100 bg-gray-50/70 p-5">
+    <article className="rounded-3xl border border-gray-100 bg-gray-50/70 p-5 transition-[transform,box-shadow] duration-150 ease-out will-change-transform hover:-translate-y-[2px] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
       <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
         {option.scenario}
       </p>
