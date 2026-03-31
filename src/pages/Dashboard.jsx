@@ -393,6 +393,45 @@ export default function Dashboard({ session, subscription }) {
     liabilities,
   ])
 
+  const leadScenario =
+    commandCenter?.growthScenarios?.feasibleStrategies?.[0] ??
+    commandCenter?.growthScenarios?.nearViableStrategies?.[0] ??
+    commandCenter?.growthScenarios?.bestBlockedStrategy ??
+    null
+
+  const heroRangeLow = leadScenario
+    ? Math.round(
+        (leadScenario.fallbackPrice ??
+          leadScenario.scenarioPurchasePrice ??
+          475000) * 0.95
+      )
+    : null
+
+  const heroRangeHigh = leadScenario
+    ? Math.round(
+        (leadScenario.fallbackPrice ??
+          leadScenario.scenarioPurchasePrice ??
+          475000) * 1.10
+      )
+    : null
+
+  const heroMonthlyHoldingCost = leadScenario
+    ? (leadScenario.estimatedMonthlyCashFlow ??
+      leadScenario.estimatedPostPurchaseSurplus ??
+      null)
+    : null
+
+  const heroGrossYield = leadScenario
+    ? (leadScenario.estimatedGrossYield ??
+      leadScenario.expectedRentalYield ??
+      null)
+    : null
+
+  const heroFiveYearUplift = leadScenario
+    ? (leadScenario.fiveYearEquityProjection ??
+      null)
+    : null
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -488,18 +527,22 @@ export default function Dashboard({ session, subscription }) {
           style={isDashboardMounted ? { animationDelay: '50ms' } : { opacity: 0, transform: 'translateY(8px)' }}
         >
           <HeroDecisionCard
-            purchaseRangeLow={475000}
-            purchaseRangeHigh={550000}
-            fiveYearEquityUplift={298638}
-            monthlyHoldingCost={-982}
-            grossYield={5.5}
-            currentEquity={576500}
+            purchaseRangeLow={heroRangeLow}
+            purchaseRangeHigh={heroRangeHigh}
+            fiveYearEquityUplift={heroFiveYearUplift}
+            monthlyHoldingCost={heroMonthlyHoldingCost}
+            grossYield={heroGrossYield}
+            currentEquity={commandCenter?.hero?.netPosition?.value ?? commandCenter?.totalValue ?? 0}
             year3Equity={720000}
             year5Equity={875138}
-            unlockValue={39016}
-            acquisitionReadinessScore={79}
-            acquisitionReadinessLabel="Getting close"
-            isExecutable={true}
+            unlockValue={commandCenter?.hero?.borrowingPower?.unlockPotential ?? 0}
+            acquisitionReadinessScore={acquisitionReadiness?.finalScore ?? null}
+            acquisitionReadinessLabel={acquisitionReadiness?.label ?? null}
+            isExecutable={Boolean(
+              (commandCenter?.capacityUseCases?.length ?? 0) > 0 ||
+              yieldFirstScenario?.isExecutable ??
+              false
+            )}
           />
         </div>
 
