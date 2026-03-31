@@ -155,20 +155,34 @@ function normalizeScenario(scenario) {
 function AssumptionTrace({ text, className = '' }) {
   if (!text) return null
 
-  return <p className={`${className} mt-2 text-xs leading-5 text-slate-500`.trim()}>{text}</p>
+  return (
+    <p className={`${className} mt-2 text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]`.trim()}>
+      {text}
+    </p>
+  )
 }
 
 function BreakdownRow({ label, value, strong = false, helper = null }) {
   return (
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
-        <span className={`text-sm ${strong ? 'font-medium text-slate-700' : 'text-slate-500'}`}>
+        <span
+          className={`text-[13px] leading-[1.6] ${
+            strong ? 'font-medium text-slate-700' : 'font-normal text-[var(--color-text-secondary)]'
+          }`}
+        >
           {label}
         </span>
-        {helper ? <p className="mt-1 text-xs text-slate-500">{helper}</p> : null}
+        {helper ? (
+          <p className="mt-1 text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]">
+            {helper}
+          </p>
+        ) : null}
       </div>
       <span
-        className={`text-right text-sm ${strong ? 'font-semibold text-slate-900' : 'font-medium text-slate-900'}`}
+        className={`text-right text-[13px] leading-[1.6] ${
+          strong ? 'font-medium text-[var(--color-text-primary)]' : 'font-normal text-[var(--color-text-primary)]'
+        }`}
       >
         {value}
       </span>
@@ -281,7 +295,11 @@ function TaxAssumptionsContent({
 function ChartInsight({ text }) {
   if (!text) return null
 
-  return <p className="mt-4 text-sm leading-6 text-slate-600">{text}</p>
+  return (
+    <p className="mt-4 text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
+      {text}
+    </p>
+  )
 }
 
 function GraphPanel({
@@ -296,28 +314,40 @@ function GraphPanel({
   return (
     <div>
       {preface ? (
-        <p className="mb-4 max-w-[42rem] text-[0.98rem] leading-7 text-slate-600">{preface}</p>
+        <p className="mb-4 max-w-[42rem] text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
+          {preface}
+        </p>
       ) : null}
       {children}
       {insight || traceability || note || confidenceLabel ? (
         <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_1fr]">
           <div className="rounded-[1.45rem] border border-slate-200/80 bg-slate-50/80 px-4 py-4 md:px-5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+            <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
               Insight
             </p>
             {insight ? (
-              <p className="mt-3 text-[0.96rem] leading-7 text-slate-700">{insight}</p>
+              <p className="mt-3 text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
+                {insight}
+              </p>
             ) : null}
-            {note ? <p className="mt-2 text-xs leading-6 text-slate-500">{note}</p> : null}
+            {note ? (
+              <p className="mt-2 text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]">
+                {note}
+              </p>
+            ) : null}
           </div>
           <div className="rounded-[1.45rem] border border-slate-200/80 bg-white px-4 py-4 md:px-5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+            <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
               Traceability
             </p>
             <div className="mt-3 flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:gap-x-4 md:gap-y-2">
-              {traceability ? <p className="text-xs leading-6 text-slate-500">{traceability}</p> : null}
+              {traceability ? (
+                <p className="text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]">
+                  {traceability}
+                </p>
+              ) : null}
               {confidenceLabel ? (
-                <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">
+                <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
                   Confidence: {confidenceLabel}
                 </p>
               ) : null}
@@ -325,7 +355,9 @@ function GraphPanel({
           </div>
         </div>
       ) : null}
-      {warning ? <p className="mt-2 text-sm leading-6 text-amber-700">{warning}</p> : null}
+      {warning ? (
+        <p className="mt-2 text-[13px] font-normal leading-[1.6] text-amber-700">{warning}</p>
+      ) : null}
     </div>
   )
 }
@@ -440,8 +472,12 @@ function AnalysisChartCard({
   return (
     <div className="rounded-[1.75rem] border border-slate-200/80 bg-white p-5 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.35)] md:p-6">
       <div className="mb-5">
-        <p className="text-[1.05rem] font-semibold tracking-tight text-slate-950">{title}</p>
-        {subtitle ? <p className="mt-1.5 max-w-[44rem] text-sm leading-6 text-slate-600">{subtitle}</p> : null}
+        <p className="text-[15px] font-medium text-[var(--color-text-primary)]">{title}</p>
+        {subtitle ? (
+          <p className="mt-1.5 max-w-[44rem] text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
+            {subtitle}
+          </p>
+        ) : null}
       </div>
 
       <div className="rounded-[1.45rem] border border-slate-100 bg-slate-50/40 p-4 md:p-5">
@@ -1066,7 +1102,7 @@ export default function PortfolioGrowthScenariosRebuild() {
     (state) => state.setInterestRateInput
   )
   const microLabelClass =
-    'text-[11px] uppercase tracking-[0.18em] text-slate-500'
+    'text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]'
   const hasUsableScenarioInputs =
     properties.length > 0 ||
     loans.length > 0 ||
@@ -1889,15 +1925,15 @@ export default function PortfolioGrowthScenariosRebuild() {
       <main className="mx-auto max-w-[1680px] px-3 py-6 md:px-4 md:py-10">
         <section className="rounded-[30px] border border-slate-200/80 bg-white px-7 py-6 shadow-[0_6px_20px_rgba(15,23,42,0.03)] md:px-9 md:py-7">
           <div className="max-w-[900px]">
-            <p className="text-[11px] font-medium uppercase tracking-[0.30em] text-slate-500">
+            <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
               Growth Scenarios
             </p>
 
-            <h1 className="mt-3 text-[26px] font-semibold leading-[1.06] tracking-[-0.03em] text-slate-950 md:text-[30px]">
+            <h1 className="mt-3 text-[28px] font-medium tracking-[-0.3px] text-[var(--color-text-primary)]">
               Portfolio Growth Scenarios
             </h1>
 
-            <p className="mt-4 max-w-[760px] text-[14px] leading-7 text-slate-600 md:text-[15px]">
+            <p className="mt-4 max-w-[760px] text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
               Compare the next acquisition paths available from your current position and see which one creates the strongest 5-year outcome.
             </p>
           </div>

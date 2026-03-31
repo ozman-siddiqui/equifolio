@@ -508,9 +508,9 @@ export default function Mortgages({ session = null }) {
                   Refinance Engine v2
                 </div>
 
-                <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">Mortgages</h1>
+                <h1 className="text-[28px] font-medium tracking-[-0.3px] text-[var(--color-text-primary)]">Mortgages</h1>
 
-                <p className="mt-2 max-w-3xl text-gray-500">
+                <p className="mt-2 max-w-3xl text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
                   Quantify real refinance impact across the portfolio, rank the best opportunities,
                   and highlight where more data is needed before switching.
                 </p>
@@ -574,9 +574,9 @@ export default function Mortgages({ session = null }) {
           <div className="border-b border-gray-100 p-6">
             <div className="flex items-center gap-2">
               <Sparkles size={16} className="text-primary-600" />
-              <h2 className="text-base font-semibold text-gray-900">Portfolio ranking</h2>
+              <h2 className="text-[15px] font-medium text-[var(--color-text-primary)]">Portfolio ranking</h2>
             </div>
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
               Loans are ranked by recommendation strength, savings impact, confidence, and break-even speed.
             </p>
           </div>
@@ -597,7 +597,7 @@ export default function Mortgages({ session = null }) {
         <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
           <div className="grid grid-cols-1 gap-4 border-b border-gray-100 p-6 lg:grid-cols-12">
             <div className="lg:col-span-8">
-              <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-400">
+              <label className="mb-2 block text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
                 Search
               </label>
               <div className="relative">
@@ -615,7 +615,7 @@ export default function Mortgages({ session = null }) {
             </div>
 
             <div className="lg:col-span-4">
-              <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-400">
+              <label className="mb-2 block text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
                 Loan Type
               </label>
               <select
@@ -988,8 +988,8 @@ function MortgageAnalysisCard({
 function InlineMetric({ label, value }) {
   return (
     <div className="min-w-0 rounded-xl border border-gray-100 bg-gray-50/70 px-3 py-2">
-      <p className="text-[11px] uppercase tracking-wide text-gray-400">{label}</p>
-      <p className="mt-1 truncate font-semibold text-gray-900">{value}</p>
+      <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">{label}</p>
+      <p className="mt-1 truncate text-[13px] font-normal leading-[1.6] text-[var(--color-text-primary)]">{value}</p>
     </div>
   )
 }
@@ -1034,12 +1034,12 @@ function TopMetricCard({ icon, label, value, helper, valueClassName = 'text-gray
     <div className="rounded-xl border border-gray-100 bg-white p-5">
       <div className="flex items-center gap-2 text-gray-500">
         {icon}
-        <p className="text-xs font-medium uppercase tracking-wide">{label}</p>
+        <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">{label}</p>
       </div>
-      <p className={`mt-3 whitespace-nowrap text-2xl font-bold md:text-3xl ${valueClassName}`}>
+      <p className={`mt-3 whitespace-nowrap text-[26px] font-medium tracking-[-0.5px] ${valueClassName}`}>
         {value}
       </p>
-      <p className="mt-2 text-sm text-gray-400">{helper}</p>
+      <p className="mt-2 text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]">{helper}</p>
     </div>
   )
 }

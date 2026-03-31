@@ -131,8 +131,10 @@ export default function Properties() {
                   <Building2 size={13} />
                   Portfolio Workspace
                 </div>
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Properties</h1>
-                <p className="text-gray-500 mt-2 max-w-2xl">
+                <h1 className="text-[28px] font-medium tracking-[-0.3px] text-[var(--color-text-primary)]">
+                  Properties
+                </h1>
+                <p className="mt-2 max-w-2xl text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
                   Browse your portfolio at a glance. Open any property to manage cash flow,
                   mortgages, refinance options, and AI insights.
                 </p>
@@ -164,7 +166,7 @@ export default function Properties() {
           <div className="p-6 border-b border-gray-100">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               <div className="lg:col-span-6">
-                <label className="block text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
+                <label className="mb-2 block text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
                   Search
                 </label>
                 <div className="relative">
@@ -180,7 +182,7 @@ export default function Properties() {
               </div>
 
               <div className="lg:col-span-3">
-                <label className="block text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
+                <label className="mb-2 block text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
                   Use
                 </label>
                 <select
@@ -195,7 +197,7 @@ export default function Properties() {
               </div>
 
               <div className="lg:col-span-3">
-                <label className="block text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
+                <label className="mb-2 block text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
                   Sort
                 </label>
                 <select
@@ -216,8 +218,8 @@ export default function Properties() {
           {filteredProperties.length === 0 ? (
             <div className="p-12 text-center">
               <Home className="mx-auto text-gray-300 mb-3" size={28} />
-              <h3 className="text-lg font-semibold text-gray-900">No properties found</h3>
-              <p className="text-sm text-gray-500 mt-2">
+              <h3 className="text-[15px] font-medium text-[var(--color-text-primary)]">No properties found</h3>
+              <p className="mt-2 text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
                 Try another filter or add your first property.
               </p>
             </div>
@@ -279,8 +281,8 @@ export default function Properties() {
 function SummaryCard({ label, value, valueClassName = 'text-gray-900' }) {
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-5">
-      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{label}</p>
-      <p className={`text-xl md:text-2xl font-bold ${valueClassName}`}>{value}</p>
+      <p className="mb-1 text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">{label}</p>
+      <p className={`text-[26px] font-medium tracking-[-0.5px] ${valueClassName}`}>{value}</p>
     </div>
   )
 }

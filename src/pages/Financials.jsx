@@ -649,8 +649,8 @@ export default function Financials({ session = null }) {
                   Financial Data Layer
                 </div>
 
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Financials</h1>
-                <p className="text-gray-500 mt-2 max-w-2xl">
+                <h1 className="text-[28px] font-medium tracking-[-0.3px] text-[var(--color-text-primary)]">Financials</h1>
+                <p className="mt-2 max-w-2xl text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
                   Add borrower income and living expenses so Equifolio can build a
                   reliable financial profile for future serviceability and borrowing decisions.
                 </p>
@@ -1201,8 +1201,8 @@ function FinancialCard({ title, description, children, className = '', nested = 
       }
     >
       <div className={nested ? '' : 'mb-5'}>
-        <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-        <p className="text-sm text-gray-500 mt-1">{description}</p>
+        <h2 className="text-[15px] font-medium text-[var(--color-text-primary)]">{title}</h2>
+        <p className="mt-1 text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">{description}</p>
       </div>
       {children}
     </section>
@@ -1212,8 +1212,8 @@ function FinancialCard({ title, description, children, className = '', nested = 
 function Field({ label, helper = '', children }) {
   return (
     <div>
-      <p className="text-sm font-medium text-gray-700 mb-2">{label}</p>
-      {helper ? <p className="mb-2 text-xs text-gray-500">{helper}</p> : null}
+      <p className="mb-2 text-[15px] font-medium text-[var(--color-text-primary)]">{label}</p>
+      {helper ? <p className="mb-2 text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]">{helper}</p> : null}
       {children}
     </div>
   )
@@ -1224,10 +1224,10 @@ function TopMetricCard({ icon, label, value, helper }) {
     <div className="rounded-xl border border-gray-100 bg-white p-5">
       <div className="flex items-center gap-2 text-gray-500">
         {icon}
-        <p className="text-xs font-medium uppercase tracking-wide">{label}</p>
+        <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">{label}</p>
       </div>
-      <p className="mt-3 text-2xl font-bold text-gray-900 md:text-3xl">{value}</p>
-      <p className="mt-2 text-sm text-gray-400">{helper}</p>
+      <p className="mt-3 text-[26px] font-medium tracking-[-0.5px] text-[var(--color-text-primary)]">{value}</p>
+      <p className="mt-2 text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]">{helper}</p>
     </div>
   )
 }
@@ -1235,8 +1235,8 @@ function TopMetricCard({ icon, label, value, helper }) {
 function SummaryRow({ label, value }) {
   return (
     <div className="flex items-center justify-between gap-4 border-b border-gray-100 py-3 last:border-0">
-      <span className="text-sm text-gray-500">{label}</span>
-      <span className="text-sm font-semibold text-gray-900 text-right">{value}</span>
+      <span className="text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">{label}</span>
+      <span className="text-right text-[13px] font-normal leading-[1.6] text-[var(--color-text-primary)]">{value}</span>
     </div>
   )
 }
@@ -1244,8 +1244,8 @@ function SummaryRow({ label, value }) {
 function MiniStat({ label, value }) {
   return (
     <div>
-      <p className="text-xs text-gray-400">{label}</p>
-      <p className="mt-1 text-sm font-medium text-gray-900">{value}</p>
+      <p className="text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]">{label}</p>
+      <p className="mt-1 text-[13px] font-normal leading-[1.6] text-[var(--color-text-primary)]">{value}</p>
     </div>
   )
 }

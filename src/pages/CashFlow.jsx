@@ -232,10 +232,10 @@ export default function CashFlow() {
           <div className="p-6 md:p-8 border-b border-gray-100">
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
               <div className="min-w-0 flex-1">
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+                <h1 className="text-[28px] font-medium tracking-[-0.3px] text-[var(--color-text-primary)]">
                   Cash Flow
                 </h1>
-                <p className="text-gray-500 mt-2 max-w-2xl">
+                <p className="mt-2 max-w-2xl text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
                   Start with the portfolio picture, compare property-level performance,
                   then drill into filtered transaction detail only when you need it.
                 </p>
@@ -288,14 +288,14 @@ export default function CashFlow() {
           <div className="p-6 border-b border-gray-100">
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Trend</h2>
-                <p className="text-sm text-gray-500 mt-1">
+                <h2 className="text-[15px] font-medium text-[var(--color-text-primary)]">Trend</h2>
+                <p className="mt-1 text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
                   Monthly cash flow trend for the selected detail scope.
                 </p>
               </div>
 
               <div className="w-full lg:w-[280px]">
-                <label className="block text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
+                <label className="mb-2 block text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
                   Scope
                 </label>
                 <select
@@ -351,8 +351,8 @@ export default function CashFlow() {
 
         <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
           <div className="p-6 border-b border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-900">Property Breakdown</h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <h2 className="text-[15px] font-medium text-[var(--color-text-primary)]">Property Breakdown</h2>
+            <p className="mt-1 text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
               Compare each property at a glance before drilling into detailed transactions.
             </p>
           </div>
@@ -382,12 +382,12 @@ export default function CashFlow() {
                     <div>
                       <div className="flex items-center gap-2">
                         <Building2 size={16} className="text-gray-400 shrink-0" />
-                        <h3 className="text-base font-semibold text-gray-900 break-words">
+                        <h3 className="break-words text-[15px] font-medium text-[var(--color-text-primary)]">
                           {entry.property.address}
                         </h3>
                       </div>
 
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="mt-1 text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
                         {entry.property.suburb}, {entry.property.state}
                       </p>
                     </div>
@@ -432,15 +432,15 @@ export default function CashFlow() {
           <div className="p-6 border-b border-gray-100">
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Transactions</h2>
-                <p className="text-sm text-gray-500 mt-1">
+                <h2 className="text-[15px] font-medium text-[var(--color-text-primary)]">Transactions</h2>
+                <p className="mt-1 text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
                   Filter to one property or stay at portfolio level, then narrow by date range.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full lg:max-w-3xl">
                 <div>
-                  <label className="block text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
+                  <label className="mb-2 block text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
                     Property
                   </label>
                   <select
@@ -458,7 +458,7 @@ export default function CashFlow() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
+                  <label className="mb-2 block text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
                     Start date
                   </label>
                   <input
@@ -470,7 +470,7 @@ export default function CashFlow() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
+                  <label className="mb-2 block text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
                     End date
                   </label>
                   <input
@@ -644,9 +644,9 @@ function MetricCard({ icon, label, value, valueClassName = 'text-gray-900' }) {
     <div className="bg-white rounded-xl border border-gray-100 p-5">
       <div className="flex items-center gap-2 text-gray-400 mb-3">
         {icon}
-        <span className="text-xs font-medium uppercase tracking-wide">{label}</span>
+        <span className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">{label}</span>
       </div>
-      <p className={`text-xl md:text-2xl font-bold ${valueClassName}`}>{value}</p>
+      <p className={`text-[26px] font-medium tracking-[-0.5px] ${valueClassName}`}>{value}</p>
     </div>
   )
 }
@@ -654,8 +654,8 @@ function MetricCard({ icon, label, value, valueClassName = 'text-gray-900' }) {
 function Field({ label, value, valueClassName = 'text-gray-900' }) {
   return (
     <div>
-      <p className="text-xs text-gray-400">{label}</p>
-      <div className={`text-sm font-medium mt-1 break-words ${valueClassName}`}>{value}</div>
+      <p className="text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]">{label}</p>
+      <div className={`mt-1 break-words text-[13px] font-normal leading-[1.6] ${valueClassName}`}>{value}</div>
     </div>
   )
 }
@@ -693,8 +693,8 @@ function EmptyState({ icon, title, description }) {
       <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-3">
         {icon}
       </div>
-      <p className="text-sm font-semibold text-gray-900">{title}</p>
-      <p className="text-sm text-gray-500 mt-1">{description}</p>
+      <p className="text-[15px] font-medium text-[var(--color-text-primary)]">{title}</p>
+      <p className="mt-1 text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">{description}</p>
     </div>
   )
 }
