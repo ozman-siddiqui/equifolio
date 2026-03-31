@@ -641,6 +641,7 @@ export default function Dashboard({ session, subscription }) {
                         key={scenario.id}
                         label={`Option ${String.fromCharCode(65 + index)}`}
                         title={scenario.title}
+                        priceRangeLabel={scenario.estimatedPriceRangeLabel}
                         priceRange={scenario.estimatedPriceRange}
                         yieldText={scenario.expectedRentalYield}
                         metricText={scenario.monthlyCashFlow}
