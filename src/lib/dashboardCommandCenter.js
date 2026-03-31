@@ -762,6 +762,23 @@ export default function buildDashboardCommandCenter({
     }
   })
 
+  const bestBlockedStrategy =
+    growthScenarios.blockedStrategies?.length > 0
+      ? growthScenarios.blockedStrategies.reduce((best, current) => {
+          const bestGap =
+            best.requiredCapitalGap ??
+            best.additionalCapitalRequired ??
+            Infinity
+
+          const currentGap =
+            current.requiredCapitalGap ??
+            current.additionalCapitalRequired ??
+            Infinity
+
+          return currentGap < bestGap ? current : best
+        })
+      : null
+
   const currentAnnualCashImpact = Math.round(monthlyPropertyCashFlow * 12)
   const topRankedAction = topActions[0] || null
   const compareOptions = [
@@ -834,6 +851,10 @@ export default function buildDashboardCommandCenter({
 
   return {
     hero,
+    growthScenarios: {
+      ...growthScenarios,
+      bestBlockedStrategy,
+    },
     topActions,
     opportunities: opportunityList,
     urgentAlerts,
