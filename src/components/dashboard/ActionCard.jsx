@@ -22,68 +22,102 @@ export default function ActionCard({
   onExplore,
   featured = false,
 }) {
+  const accentClasses = featured
+    ? {
+        article:
+          'border-emerald-200 bg-[linear-gradient(180deg,rgba(240,253,248,0.86),rgba(255,255,255,1))] before:bg-emerald-500 hover:border-emerald-300',
+        badge: 'border border-emerald-200 bg-emerald-50 text-emerald-800',
+        label: 'text-emerald-700',
+        chip: 'border border-emerald-200 bg-emerald-50/90 text-emerald-800',
+      }
+    : {
+        article:
+          'border-amber-200 bg-[linear-gradient(180deg,rgba(255,251,235,0.78),rgba(255,255,255,1))] before:bg-amber-400 hover:border-amber-300',
+        badge: 'border border-amber-200 bg-amber-50 text-amber-800',
+        label: 'text-amber-700',
+        chip: 'border border-amber-200 bg-amber-50/90 text-amber-800',
+      }
+
   return (
     <article
-      className={`flex min-h-[248px] flex-col rounded-3xl border p-5 ${
-        featured ? 'border-primary-200 bg-primary-50/50' : 'border-gray-100 bg-gray-50/70'
-      }`}
+      className={`relative flex min-h-[264px] flex-col overflow-hidden rounded-[16px] border-[0.5px] p-6 shadow-[0_12px_28px_rgba(15,23,42,0.05)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_34px_rgba(15,23,42,0.08)] before:absolute before:bottom-0 before:left-0 before:top-0 before:w-1 ${accentClasses.article}`}
     >
-      <div className="grid min-h-[24px] grid-cols-[auto,minmax(0,1fr)] items-start gap-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+      <div className="relative grid min-h-[32px] grid-cols-[auto,minmax(0,1fr)] items-start gap-4">
+        <div
+          className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-[11px] font-semibold tracking-[0.18em] ${accentClasses.badge}`}
+        >
           #{rank}
-        </p>
-        <div className="justify-self-end max-w-[160px] text-right">
+        </div>
+        <div className="justify-self-end max-w-[180px] text-right">
           {sequenceLabel ? (
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary-600">
+            <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${accentClasses.label}`}>
               {sequenceLabel}
-            </p>
-          ) : null}
-          {borrowingImpact ? (
-            <p
-              className="mt-1 text-sm font-semibold text-primary-700 break-words"
-              style={clamp(2)}
-            >
-              {borrowingImpact}
-            </p>
-          ) : impact ? (
-            <p
-              className="mt-1 text-sm font-semibold text-primary-700 break-words"
-              style={clamp(2)}
-            >
-              {impact}
-            </p>
-          ) : null}
-          {monthlyImpact ? (
-            <p className="mt-1 text-xs font-medium text-gray-600 break-words" style={clamp(2)}>
-              {monthlyImpact}
-            </p>
-          ) : null}
-          {yearlyImpact ? (
-            <p className="mt-1 text-xs font-medium text-gray-600 break-words" style={clamp(2)}>
-              {yearlyImpact}
             </p>
           ) : null}
         </div>
       </div>
 
-      <div className="mt-4 min-h-[64px]">
-        <h3 className="text-base font-semibold leading-7 text-gray-900 break-words" style={clamp(2)}>
+      <div className="relative mt-4 flex min-h-[76px] flex-col justify-start">
+        <h3
+          className="text-[19px] font-semibold leading-7 tracking-[-0.02em] text-gray-900 break-words"
+          style={clamp(2)}
+        >
           {title}
         </h3>
       </div>
 
-      <div className="mt-3 min-h-[60px]">
+      <div className="relative mt-4 flex min-h-[74px] flex-wrap gap-2">
+        {borrowingImpact ? (
+          <p
+            className={`inline-flex max-w-full items-center rounded-full px-3 py-1.5 text-xs font-semibold break-words ${accentClasses.chip}`}
+            style={clamp(2)}
+          >
+            {borrowingImpact}
+          </p>
+        ) : impact ? (
+          <p
+            className={`inline-flex max-w-full items-center rounded-full px-3 py-1.5 text-xs font-semibold break-words ${accentClasses.chip}`}
+            style={clamp(2)}
+          >
+            {impact}
+          </p>
+        ) : null}
+        {monthlyImpact ? (
+          <p
+            className="inline-flex max-w-full items-center rounded-full border border-gray-200 bg-white/90 px-3 py-1.5 text-xs font-medium text-gray-700 break-words"
+            style={clamp(2)}
+          >
+            {monthlyImpact}
+          </p>
+        ) : null}
+        {yearlyImpact ? (
+          <p
+            className="inline-flex max-w-full items-center rounded-full border border-gray-200 bg-white/90 px-3 py-1.5 text-xs font-medium text-gray-700 break-words"
+            style={clamp(2)}
+          >
+            {yearlyImpact}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="relative mt-4 min-h-[72px]">
         {rankReason ? (
-          <p className="text-sm font-medium leading-6 text-gray-900 break-words" style={clamp(2)}>
+          <p
+            className="text-sm font-medium leading-6 text-gray-900 break-words"
+            style={clamp(2)}
+          >
             {rankReason}
           </p>
         ) : null}
-        <p className="text-sm leading-6 text-gray-600 break-words" style={clamp(2)}>
+        <p
+          className={`${rankReason ? 'mt-2' : ''} text-sm leading-6 text-gray-600 break-words`}
+          style={clamp(2)}
+        >
           {explanation}
         </p>
       </div>
 
-      <div className="mt-auto pt-5">
+      <div className="relative mt-auto pt-6">
         <button
           type="button"
           onClick={onExplore}

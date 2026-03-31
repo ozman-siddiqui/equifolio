@@ -689,7 +689,27 @@ export default function Dashboard({ session, subscription }) {
               <SetupProgress state={dashboardState} onOpenSection={(route) => navigate(route)} />
             )}
 
-            <section className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-[1.45fr,0.8fr]">
+            {dashboardState.canShowBorrowing && commandCenter.compareOptions?.length > 0 ? (
+              <section className="mt-8 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+                  Trade-offs
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold text-gray-900">
+                  Compare your options
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-gray-600">
+                  See the financial consequences of staying put, applying the top recommendation, or deploying capital now.
+                </p>
+
+                <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-3">
+                  {commandCenter.compareOptions.map((option) => (
+                    <CompareOptionCard key={option.id} option={option} />
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            <section className="mt-5 grid grid-cols-1 gap-6 xl:grid-cols-[1.45fr,0.8fr]">
               {dashboardState.canShowBorrowing && commandCenter.capacityUseCases.length > 0 ? (
                 <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
                   <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -745,38 +765,61 @@ export default function Dashboard({ session, subscription }) {
                   onAction={(route) => navigate(route)}
                 />
               )}
+            </section>
+
+            <section className="mt-5 grid grid-cols-1 gap-6 xl:grid-cols-[1.45fr,0.8fr]">
+              <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
+                <div className="flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+                      Portfolio
+                    </p>
+                    <h2 className="mt-2 text-2xl font-semibold text-gray-900">
+                      Properties at a glance
+                    </h2>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+                      Each property shows its current position, so you can spot where
+                      the next intervention matters most.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => navigate('/properties')}
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-primary-600 transition-colors hover:text-primary-700"
+                  >
+                    View all
+                    <ChevronRight size={15} />
+                  </button>
+                </div>
+
+                <div className="mt-5 space-y-4">
+                  {commandCenter.portfolioProperties.length > 0 ? (
+                    commandCenter.portfolioProperties.map((property) => (
+                      <PropertyCard
+                        key={property.id}
+                        address={property.address}
+                        location={property.location}
+                        equity={property.equity}
+                        cashFlow={property.cashFlow}
+                        status={property.status}
+                        hasLoanCoverage={property.hasLoanCoverage}
+                        onExplore={() => navigate(property.route)}
+                      />
+                    ))
+                  ) : (
+                    <EmptyState
+                      title="No properties yet"
+                      description="Add your first property to activate the Command Centre."
+                      actionLabel="Add Property"
+                      onAction={handleOpenAddProperty}
+                    />
+                  )}
+                </div>
+              </section>
 
               <AIOpportunityCard currentUserId={session.user.id} loans={loans} />
             </section>
-
-            {dashboardState.canShowBorrowing ? (
-              <section className="mt-5">
-                <BorrowingPowerBreakdown
-                  analysis={borrowingPowerAnalysis}
-                  onViewFullBreakdown={() => navigate('/borrowing-power')}
-                />
-              </section>
-            ) : null}
-
-            {dashboardState.canShowBorrowing && commandCenter.compareOptions?.length > 0 ? (
-              <section className="mt-5 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                  Trade-offs
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold text-gray-900">
-                  Compare your options
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-gray-600">
-                  See the financial consequences of staying put, applying the top recommendation, or deploying capital now.
-                </p>
-
-                <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-3">
-                  {commandCenter.compareOptions.map((option) => (
-                    <CompareOptionCard key={option.id} option={option} />
-                  ))}
-                </div>
-              </section>
-            ) : null}
 
             {dashboardState.canShowBorrowing && Array.isArray(borrowingPowerAnalysis?.topConstraints) && borrowingPowerAnalysis.topConstraints.length > 0 ? (
               <section className="mt-5 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
@@ -805,91 +848,49 @@ export default function Dashboard({ session, subscription }) {
                 </ul>
               </section>
             ) : null}
+            {dashboardState.canShowBorrowing ? (
+              <section className="mt-5">
+                <BorrowingPowerBreakdown
+                  analysis={borrowingPowerAnalysis}
+                  onViewFullBreakdown={() => navigate('/borrowing-power')}
+                />
+              </section>
+            ) : null}
+
+            {commandCenter.urgentAlerts.length > 0 ? (
+              <section className="mt-5 rounded-[2rem] border border-red-100 bg-red-50/70 p-6 md:p-7">
+                <div className="flex items-center gap-2 text-red-700">
+                  <Siren size={18} />
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em]">
+                    Smart Alerts
+                  </p>
+                </div>
+
+                <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  {commandCenter.urgentAlerts.map((alert) => (
+                    <button
+                      key={alert.id}
+                      type="button"
+                      onClick={() => navigate(alert.route)}
+                      className="rounded-2xl border border-red-100 bg-white/80 p-5 text-left transition-colors hover:bg-white"
+                    >
+                      <p className="text-sm font-semibold text-gray-900">{alert.title}</p>
+                      <p className="mt-2 text-sm font-medium text-red-700">{alert.impact}</p>
+                      <p className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary-600">
+                        Explore
+                        <ChevronRight size={15} />
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            <section className="mt-5 pb-2 text-center text-xs leading-6 text-gray-400">
+              <p>Illustrative only. Not financial advice.</p>
+            </section>
           </>
         )}
-
-        {dashboardState.hasProperties && commandCenter.urgentAlerts.length > 0 ? (
-          <section className="mt-8 rounded-[2rem] border border-red-100 bg-red-50/70 p-6 md:p-7">
-            <div className="flex items-center gap-2 text-red-700">
-              <Siren size={18} />
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em]">
-                Smart Alerts
-              </p>
-            </div>
-
-            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-              {commandCenter.urgentAlerts.map((alert) => (
-                <button
-                  key={alert.id}
-                  type="button"
-                  onClick={() => navigate(alert.route)}
-                  className="rounded-2xl border border-red-100 bg-white/80 p-5 text-left transition-colors hover:bg-white"
-                >
-                  <p className="text-sm font-semibold text-gray-900">{alert.title}</p>
-                  <p className="mt-2 text-sm font-medium text-red-700">{alert.impact}</p>
-                  <p className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary-600">
-                    Explore
-                    <ChevronRight size={15} />
-                  </p>
-                </button>
-              ))}
-            </div>
-          </section>
-        ) : null}
-
-        {dashboardState.hasProperties ? (
-          <div className="mt-8">
-          <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
-            <div className="flex items-end justify-between gap-4">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                  Portfolio
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold text-gray-900">
-                  Properties at a glance
-                </h2>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
-                  Each property shows its current position, so you can spot where
-                  the next intervention matters most.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => navigate('/properties')}
-                className="inline-flex items-center gap-2 text-sm font-semibold text-primary-600 transition-colors hover:text-primary-700"
-              >
-                View all
-                <ChevronRight size={15} />
-              </button>
-            </div>
-
-            <div className="mt-5 space-y-4">
-              {commandCenter.portfolioProperties.length > 0 ? (
-                commandCenter.portfolioProperties.map((property) => (
-                  <PropertyCard
-                    key={property.id}
-                    address={property.address}
-                    location={property.location}
-                    equity={property.equity}
-                    cashFlow={property.cashFlow}
-                    status={property.status}
-                    hasLoanCoverage={property.hasLoanCoverage}
-                    onExplore={() => navigate(property.route)}
-                  />
-                ))
-              ) : (
-                <EmptyState
-                  title="No properties yet"
-                  description="Add your first property to activate the Command Centre."
-                  actionLabel="Add Property"
-                  onAction={handleOpenAddProperty}
-                />
-              )}
-            </div>
-          </section>
-          </div>
-        ) : null}
       </main>
 
       {showAddProperty ? (
