@@ -12,7 +12,6 @@ import DashboardBorrowingPowerCard from '../components/dashboard/BorrowingPowerC
 import BorrowingPowerBreakdown from '../components/dashboard/BorrowingPowerBreakdown'
 import HeroDecisionCard from '../components/dashboard/HeroDecisionCard'
 import PropertyCard from '../components/dashboard/PropertyCard'
-import ScenarioCard from '../components/dashboard/ScenarioCard'
 import SetupProgress from '../components/dashboard/SetupProgress'
 import { buildAlerts } from '../components/AlertsDropdown'
 import { utilityPrimaryButtonClass, utilitySecondaryButtonClass } from '../components/CardPrimitives'
@@ -432,6 +431,14 @@ export default function Dashboard({ session, subscription }) {
       null)
     : null
 
+  const heroYear3Equity =
+    leadScenario?.projectionData?.find((point) => point.year === 3)?.netEquity ?? null
+
+  const heroYear5Equity =
+    leadScenario?.projectionData?.find((point) => point.year === 5)?.netEquity ??
+    leadScenario?.fiveYearEquityProjection ??
+    null
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -533,8 +540,8 @@ export default function Dashboard({ session, subscription }) {
             monthlyHoldingCost={heroMonthlyHoldingCost}
             grossYield={heroGrossYield}
             currentEquity={commandCenter?.hero?.netPosition?.value ?? commandCenter?.totalValue ?? 0}
-            year3Equity={720000}
-            year5Equity={875138}
+            year3Equity={heroYear3Equity}
+            year5Equity={heroYear5Equity}
             unlockValue={commandCenter?.hero?.borrowingPower?.unlockPotential ?? 0}
             acquisitionReadinessScore={acquisitionReadiness?.finalScore ?? null}
             acquisitionReadinessLabel={acquisitionReadiness?.label ?? null}
@@ -589,7 +596,6 @@ export default function Dashboard({ session, subscription }) {
                           label: 'LVR',
                           targetLabel: 'Target 60%',
                           valuePct: 60,
-                          note: 'Hover: card lifts 2px, border darkens subtly',
                         }
                   }
                   subtitle={
@@ -730,6 +736,18 @@ export default function Dashboard({ session, subscription }) {
               )}
             </section>
 
+            {dashboardState.canShowBorrowing ? (
+              <section
+                className={`mt-5 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+                style={isDashboardMounted ? { animationDelay: '150ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+              >
+                <BorrowingPowerBreakdown
+                  analysis={borrowingPowerAnalysis}
+                  onViewFullBreakdown={() => navigate('/borrowing-power')}
+                />
+              </section>
+            ) : null}
+
             {dashboardState.canShowTopActions ? (
               <section
                 className={`mt-6 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
@@ -817,7 +835,7 @@ export default function Dashboard({ session, subscription }) {
                   Compare your options
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-gray-600">
-                  See the financial consequences of staying put, applying the top recommendation, or deploying capital now.
+                  Compare the annual cash-flow outcome of staying on your current path, applying the top action, or adding the modeled acquisition.
                 </p>
 
                 <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-3">
@@ -832,47 +850,46 @@ export default function Dashboard({ session, subscription }) {
               className={`mt-5 grid grid-cols-1 gap-6 xl:grid-cols-[1.45fr,0.8fr] ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
               style={isDashboardMounted ? { animationDelay: '270ms' } : { opacity: 0, transform: 'translateY(8px)' }}
             >
-              {dashboardState.canShowBorrowing && commandCenter.capacityUseCases.length > 0 ? (
-                <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
-                  <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                        Growth
-                      </p>
-                      <h2 className="mt-2 text-2xl font-semibold text-gray-900">
-                        Deploy your borrowing capacity
-                      </h2>
-                      <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
-                        Engine-generated acquisition scenarios based on your real serviceability and capital position.
-                      </p>
-                    </div>
+              <section
+                className="min-h-[140px] rounded-[18px] border p-[22px] md:px-[26px] md:py-[22px]"
+                style={{
+                  background: 'linear-gradient(135deg, #f4faf7 0%, #ffffff 100%)',
+                  borderColor: '#c8e8dc',
+                }}
+              >
+                <div className="flex h-full flex-col justify-between gap-5 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="max-w-2xl">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#6b7d75]">
+                      Growth Scenario Studio
+                    </p>
+                    <h2 className="mt-2 text-[16px] font-medium text-[#133230]">
+                      Stress-test every acquisition path
+                    </h2>
+                    <p className="mt-3 max-w-xl text-[13px] leading-[1.6] text-[#666666]">
+                      Explore multiple buy strategies, compare serviceability outcomes,
+                      and model your 30-year wealth trajectory using your real portfolio
+                      data.
+                    </p>
                   </div>
 
-                  <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                    {commandCenter.capacityUseCases.slice(0, 3).map((scenario, index) => (
-                      <ScenarioCard
-                        key={scenario.id}
-                        label={`Option ${String.fromCharCode(65 + index)}`}
-                        title={scenario.title}
-                        priceRangeLabel={scenario.estimatedPriceRangeLabel}
-                        priceRange={scenario.estimatedPriceRange}
-                        yieldText={scenario.expectedRentalYield}
-                        metricText={scenario.monthlyCashFlow}
-                        rationale={scenario.outcome}
-                        onExplore={() => navigate('/growth-scenarios')}
-                      />
-                    ))}
+                  <div className="flex flex-col items-start lg:items-end">
+                    <button
+                      type="button"
+                      onClick={() => navigate('/growth-scenarios')}
+                      className="inline-flex h-[44px] items-center rounded-[12px] bg-[#133230] px-[18px] text-[13px] font-medium text-white transition-colors hover:bg-[#0f2927]"
+                    >
+                      Open Scenario Studio →
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/growth-scenarios')}
+                      className="mt-2 inline-flex h-[40px] items-center rounded-[12px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-white px-[18px] text-[13px] text-gray-800 transition-colors hover:bg-gray-50"
+                    >
+                      Open 30Y Projection
+                    </button>
                   </div>
-                </section>
-              ) : dashboardState.canShowBorrowing ? null : (
-                <LockedChecklistCard
-                  eyebrow="Growth"
-                  title="Complete setup to unlock borrowing analysis"
-                  body="Scenarios only appear when serviceability inputs are complete enough to support a real borrowing view."
-                  missingSections={dashboardState.missingSections}
-                  onAction={(route) => navigate(route)}
-                />
-              )}
+                </div>
+              </section>
             </section>
 
             <section
@@ -966,18 +983,6 @@ export default function Dashboard({ session, subscription }) {
                 </ul>
               </section>
             ) : null}
-            {dashboardState.canShowBorrowing ? (
-              <section
-                className={`mt-5 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
-                style={isDashboardMounted ? { animationDelay: '360ms' } : { opacity: 0, transform: 'translateY(8px)' }}
-              >
-                <BorrowingPowerBreakdown
-                  analysis={borrowingPowerAnalysis}
-                  onViewFullBreakdown={() => navigate('/borrowing-power')}
-                />
-              </section>
-            ) : null}
-
             {commandCenter.urgentAlerts.length > 0 ? (
               <section
                 className={`mt-5 rounded-[18px] border-[0.5px] border-[rgba(239,68,68,0.18)] bg-[linear-gradient(180deg,rgba(254,242,242,0.68),rgba(255,255,255,1))] p-6 shadow-[0_10px_24px_rgba(239,68,68,0.05)] md:p-7 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
@@ -1106,6 +1111,22 @@ function EmptyState({ title, description, actionLabel = null, onAction = null })
 function CompareOptionCard({ option }) {
   const annualTone =
     Number(option.annualImpact) >= 0 ? 'text-primary-700' : 'text-red-500'
+  const borrowingLabel =
+    option.id === 'do-nothing'
+      ? 'Current borrowing headroom'
+      : option.id === 'apply-top-action'
+        ? 'Borrowing headroom after action'
+        : option.id === 'buy-now'
+          ? 'Remaining headroom after purchase'
+          : 'Borrowing headroom'
+  const outcomeHelper =
+    option.id === 'do-nothing'
+      ? 'Current annual portfolio cash-flow outcome'
+      : option.id === 'apply-top-action'
+        ? 'Annual outcome after applying the top action'
+        : option.id === 'buy-now'
+          ? 'Annual outcome after adding the acquisition'
+          : null
 
   return (
     <article className="rounded-3xl border border-gray-100 bg-gray-50/70 p-5 transition-[transform,box-shadow] duration-150 ease-out will-change-transform hover:-translate-y-[2px] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
@@ -1117,9 +1138,12 @@ function CompareOptionCard({ option }) {
           Math.abs(Number(option.annualImpact || 0))
         )}/year`}
       </p>
+      {outcomeHelper ? (
+        <p className="mt-[6px] text-[12px] leading-[1.5] text-gray-500">{outcomeHelper}</p>
+      ) : null}
       <div className="mt-4 space-y-2 text-sm text-gray-600">
         <div className="flex items-center justify-between gap-4">
-          <span>Borrowing position</span>
+          <span>{borrowingLabel}</span>
           <span className="font-semibold text-gray-900">
             {formatCurrency(option.borrowing)}
           </span>
