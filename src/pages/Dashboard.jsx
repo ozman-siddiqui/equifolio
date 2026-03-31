@@ -10,6 +10,7 @@ import CommandCentreCard from '../components/dashboard/CommandCentreCard'
 import DashboardPromptCard from '../components/dashboard/DashboardPromptCard'
 import DashboardBorrowingPowerCard from '../components/dashboard/BorrowingPowerCard'
 import BorrowingPowerBreakdown from '../components/dashboard/BorrowingPowerBreakdown'
+import HeroDecisionCard from '../components/dashboard/HeroDecisionCard'
 import PropertyCard from '../components/dashboard/PropertyCard'
 import ScenarioCard from '../components/dashboard/ScenarioCard'
 import SetupProgress from '../components/dashboard/SetupProgress'
@@ -445,18 +446,22 @@ export default function Dashboard({ session, subscription }) {
           </div>
         </section>
 
-        {Number(dashboardState?.setupCompletionPct ?? 0) === 100 ? (
-          <section className="mt-6 rounded-2xl border border-gray-100 bg-white px-5 py-4">
-            <p className="text-sm text-gray-600">
-              Portfolio data complete · Decision confidence: {commandCenter.decisionConfidence} ·
-              {' '}Data coverage: {commandCenter.dataCoveragePct}%
-            </p>
-          </section>
-        ) : (
-          <SetupProgress state={dashboardState} onOpenSection={(route) => navigate(route)} />
-        )}
-
-        <AIOpportunityCard currentUserId={session.user.id} loans={loans} />
+        <div className="mt-5 mb-[22px]">
+          <HeroDecisionCard
+            purchaseRangeLow={475000}
+            purchaseRangeHigh={550000}
+            fiveYearEquityUplift={298638}
+            monthlyHoldingCost={-982}
+            grossYield={5.5}
+            currentEquity={576500}
+            year3Equity={720000}
+            year5Equity={875138}
+            unlockValue={39016}
+            acquisitionReadinessScore={79}
+            acquisitionReadinessLabel="Getting close"
+            isExecutable={true}
+          />
+        </div>
 
         {!dashboardState.hasProperties ? (
           <section className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-2">
@@ -618,6 +623,72 @@ export default function Dashboard({ session, subscription }) {
               )}
             </section>
 
+            {dashboardState.canShowTopActions ? (
+              <section className="mt-6 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+                    Actions
+                  </p>
+                  <h2 className="mt-2 text-2xl font-semibold text-gray-900">
+                    What to fix first
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 text-gray-600">
+                    Ranked actions unlocked from validated portfolio, mortgage, and household inputs.
+                  </p>
+                </div>
+
+                <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-2">
+                  {commandCenter.topActions.slice(0, 2).map((action, index) => (
+                    <ActionCard
+                      key={action.id}
+                      rank={action.rank ?? index + 1}
+                      sequenceLabel={action.sequenceLabel}
+                      title={action.title}
+                      impact={action.impactLabel || action.impact}
+                      monthlyImpact={action.monthlyImpactDisplay}
+                      yearlyImpact={action.yearlyImpactDisplay}
+                      borrowingImpact={action.borrowingImpactDisplay}
+                      rankReason={action.sequenceReason}
+                      explanation={action.whyItMatters || action.problem}
+                      featured={index === 0}
+                      onExplore={() => navigate(action.route)}
+                    />
+                  ))}
+                </div>
+              </section>
+            ) : (
+              <section className="mt-6">
+                <LockedChecklistCard
+                  eyebrow="Actions"
+                  title="Unlock your top actions"
+                  body={dashboardState.topActionsLockedReason}
+                  missingSections={dashboardState.missingSections}
+                  onAction={(route) => navigate(route)}
+                />
+              </section>
+            )}
+
+            <section className="mt-8">
+              <div className="flex items-center gap-4">
+                <div className="h-px flex-1 bg-[rgba(0,0,0,0.08)]" />
+                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+                  Below the fold · compare paths
+                </p>
+                <div className="h-px flex-1 bg-[rgba(0,0,0,0.08)]" />
+              </div>
+            </section>
+
+            {Number(dashboardState?.setupCompletionPct ?? 0) === 100 ? (
+              <section className="hidden">
+                <p className="text-sm text-gray-600">
+                  Portfolio data complete · Decision confidence: {commandCenter.decisionConfidence} ·
+                  {' '}Data coverage: {commandCenter.dataCoveragePct}%
+                </p>
+              </section>
+            ) : (
+              <SetupProgress state={dashboardState} onOpenSection={(route) => navigate(route)} />
+            )}
+
             <section className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-[1.45fr,0.8fr]">
               {dashboardState.canShowBorrowing && commandCenter.capacityUseCases.length > 0 ? (
                 <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
@@ -675,48 +746,7 @@ export default function Dashboard({ session, subscription }) {
                 />
               )}
 
-              {dashboardState.canShowTopActions ? (
-                <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                      Actions
-                    </p>
-                    <h2 className="mt-2 text-2xl font-semibold text-gray-900">
-                      What to fix first
-                    </h2>
-                    <p className="mt-2 text-sm leading-6 text-gray-600">
-                      Ranked actions unlocked from validated portfolio, mortgage, and household inputs.
-                    </p>
-                  </div>
-
-                  <div className="mt-5 space-y-3">
-                    {commandCenter.topActions.map((action, index) => (
-                      <ActionCard
-                        key={action.id}
-                        rank={action.rank ?? index + 1}
-                        sequenceLabel={action.sequenceLabel}
-                        title={action.title}
-                        impact={action.impactLabel || action.impact}
-                        monthlyImpact={action.monthlyImpactDisplay}
-                        yearlyImpact={action.yearlyImpactDisplay}
-                        borrowingImpact={action.borrowingImpactDisplay}
-                        rankReason={action.sequenceReason}
-                        explanation={action.whyItMatters || action.problem}
-                        featured={index === 0}
-                        onExplore={() => navigate(action.route)}
-                      />
-                    ))}
-                  </div>
-                </section>
-              ) : (
-                <LockedChecklistCard
-                  eyebrow="Actions"
-                  title="Unlock your top actions"
-                  body={dashboardState.topActionsLockedReason}
-                  missingSections={dashboardState.missingSections}
-                  onAction={(route) => navigate(route)}
-                />
-              )}
+              <AIOpportunityCard currentUserId={session.user.id} loans={loans} />
             </section>
 
             {dashboardState.canShowBorrowing ? (
