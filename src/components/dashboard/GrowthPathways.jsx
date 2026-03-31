@@ -31,6 +31,122 @@ const TONE_STYLES = {
   },
 }
 
+const READINESS_TONE_STYLES = {
+  ready: {
+    border: 'border-emerald-200/80',
+    badge: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+    panel: 'bg-emerald-50/40',
+    progress: 'bg-emerald-500',
+  },
+  close: {
+    border: 'border-emerald-200/80',
+    badge: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+    panel: 'bg-emerald-50/40',
+    progress: 'bg-emerald-500',
+  },
+  building: {
+    border: 'border-amber-200/80',
+    badge: 'bg-amber-50 text-amber-700 ring-amber-200',
+    panel: 'bg-amber-50/40',
+    progress: 'bg-amber-500',
+  },
+  early: {
+    border: 'border-slate-200/80',
+    badge: 'bg-slate-50 text-slate-700 ring-slate-200',
+    panel: 'bg-slate-50/70',
+    progress: 'bg-slate-400',
+  },
+}
+
+function formatConstraintLabel(constraint) {
+  switch (constraint) {
+    case 'borrowing':
+      return 'Borrowing capacity'
+    case 'capital':
+      return 'Capital position'
+    case 'data':
+      return 'Data completeness'
+    case 'cashflow':
+      return 'Cash flow health'
+    case 'equity':
+      return 'Portfolio equity'
+    default:
+      return 'Readiness'
+  }
+}
+
+function formatPillarLabel(key) {
+  switch (key) {
+    case 'dataCompleteness':
+      return 'Data completeness'
+    case 'borrowingCapacity':
+      return 'Borrowing capacity'
+    case 'capitalPosition':
+      return 'Capital position'
+    case 'cashFlowHealth':
+      return 'Cash flow health'
+    case 'portfolioEquity':
+      return 'Portfolio equity'
+    default:
+      return key
+  }
+}
+
+function ReadinessScoreBlock({ acquisitionReadiness }) {
+  const tone = READINESS_TONE_STYLES[acquisitionReadiness?.band] || READINESS_TONE_STYLES.early
+  const primaryConstraint = formatConstraintLabel(acquisitionReadiness?.primaryConstraint)
+
+  return (
+    <article
+      className={`rounded-[2rem] border bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7 ${tone.border}`}
+    >
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+            Acquisition readiness
+          </p>
+          <p className="mt-3 text-sm text-gray-600">
+            Primary constraint: <span className="font-semibold text-gray-900">{primaryConstraint}</span>
+          </p>
+          <p className="mt-2 text-sm leading-6 text-gray-600">
+            {acquisitionReadiness.topUnlockAction}
+          </p>
+        </div>
+
+        <div className={`rounded-[1.5rem] border border-white/80 px-5 py-4 text-center shadow-[0_18px_40px_-34px_rgba(15,23,42,0.12)] ${tone.panel}`}>
+          <p className="text-4xl font-semibold tracking-tight text-gray-900">
+            {acquisitionReadiness.finalScore}%
+          </p>
+          <div
+            className={`mt-3 inline-flex rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ring-1 ${tone.badge}`}
+          >
+            {acquisitionReadiness.label}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-5">
+        {Object.entries(acquisitionReadiness.pillars || {}).map(([key, pillar]) => (
+          <div key={key} className="rounded-2xl border border-gray-100 bg-gray-50/70 px-4 py-4">
+            <p className="text-xs uppercase tracking-wide text-gray-500">
+              {formatPillarLabel(key)}
+            </p>
+            <p className="mt-2 text-lg font-semibold text-gray-900">
+              {Number(pillar?.score || 0)}%
+            </p>
+            <div className="mt-3 h-2 rounded-full bg-white">
+              <div
+                className={`h-2 rounded-full ${tone.progress}`}
+                style={{ width: `${Math.max(0, Math.min(100, Number(pillar?.score || 0)))}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </article>
+  )
+}
+
 function PathwayCard({ badge, title, tone = 'slate', children }) {
   const styles = TONE_STYLES[tone] || TONE_STYLES.slate
 
@@ -117,9 +233,9 @@ function YieldFirstContent({
     return (
       <PathwayCard badge="Possible Now" title="Yield-first acquisition" tone="emerald">
         <p>
-          Properties in the {formatCurrency(yieldFirst.purchaseRangeLow)}–
+          Properties in the {formatCurrency(yieldFirst.purchaseRangeLow)}-
           {formatCurrency(yieldFirst.purchaseRangeHigh)} range with{' '}
-          {yieldFirst.yieldRangeLow}–{yieldFirst.yieldRangeHigh}% gross yield may be near
+          {yieldFirst.yieldRangeLow}-{yieldFirst.yieldRangeHigh}% gross yield may be near
           cash-flow neutral under current borrowing settings.
         </p>
         <p>{buildHoldingText(yieldFirst)}</p>
@@ -139,9 +255,10 @@ function YieldFirstContent({
   if (yieldFirst?.constraintType === 'borrowing') {
     const regionalFloor = MARKET_FLOORS.regionalYield
     const gapToEntry = Math.max(0, regionalFloor - Number(yieldFirst.maxPurchase || 0))
-    const lenderSupportedLoanAmount = Number.isFinite(Number(borrowingCapacity)) && Number(borrowingCapacity) > 0
-      ? Number(borrowingCapacity)
-      : Number(yieldFirst.maxPurchase || 0) * 0.8
+    const lenderSupportedLoanAmount =
+      Number.isFinite(Number(borrowingCapacity)) && Number(borrowingCapacity) > 0
+        ? Number(borrowingCapacity)
+        : Number(yieldFirst.maxPurchase || 0) * 0.8
     const cashAvailable = Number(growthInputs?.cashAvailableForInvestment)
     const usableEquity = Number(
       growthInputs?.usableEquity ??
@@ -226,7 +343,7 @@ function YieldFirstContent({
   return (
     <PathwayCard badge="Explore" title="Yield-first acquisition" tone="amber">
       <p>
-        Regional yield properties in the $350k–$480k range may be worth exploring as market
+        Regional yield properties in the $350k-$480k range may be worth exploring as market
         conditions evolve. Building capital or borrowing capacity could unlock this pathway.
       </p>
       <p className="text-xs leading-6 text-gray-500">
@@ -237,35 +354,51 @@ function YieldFirstContent({
   )
 }
 
-function ReadinessContent({ yieldFirst, topAction }) {
+function TimelineContent({
+  acquisitionReadiness,
+  yieldFirst,
+  topAction,
+  borrowingCapacity = 0,
+}) {
   const estimatedMonthsToMetro = Number(yieldFirst?.estimatedMonthsToMetro || 0)
-  const metroBlocked = Boolean(yieldFirst?.metroBlocked)
   const topActionTitle =
     topAction && typeof topAction === 'object'
       ? topAction.title || null
       : null
 
-  let badge = 'Ready'
-  let tone = 'emerald'
-  let body = 'Metro acquisition may be possible under current settings.'
+  let badge = 'Building'
+  let tone = 'blue'
+  let body =
+    'Continue building capital and improving serviceability toward your next acquisition.'
 
-  if (metroBlocked && estimatedMonthsToMetro === 0) {
+  if (acquisitionReadiness?.primaryConstraint === 'borrowing') {
     badge = 'In Progress'
     tone = 'blue'
-    body = 'Gathering more data to estimate your metro readiness timeline.'
-  } else if (estimatedMonthsToMetro > 12) {
-    badge = 'Building'
-    tone = 'blue'
-    body = `Building toward metro acquisition — estimated ~${estimatedMonthsToMetro} months at current equity growth rate.`
-  } else if (estimatedMonthsToMetro > 0) {
+    body = `Borrowing capacity is currently the primary constraint at ${formatCurrency(
+      borrowingCapacity
+    )}. Reducing liabilities by ~$20k typically unlocks $30-40k in additional borrowing.`
+  } else if (acquisitionReadiness?.primaryConstraint === 'capital') {
     badge = 'In Progress'
     tone = 'blue'
-    body = `Estimated metro acquisition-ready in ~${estimatedMonthsToMetro} months at current portfolio growth rate.`
+    body = `At current portfolio equity growth rate, metro acquisition estimated in ~${estimatedMonthsToMetro} months.`
+  } else if (
+    acquisitionReadiness?.band === 'ready' ||
+    acquisitionReadiness?.band === 'close'
+  ) {
+    badge = 'Ready'
+    tone = 'emerald'
+    body =
+      'Your current position supports an acquisition move. Review your growth scenarios to explore options.'
   }
 
   return (
-    <PathwayCard badge={badge} title="Readiness" tone={tone}>
+    <PathwayCard badge={badge} title="Acquisition timeline" tone={tone}>
       <p>{body}</p>
+      {acquisitionReadiness?.topUnlockAction ? (
+        <p className="text-xs leading-6 text-gray-500">
+          {acquisitionReadiness.topUnlockAction}
+        </p>
+      ) : null}
       {topActionTitle ? (
         <p className="text-xs leading-6 text-gray-500">Top action: {topActionTitle}</p>
       ) : null}
@@ -274,6 +407,7 @@ function ReadinessContent({ yieldFirst, topAction }) {
 }
 
 export default function GrowthPathways({
+  acquisitionReadiness = null,
   yieldFirst = null,
   availableCapital = 0,
   borrowingCapacity = 0,
@@ -283,6 +417,10 @@ export default function GrowthPathways({
 }) {
   return (
     <section className="space-y-4">
+      {acquisitionReadiness ? (
+        <ReadinessScoreBlock acquisitionReadiness={acquisitionReadiness} />
+      ) : null}
+
       <PathwayCard badge="Capital Growth" title="Capital growth" tone="slate">
         {buildCapitalGrowthBody({
           availableCapital,
@@ -298,7 +436,12 @@ export default function GrowthPathways({
         borrowingCapacity={borrowingCapacity}
       />
 
-      <ReadinessContent yieldFirst={yieldFirst} topAction={topAction} />
+      <TimelineContent
+        acquisitionReadiness={acquisitionReadiness}
+        yieldFirst={yieldFirst}
+        topAction={topAction}
+        borrowingCapacity={borrowingCapacity}
+      />
     </section>
   )
 }

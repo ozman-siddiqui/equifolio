@@ -183,12 +183,19 @@ export default function AIOpportunityCard({ currentUserId, loans = [] }) {
     loadData()
   }, [loadData])
 
-  const topOpportunities = useMemo(() => opportunities.slice(0, 2), [opportunities])
+  const qualifyingOpportunities = useMemo(
+    () =>
+      opportunities.filter((opportunity) =>
+        ['active', 'reviewing', 'acted'].includes(String(opportunity?.status || '').toLowerCase())
+      ),
+    [opportunities]
+  )
+  const topOpportunities = useMemo(() => qualifyingOpportunities.slice(0, 2), [qualifyingOpportunities])
   const cumulativeValue = Number(tracker?.cumulative_opportunity_value || 0)
   const totalDetected = Number(tracker?.total_opportunities_detected || 0)
 
-  const showValueStrip = cumulativeValue > 0
-  const showNoOpportunities = !loading && hasLoans && opportunities.length === 0
+  const showValueStrip = cumulativeValue > 0 && qualifyingOpportunities.length > 0
+  const showNoOpportunities = !loading && hasLoans && qualifyingOpportunities.length === 0
   const shouldRenderNull =
     (!hasLoans && !loading) ||
     (!loading && opportunities.length === 0 && !tracker && !hasLoans)

@@ -896,6 +896,11 @@ export default function PortfolioGrowthScenarios() {
     const simulatedScenario = simulatedScenarioLookup.get(recommendedScenario.id)
     return effectiveCashToDeploy > 0 && simulatedScenario ? simulatedScenario : recommendedScenario
   }, [effectiveCashToDeploy, recommendedScenario, simulatedScenarioLookup])
+  const suggestedScenarioTitle = 'Buy 1 investment property now'
+  const suggestedScenarioDescription =
+    'Optimised from your preferred settings to the strongest currently executable purchase path.'
+  const suggestedScenarioSupportText =
+    'This path is fully funded within your current capital and borrowing constraints.'
   const topAlternativeScenario = useMemo(() => {
     const sourceScenario = blockedScenarios[0] || secondaryScenarios[0] || null
     if (!sourceScenario) return null
@@ -1999,13 +2004,10 @@ export default function PortfolioGrowthScenarios() {
         scenarioModel.recommendedStrategy
           ? [
               {
-                badge: 'Suggested',
-                title: topSuggestedScenario?.title || 'Buy 1 larger property',
-                description:
-                  topSuggestedScenario?.stateSummary ||
-                  topSuggestedScenario?.rationale ||
-                  topSuggestedScenario?.feasibilityMessage ||
-                  'Based on your current position and selected assumptions',
+                badge: 'EXECUTABLE NOW',
+                title: suggestedScenarioTitle,
+                description: suggestedScenarioDescription,
+                supportText: suggestedScenarioSupportText,
                 tone: 'suggested',
                 metrics: [
                   {
@@ -2027,13 +2029,7 @@ export default function PortfolioGrowthScenarios() {
                     value: `${Number(topSuggestedScenario?.estimatedGrossYield || 0).toFixed(1)}% gross`,
                   },
                 ],
-                footer:
-                  Number(topSuggestedScenario?.requiredCapitalGap || 0) > 0
-                    ? `Capital shortfall: ${formatCurrency(topSuggestedScenario?.requiredCapitalGap || 0)}`
-                    : topSuggestedScenario?.feasibilityMessage ||
-                      topSuggestedScenario?.stateSummary ||
-                      topSuggestedScenario?.rationale ||
-                      'Fully funded based on current inputs',
+                footer: 'Fully funded for execution',
               },
               topAlternativeScenario
                 ? {

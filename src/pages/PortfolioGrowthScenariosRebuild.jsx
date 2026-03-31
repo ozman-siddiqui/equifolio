@@ -1481,6 +1481,16 @@ export default function PortfolioGrowthScenariosRebuild() {
   // Source of truth for the displayed economic outcome card is the enriched recommended scenario.
   const topSuggestedScenario =
     hasExecutableScenario ? recommendedScenarioWithEconomicOutcome || recommendedScenario : null
+  const suggestedPathTitle = hasExecutableScenario
+    ? 'Buy 1 investment property now'
+    : 'No executable acquisition scenario under current settings'
+  const suggestedPathDescription = hasExecutableScenario
+    ? 'Optimised from your preferred settings to the strongest currently executable purchase path.'
+    : null
+  const suggestedPathSupportText = hasExecutableScenario
+    ? 'This path is fully funded within your current capital and borrowing constraints.'
+    : null
+  const suggestedPathStatus = hasExecutableScenario ? 'EXECUTABLE NOW' : 'No live acquisition path'
   const wealthOutcomeHoldingCost5Y = useMemo(
     () => Math.abs(Number(recommendedScenarioSafeTaxView?.afterTaxMonthlyImpact ?? 0)) * 12 * 5,
     [recommendedScenarioSafeTaxView?.afterTaxMonthlyImpact]
@@ -2177,44 +2187,45 @@ export default function PortfolioGrowthScenariosRebuild() {
                           : 'bg-amber-50 text-amber-700 ring-amber-200'
                       }`}
                     >
-                      {hasExecutableScenario ? 'Suggested' : 'Not executable'}
+                      {hasExecutableScenario ? 'EXECUTABLE NOW' : 'Not executable'}
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1.5 pl-4 text-right">
                       <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-slate-500">
                         {hasExecutableScenario ? 'Recommended Path' : 'Current State'}
                       </p>
                       <p className="text-[14px] font-semibold tracking-[-0.01em] text-slate-800">
-                        {hasExecutableScenario
-                          ? Number(topSuggestedScenario?.requiredCapitalGap || 0) > 0
-                            ? 'Capital-led path'
-                            : 'Ready to deploy'
-                          : 'No live acquisition path'}
+                        {suggestedPathStatus}
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-7">
+                    <div className="mt-8">
                     <div className="min-h-[56px] flex items-start">
                       <h2 className="overflow-hidden text-ellipsis text-[20px] font-semibold tracking-tight text-slate-900 md:whitespace-nowrap md:text-[22px]">
-                        {hasExecutableScenario
-                          ? topSuggestedScenario?.title
-                          : 'No executable acquisition scenario under current settings'}
+                        {suggestedPathTitle}
                       </h2>
                     </div>
-                    <div className="min-h-[48px]">
-                      <p className="mt-2 text-[14px] leading-relaxed text-slate-600">
-                        {hasExecutableScenario
-                          ? topSuggestedScenario?.stateSummary ||
-                            topSuggestedScenario?.rationale ||
-                            topSuggestedScenario?.feasibilityMessage
-                          : scenarioModel.viability?.message ||
+                    <div className="min-h-[56px]">
+                      {suggestedPathDescription ? (
+                        <p className="mt-4 text-[14px] leading-relaxed text-slate-600">
+                          {suggestedPathDescription}
+                        </p>
+                      ) : null}
+                      {suggestedPathSupportText ? (
+                        <p className="mt-2 text-[13px] leading-relaxed text-slate-500">
+                          {suggestedPathSupportText}
+                        </p>
+                      ) : hasExecutableScenario ? null : (
+                        <p className="mt-2 text-[14px] leading-relaxed text-slate-600">
+                          {scenarioModel.viability?.message ||
                             'Current borrowing capacity, deployable capital, and realistic market-entry assumptions do not yet support a fundable acquisition path.'}
-                      </p>
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-6">
+                <div className="mt-8">
                   <div className="grid grid-cols-2 gap-4">
                     <ScenarioMetric
                       label={hasExecutableScenario ? '5Y Equity' : 'Borrowing Power'}
