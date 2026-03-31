@@ -23,6 +23,7 @@ import buildDashboardCommandCenter from '../lib/dashboardCommandCenter'
 import buildDashboardCompleteness from '../lib/dashboardCompleteness'
 import buildDashboardFinancialAudit from '../lib/dashboardFinancialAudit'
 import buildDashboardStateResolver from '../lib/dashboardStateResolver'
+import { calculateAcquisitionReadiness } from '../lib/acquisitionReadinessScore'
 import { calculateYieldFirstScenario } from '../lib/yieldFirstStrategy'
 
 const PLAN_LIMITS = { starter: 3, investor: 10, premium: Infinity }
@@ -319,6 +320,63 @@ export default function Dashboard({ session, subscription }) {
     [borrowingPowerAnalysis, commandCenter, growthScenarios, totalPropertyValue]
   )
 
+  const acquisitionReadiness = useMemo(() => {
+    if (!commandCenter || !growthScenarios || !yieldFirstScenario) return null
+
+    return calculateAcquisitionReadiness({
+      borrowingCapacity: Number(
+        borrowingPowerAnalysis?.borrowing_power_estimate ?? 0
+      ),
+      deployableCapital: Number(
+        growthScenarios?.inputs?.totalDeployableCapital ?? 0
+      ),
+      netMonthlySurplus: Number(
+        borrowingPowerAnalysis?.net_monthly_surplus ?? 0
+      ),
+      usableEquity:
+        growthScenarios?.inputs?.usableEquity ?? null,
+      borrowingReady: Boolean(
+        dashboardCompleteness?.borrowingReady
+      ),
+      financialProfileComplete: Boolean(
+        dashboardCompleteness?.financialProfileComplete
+      ),
+      loanDataComplete: Boolean(
+        dashboardCompleteness?.loanDataComplete
+      ),
+      hasLiabilitiesData: Boolean(
+        Array.isArray(liabilities) && liabilities.length > 0
+      ),
+      setupCompletionPct: Number(
+        dashboardCompleteness?.setupCompletionPct ?? 0
+      ),
+      yieldFirstExecutable: Boolean(
+        yieldFirstScenario?.isExecutable
+      ),
+      yieldFirstConstraintType:
+        yieldFirstScenario?.constraintType ?? null,
+      estimatedMonthsToMetro: Number(
+        yieldFirstScenario?.estimatedMonthsToMetro ?? 0
+      ),
+      totalDeployableCapital: Number(
+        growthScenarios?.inputs?.totalDeployableCapital ?? 0
+      ),
+      depositRatio: Number(
+        growthScenarios?.assumptions?.depositRatio ?? 0.2
+      ),
+      acquisitionCostRate: Number(
+        growthScenarios?.assumptions?.acquisitionCostRate ?? 0.05
+      )
+    })
+  }, [
+    commandCenter,
+    growthScenarios,
+    yieldFirstScenario,
+    borrowingPowerAnalysis,
+    dashboardCompleteness,
+    liabilities,
+  ])
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -387,7 +445,16 @@ export default function Dashboard({ session, subscription }) {
           </div>
         </section>
 
-        <SetupProgress state={dashboardState} onOpenSection={(route) => navigate(route)} />
+        {Number(dashboardState?.setupCompletionPct ?? 0) === 100 ? (
+          <section className="mt-6 rounded-2xl border border-gray-100 bg-white px-5 py-4">
+            <p className="text-sm text-gray-600">
+              Portfolio data complete · Decision confidence: {commandCenter.decisionConfidence} ·
+              {' '}Data coverage: {commandCenter.dataCoveragePct}%
+            </p>
+          </section>
+        ) : (
+          <SetupProgress state={dashboardState} onOpenSection={(route) => navigate(route)} />
+        )}
 
         <AIOpportunityCard currentUserId={session.user.id} loans={loans} />
 
@@ -586,6 +653,7 @@ export default function Dashboard({ session, subscription }) {
               ) : dashboardState.canShowBorrowing ? (
                 <GrowthPathways
                   yieldFirst={yieldFirstScenario}
+                  acquisitionReadiness={acquisitionReadiness}
                   topAction={commandCenter?.topActions?.[0] || null}
                   borrowingCapacity={Number(
                     borrowingPowerAnalysis?.borrowing_power_estimate ?? 0

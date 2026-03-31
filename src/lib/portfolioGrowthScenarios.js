@@ -12,6 +12,7 @@ const DEFAULT_CONFIG = {
   targetLvr: 0.8,
   repaymentType: 'Interest Only',
   acquisitionCostRate: 0.05,
+  marketEntryYieldOverride: 5.5,
   liquidityBuffer: 25000,
   minimumPostPurchaseSurplus: 1500,
   minimumBorrowingThreshold: 350000,
@@ -463,6 +464,8 @@ function findMaxPriceBySurplus({
   minimumPostPurchaseSurplus,
   availableCash,
   totalDeployableCapital,
+  marketEntryYieldOverride = 0,
+  marketEntryYieldOverridePriceCap = 0,
   lmiRateTable = DEFAULT_CONFIG.lmiRateTable,
 }) {
   if (baseCap <= 0) return 0
@@ -472,10 +475,14 @@ function findMaxPriceBySurplus({
 
   for (let i = 0; i < 24; i += 1) {
     const mid = (low + high) / 2
+    const effectiveGrossYieldPct =
+      marketEntryYieldOverride > 0 && mid <= marketEntryYieldOverridePriceCap
+        ? Math.max(grossYieldPct, marketEntryYieldOverride)
+        : grossYieldPct
     const evaluation = evaluateScenarioAtPrice({
       purchasePrice: mid,
       propertyCount,
-      grossYieldPct,
+      grossYieldPct: effectiveGrossYieldPct,
       interestRatePct,
       repaymentType,
       expenseRatio,
@@ -633,13 +640,114 @@ function buildStrategyScenario({
     minimumPostPurchaseSurplus: config.minimumPostPurchaseSurplus,
     availableCash,
     totalDeployableCapital,
+    marketEntryYieldOverride: Number(config.marketEntryYieldOverride || 0),
+    marketEntryYieldOverridePriceCap: Number(config.realisticMarketEntry?.minPrice || 0) * 1.3,
     lmiRateTable: config.lmiRateTable,
   })
   const finalCap = Math.max(0, Math.min(baseCap, surplusCap || baseCap))
 
   const minimumFeasiblePropertyPrice = Number(config.realisticMarketEntry?.minPrice || 0)
   const minimumFeasibleTotalPrice = roundCurrency(minimumFeasiblePropertyPrice * propertyCount)
-  const scenarioCap = Math.max(0, Number(finalCap || 0))
+  let scenarioCap = Math.max(0, Number(finalCap || 0))
+  let usedFallbackPrice = false
+  let fallbackPrice = null
+  let fallbackNote = null
+  const primaryMeetsMarketEntryFloor = scenarioCap >= minimumFeasibleTotalPrice
+  const primaryRepresentativePrice = primaryMeetsMarketEntryFloor
+    ? roundCurrency(
+        (
+          Math.max(
+            roundCurrency(scenarioCap * riskConfig.recommendedRangeFloorPct),
+            minimumFeasibleTotalPrice
+          ) + scenarioCap
+        ) / 2
+      )
+    : minimumFeasibleTotalPrice
+  const primaryEvaluation = evaluateScenarioAtPrice({
+    purchasePrice: primaryRepresentativePrice,
+    propertyCount,
+    grossYieldPct,
+    interestRatePct,
+    expenseRatio,
+    depositRatio,
+    acquisitionCostRate: config.acquisitionCostRate,
+    currentSurplus,
+    availableCash,
+    totalDeployableCapital,
+    lmiRateTable: config.lmiRateTable,
+  })
+  const primaryCapitalGap = Math.max(
+    primaryEvaluation.totalCapitalRequired - totalDeployableCapital,
+    0
+  )
+  const primaryBorrowingGap = Math.max(
+    primaryEvaluation.estimatedLoanSize - borrowingCapacity,
+    0
+  )
+  const primaryHasSufficientCapital = primaryCapitalGap <= 0
+  const primaryHasSufficientBorrowing = primaryBorrowingGap <= 0
+  const primaryHasFundableDepositStructure =
+    primaryEvaluation.totalCapitalRequired <= totalDeployableCapital
+  const scenarioIsExecutable =
+    primaryMeetsMarketEntryFloor &&
+    primaryHasSufficientCapital &&
+    primaryHasSufficientBorrowing &&
+    primaryHasFundableDepositStructure
+
+  if (!scenarioIsExecutable) {
+    const FALLBACK_BANDS = [550000, 525000, 500000, 475000, 450000]
+    const eligibleFallbackPrices = FALLBACK_BANDS.filter(
+      (price) => price <= capitalCap && price <= debtCap && price >= minimumFeasibleTotalPrice
+    )
+
+    for (const candidatePrice of eligibleFallbackPrices) {
+      const fallbackEvaluation = evaluateScenarioAtPrice({
+        purchasePrice: candidatePrice,
+        propertyCount,
+        grossYieldPct,
+        interestRatePct,
+        repaymentType: config.repaymentType,
+        expenseRatio,
+        depositRatio,
+        acquisitionCostRate: config.acquisitionCostRate,
+        currentSurplus,
+        availableCash,
+        totalDeployableCapital,
+        lmiRateTable: config.lmiRateTable,
+      })
+
+      const fallbackCapitalGap = Math.max(
+        fallbackEvaluation.totalCapitalRequired - totalDeployableCapital,
+        0
+      )
+      const fallbackBorrowingGap = Math.max(
+        fallbackEvaluation.estimatedLoanSize - borrowingCapacity,
+        0
+      )
+      const fallbackHasSufficientCapital = fallbackCapitalGap <= 0
+      const fallbackHasSufficientBorrowing = fallbackBorrowingGap <= 0
+      const fallbackHasFundableDepositStructure =
+        fallbackEvaluation.totalCapitalRequired <= totalDeployableCapital
+      const fallbackHasSufficientSurplus =
+        fallbackEvaluation.postPurchaseSurplus >= config.minimumPostPurchaseSurplus
+
+      if (
+        candidatePrice >= minimumFeasibleTotalPrice &&
+        fallbackHasSufficientCapital &&
+        fallbackHasSufficientBorrowing &&
+        fallbackHasFundableDepositStructure &&
+        fallbackHasSufficientSurplus
+      ) {
+        scenarioCap = candidatePrice
+        usedFallbackPrice = true
+        fallbackPrice = candidatePrice
+        fallbackNote =
+          'Best executable path at current assumptions. Optimal structure would require additional capital or borrowing capacity.'
+        break
+      }
+    }
+  }
+
   const meetsMarketEntryFloor = scenarioCap >= minimumFeasibleTotalPrice
   const recommendedMin = meetsMarketEntryFloor
     ? Math.max(
@@ -881,6 +989,9 @@ function buildStrategyScenario({
     scenarioState,
     scenarioStateLabel,
     stateSummary,
+    usedFallbackPrice,
+    fallbackPrice,
+    fallbackNote,
     meetsMarketEntryFloor,
     hasSufficientCapital,
     hasSufficientBorrowing,

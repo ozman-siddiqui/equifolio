@@ -33,6 +33,10 @@ function formatCurrency(amount) {
   })
 }
 
+function formatRange(min, max) {
+  return `${formatCurrency(min)} - ${formatCurrency(max)}`
+}
+
 function getPropertyStatus({ hasLoanCoverage, netCashFlow, refinanceCandidate, alerts }) {
   if (!hasLoanCoverage || netCashFlow < 0 || alerts.some((alert) => alert.urgent)) {
     return 'Risk'
@@ -426,14 +430,15 @@ export default function buildDashboardCommandCenter({
     const monthlyImpact = Math.abs(worstCashFlowProperty.netCashFlow)
     const action = createAction({
       id: `cashflow-${worstCashFlowProperty.property.id}`,
-      title: `Recover ${formatCurrency(monthlyImpact)}/month at ${worstCashFlowProperty.property.address}`,
+      title: `Strengthen cash flow by ${formatCurrency(monthlyImpact)}/month at ${worstCashFlowProperty.property.address}`,
       route: `/property/${worstCashFlowProperty.property.id}`,
       priority: 92,
       category: 'Cash Flow',
       effort: 'Medium',
       confidence: 'High',
       problem: `${worstCashFlowProperty.property.address} is currently running negative each month.`,
-      whyItMatters: 'This weakens portfolio resilience and reduces free cash flow that could be redirected elsewhere.',
+      whyItMatters:
+        'Restoring this monthly cash flow strengthens portfolio resilience and creates more surplus that can be redeployed elsewhere.',
       monthlyImpact,
       yearlyImpact: monthlyImpact * 12,
       kind: 'cashflow',
@@ -721,28 +726,42 @@ export default function buildDashboardCommandCenter({
     portfolioCashFlow: monthlyPropertyCashFlow,
   })
 
-  const capacityUseCases = (growthScenarios.feasibleStrategies || []).map((scenario) => ({
-    id: scenario.id,
-    title: scenario.title,
-    estimatedPriceRange: scenario.recommendedPurchaseRange.label,
-    expectedRentalYield:
-      scenario.estimatedGrossYield > 0 ? `${scenario.estimatedGrossYield.toFixed(1)}% gross yield` : 'Wait',
-    equityUsage:
-      scenario.depositRequired > 0
-        ? `${formatCurrency(scenario.depositRequired)} deposit`
-        : 'Preserve liquidity',
-    depositRequired:
-      scenario.depositRequired > 0 ? formatCurrency(scenario.depositRequired) : 'Not currently suggested',
-    monthlyCashFlow:
-      scenario.strategyType === 'optimise_first'
-        ? 'Improve resilience first'
-        : `${scenario.estimatedMonthlyCashFlow >= 0 ? '+' : '-'}${formatCurrency(
-            Math.abs(scenario.estimatedMonthlyCashFlow)
-          )}/month`,
-    outcome: scenario.rationale,
-    riskLevel: scenario.riskLevel,
-    breakdown: scenario.breakdown,
-  }))
+  const capacityUseCases = (growthScenarios.feasibleStrategies || []).map((scenario) => {
+    const executablePurchasePrice = Number(scenario.fallbackPrice ?? scenario.scenarioPurchasePrice ?? 0)
+    const executablePurchaseBandLow = Math.round(executablePurchasePrice * 0.95)
+    const executablePurchaseBandHigh = Math.round(executablePurchasePrice * 1.1)
+
+    return {
+      id: scenario.id,
+      title: scenario.title,
+      estimatedPriceRange:
+        executablePurchasePrice > 0
+          ? `Estimated purchase range: ${formatRange(
+              executablePurchaseBandLow,
+              executablePurchaseBandHigh
+            )}`
+          : scenario.recommendedPurchaseRange.label,
+      expectedRentalYield:
+        scenario.estimatedGrossYield > 0
+          ? `${scenario.estimatedGrossYield.toFixed(1)}% gross yield`
+          : 'Wait',
+      equityUsage:
+        scenario.depositRequired > 0
+          ? `${formatCurrency(scenario.depositRequired)} deposit`
+          : 'Preserve liquidity',
+      depositRequired:
+        scenario.depositRequired > 0 ? formatCurrency(scenario.depositRequired) : 'Not currently suggested',
+      monthlyCashFlow:
+        scenario.strategyType === 'optimise_first'
+          ? 'Improve resilience first'
+          : `${scenario.estimatedMonthlyCashFlow >= 0 ? '+' : '-'}${formatCurrency(
+              Math.abs(scenario.estimatedMonthlyCashFlow)
+            )}/month`,
+      outcome: scenario.rationale,
+      riskLevel: scenario.riskLevel,
+      breakdown: scenario.breakdown,
+    }
+  })
 
   const currentAnnualCashImpact = Math.round(monthlyPropertyCashFlow * 12)
   const topRankedAction = topActions[0] || null

@@ -87,6 +87,7 @@ function ScenarioCard({
   badge,
   title,
   description,
+  supportText,
   metrics = [],
   footer,
   tone = 'neutral',
@@ -129,9 +130,12 @@ function ScenarioCard({
         {title}
       </h3>
       {description ? (
-        <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600">{description}</p>
+        <p className="mt-4 max-w-xl text-sm leading-6 text-slate-600">{description}</p>
       ) : null}
-      {metrics.length > 0 ? <div className="mt-6"><ScenarioMetricRow items={metrics} /></div> : null}
+      {supportText ? (
+        <p className="mt-2 max-w-xl text-[13px] leading-6 text-slate-500">{supportText}</p>
+      ) : null}
+      {metrics.length > 0 ? <div className="mt-7"><ScenarioMetricRow items={metrics} /></div> : null}
       {footer ? (
         <div className={`mt-6 rounded-2xl border px-5 py-3 text-sm font-medium ${resolvedTone.footer}`}>
           {footer}
