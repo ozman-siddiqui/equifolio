@@ -29,7 +29,7 @@ export default function BorrowingPowerCard({
           {currentCapacity != null ? formatCurrency(currentCapacity) : '-'}
         </p>
         <p className="mt-3 inline-flex w-fit items-center rounded-[10px] bg-[#d4f0e6] px-[9px] py-[3px] text-[11px] font-medium text-[#063d2e]">
-          {unlockPotential != null ? `+${formatCurrency(unlockPotential)} unlock available` : 'Unlock available'}
+          {unlockPotential != null ? `+${formatCurrency(unlockPotential)} unlock available` : 'Complete setup to unlock'}
         </p>
         {detailRows.length > 0 ? (
           <div className="mt-5 border-t border-[rgba(0,0,0,0.08)] pt-4">

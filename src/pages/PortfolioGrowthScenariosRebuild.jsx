@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useMemo, useState } from 'react'
+﻿import { startTransition, useEffect, useMemo, useState } from 'react'
 
 import useFinancialData from '../hooks/useFinancialData'
 import usePortfolioData from '../hooks/usePortfolioData'
@@ -470,7 +470,7 @@ function AnalysisChartCard({
   const tooltipWidthEstimate = 252
 
   return (
-    <div className="rounded-[14px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[#ffffff] px-[18px] py-[16px] shadow-[0_24px_70px_-48px_rgba(15,23,42,0.35)] md:px-[18px] md:py-[16px]">
+    <div className="rounded-[14px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[18px] py-[16px] shadow-[0_24px_70px_-48px_rgba(15,23,42,0.35)] md:px-[18px] md:py-[16px]">
       <div className="mb-5">
         <p className="text-[15px] font-medium text-[var(--color-text-primary)]">{title}</p>
         {subtitle ? (
@@ -480,7 +480,7 @@ function AnalysisChartCard({
         ) : null}
       </div>
 
-      <div className="rounded-[14px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[#ffffff] px-[18px] py-[16px] md:px-[18px] md:py-[16px]">
+      <div className="rounded-[14px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[18px] py-[16px] md:px-[18px] md:py-[16px]">
         {hasSeries ? (
           <div className="mb-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[0.93rem] font-medium text-slate-700">
             {safeSeries
@@ -657,7 +657,7 @@ function AnalysisChartCard({
                       cy={y}
                       r={isAccent ? 6 : entry.dotRadius ?? 4.5}
                       fill={isAccent ? entry.accentColor || accentColor : entry.color}
-                      stroke="#FFFFFF"
+                        stroke="var(--color-background-primary)"
                       strokeWidth={2.5}
                       opacity={entry.showDots === false ? 0 : 1}
                     />
@@ -1519,14 +1519,14 @@ export default function PortfolioGrowthScenariosRebuild() {
     hasExecutableScenario ? recommendedScenarioWithEconomicOutcome || recommendedScenario : null
   const suggestedPathTitle = hasExecutableScenario
     ? 'Buy 1 investment property now'
-    : 'No executable acquisition scenario under current settings'
+    : 'No scenario appears viable under current settings'
   const suggestedPathDescription = hasExecutableScenario
-    ? 'Optimised from your preferred settings to the strongest currently executable purchase path.'
+    ? 'Optimised from your preferred settings to the strongest currently viable purchase path.'
     : null
   const suggestedPathSupportText = hasExecutableScenario
     ? 'This path is fully funded within your current capital and borrowing constraints.'
     : null
-  const suggestedPathStatus = hasExecutableScenario ? 'EXECUTABLE NOW' : 'No live acquisition path'
+  const suggestedPathStatus = hasExecutableScenario ? 'Indicatively viable' : 'No live acquisition path'
   const wealthOutcomeHoldingCost5Y = useMemo(
     () => Math.abs(Number(recommendedScenarioSafeTaxView?.afterTaxMonthlyImpact ?? 0)) * 12 * 5,
     [recommendedScenarioSafeTaxView?.afterTaxMonthlyImpact]
@@ -1570,12 +1570,12 @@ export default function PortfolioGrowthScenariosRebuild() {
   const isCapitalConstraint = limitingFactor === 'capital'
   const isBorrowingConstraint = limitingFactor === 'borrowing'
   const limitingFactorHeading = !hasExecutableScenario
-    ? 'No executable acquisition scenario under current settings'
+    ? 'No scenario appears viable under current settings'
     : isCapitalConstraint
     ? 'Capital, not borrowing power, is the current constraint'
     : isBorrowingConstraint
       ? 'Borrowing power, not capital, is the current constraint'
-      : 'No binding constraint — scenario is executable'
+      : 'No binding constraint - scenario appears viable'
   const limitingFactorSummary = !hasExecutableScenario
     ? scenarioModel.viability?.message ||
       'Current capital, borrowing power, and realistic market-entry assumptions do not yet support a fundable acquisition path.'
@@ -1592,7 +1592,7 @@ export default function PortfolioGrowthScenariosRebuild() {
     ? 'Closing the capital gap is the fastest way to unlock the recommended path.'
     : isBorrowingConstraint
       ? 'Improving serviceability or reducing purchase size is the fastest way to unlock execution.'
-      : 'Execution can proceed under the current scenario settings.'
+      : 'Appears viable based on current inputs and remains subject to lender assessment, valuation, and market conditions.'
   const assessmentRateValue = Number(
     borrowingAnalysis?.assumptions?.assessment_rate_pct ??
       borrowingAnalysis?.assumptions_detail?.assessment_rate_pct ??
@@ -1813,7 +1813,7 @@ export default function PortfolioGrowthScenariosRebuild() {
   ) : null
   const borrowingSensitivityChart = (
     <GraphPanel
-      preface="Use this to judge how quickly executable purchase power compresses as lender assessment settings move higher."
+      preface="Use this to judge how quickly indicative purchase power compresses as lender assessment settings move higher."
       insight={borrowingSensitivityInsight}
       confidenceLabel={borrowingSensitivityConfidence?.label}
       traceability="Inputs used: recorded income, liabilities, mortgages, and lender assessment rate · Assumptions: buffered serviceability at 8.5%"
@@ -1886,7 +1886,7 @@ export default function PortfolioGrowthScenariosRebuild() {
   )
   const depositPurchasePowerChart = (
     <GraphPanel
-      preface="Use this view to test whether changing deposit structure genuinely expands your executable price range."
+      preface="Use this view to test whether changing deposit structure genuinely expands your indicative price range."
       insight="Higher deposit settings lift achievable purchase power, but the curve flattens once borrowing becomes the binding constraint."
       traceability="Inputs used: deployable capital and central borrowing capacity · Assumptions: 20% selected deposit strategy and 5.0% acquisition costs"
     >
@@ -1934,7 +1934,7 @@ export default function PortfolioGrowthScenariosRebuild() {
             </h1>
 
             <p className="mt-4 max-w-[760px] text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
-              Stress-test the next acquisition path using your live portfolio inputs, compare executable and blocked strategies, and inspect the funding, carry, and wealth outcome before committing to a move.
+              Stress-test the next acquisition path using your live portfolio inputs, compare viable and blocked strategies, and inspect the funding, carry, and wealth outcome before committing to a move.
             </p>
           </div>
         </section>
@@ -2202,7 +2202,7 @@ export default function PortfolioGrowthScenariosRebuild() {
               Compare your next acquisition paths
             </h2>
             <p className="mt-2.5 max-w-[68ch] text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
-              Review the recommended and alternative paths side by side, including projected
+              Review the recommended and alternative paths side by side, including illustrative
               equity, acquisition size, yield, and execution constraints.
             </p>
           </div>
@@ -2223,7 +2223,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                           : 'bg-[#FAEEDA] text-[#633806]'
                       }`}
                     >
-                      {hasExecutableScenario ? 'EXECUTABLE NOW' : 'Not executable'}
+                      {hasExecutableScenario ? 'Indicatively viable' : 'Not viable'}
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1.5 pl-4 text-right">
                       <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
@@ -2653,7 +2653,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                 {formatCurrency(topSuggestedScenario?.fiveYearEquityProjection || 0)}
               </p>
               <p className="mt-3 text-sm leading-7 text-slate-600">
-                Projected net equity after 5 years.
+                Illustrative net equity after 5 years.
               </p>
             </article>
 
@@ -2747,7 +2747,7 @@ export default function PortfolioGrowthScenariosRebuild() {
         </section>
 
         {activeTab === 'wealth-growth' ? (
-          <section className="rounded-b-[2rem] rounded-tr-[2rem] border border-t-0 border-slate-200/75 bg-white px-6 pt-6 pb-6 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:px-8">
+          <section id="wealth-projection" className="rounded-b-[2rem] rounded-tr-[2rem] border border-t-0 border-slate-200/75 bg-white px-6 pt-6 pb-6 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:px-8">
             <div>
               <p className={microLabelClass}>Wealth Growth</p>
               <h3 className="mt-5 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
@@ -2957,7 +2957,7 @@ export default function PortfolioGrowthScenariosRebuild() {
         <section className="mt-[22px] rounded-[2rem] border border-[#FAEEDA] bg-[#FAEEDA] px-6 py-6 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:px-8">
             <p className={microLabelClass}>Execution Status</p>
             <h3 className="mt-4 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
-              No executable acquisition scenario under current settings
+              No scenario appears viable under current settings
             </h3>
             <p className="mt-4 max-w-[48rem] text-[1.03rem] leading-8 text-slate-600">
               Scenario ranking now excludes blocked paths. The next step is to improve the binding
@@ -3020,7 +3020,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                 isAdvancedAnalysisOpen ? 'rotate-90' : ''
               }`}
             >
-              ›
+                ›
             </span>
           </button>
 
@@ -3057,7 +3057,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                 </h4>
                 <p className="mt-3 max-w-[45rem] text-[1rem] leading-7 text-slate-600">
                   Compare deposit settings to see whether lower upfront capital truly expands the
-                  executable price range or simply shifts the constraint back to borrowing.
+                  indicative price range or simply shifts the constraint back to borrowing.
                 </p>
                 <div className="mt-6">{depositPurchasePowerChart}</div>
               </article>
@@ -3068,3 +3068,5 @@ export default function PortfolioGrowthScenariosRebuild() {
     </div>
   )
 }
+
+

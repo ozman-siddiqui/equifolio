@@ -11,10 +11,13 @@ export default function CommandCentreCard({
   eyebrow,
   title,
   value = null,
+  valueTone = null,
   helper,
+  statusBadge = null,
   subtitle,
   metrics = [],
   detailRows = [],
+  detailEmptyState = null,
   progressInfo = null,
   cta,
   onClick,
@@ -62,7 +65,7 @@ export default function CommandCentreCard({
         <>
           <p
             className={`mt-6 text-[42px] font-semibold tracking-[-0.04em] ${
-              value == null ? 'text-gray-300' : 'text-gray-900'
+              value == null ? 'text-gray-300' : valueTone || 'text-gray-900'
             }`}
           >
             {value == null ? '-' : formatCurrency(value)}
@@ -70,18 +73,44 @@ export default function CommandCentreCard({
           <p className="mt-3 inline-flex w-fit items-center rounded-[10px] bg-[#d4f0e6] px-[9px] py-[3px] text-[11px] font-medium text-[#063d2e]">
             {helper}
           </p>
+          {statusBadge ? (
+            <span
+              className="mt-3 ml-2 inline-flex items-center rounded-full px-[10px] py-[3px] text-[10px] font-medium"
+              style={{
+                backgroundColor: statusBadge.backgroundColor,
+                color: statusBadge.color,
+              }}
+            >
+              {statusBadge.label}
+            </span>
+          ) : null}
           {detailRows.length > 0 ? (
             <div className="mt-5 border-t border-[rgba(0,0,0,0.08)] pt-4">
               <div className="space-y-3">
                 {detailRows.map((row) => (
                   <div key={row.label} className="flex items-start justify-between gap-4 text-sm">
-                    <span className="text-gray-600">{row.label}</span>
-                    <span className={`font-medium ${row.tone || 'text-gray-900'}`}>
-                      {row.value}
-                    </span>
+                    <div className="min-w-0">
+                      <span className="text-gray-600">{row.label}</span>
+                      {row.badge ? (
+                        <span
+                          className="ml-2 inline-flex rounded-full px-[10px] py-[3px] text-[10px] font-medium"
+                          style={{
+                            backgroundColor: row.badge.backgroundColor,
+                            color: row.badge.color,
+                          }}
+                        >
+                          {row.badge.label}
+                        </span>
+                      ) : null}
+                    </div>
+                    <span className={`font-medium ${row.tone || 'text-gray-900'}`}>{row.value}</span>
                   </div>
                 ))}
               </div>
+            </div>
+          ) : detailEmptyState ? (
+            <div className="mt-5 border-t border-[rgba(0,0,0,0.08)] pt-4">
+              <p className="text-sm leading-6 text-gray-500">{detailEmptyState}</p>
             </div>
           ) : null}
           {progressInfo ? (
@@ -100,6 +129,17 @@ export default function CommandCentreCard({
                 <p className="mt-2 text-[11px] leading-5 text-gray-400">
                   {progressInfo.note}
                 </p>
+              ) : null}
+              {progressInfo.badge ? (
+                <span
+                  className="mt-2 inline-flex rounded-full px-[10px] py-[3px] text-[10px] font-medium"
+                  style={{
+                    backgroundColor: progressInfo.badge.backgroundColor,
+                    color: progressInfo.badge.color,
+                  }}
+                >
+                  {progressInfo.badge.label}
+                </span>
               ) : null}
             </div>
           ) : null}

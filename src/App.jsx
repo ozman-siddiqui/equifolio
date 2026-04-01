@@ -29,6 +29,17 @@ function FinancialsRouteFallback({ message = 'Loading financials...' }) {
   )
 }
 
+function AppRouteFallback({ title, message = 'Something went wrong loading this page. Please refresh or try again.' }) {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="w-full max-w-xl rounded-2xl border border-gray-200 bg-white p-6 text-center">
+        <p className="text-lg font-semibold text-gray-900">{title}</p>
+        <p className="mt-2 text-sm text-gray-500">{message}</p>
+      </div>
+    </div>
+  )
+}
+
 class FinancialsErrorBoundary extends React.Component {
   constructor(props) {
     super(props)
@@ -44,6 +55,25 @@ class FinancialsErrorBoundary extends React.Component {
       return (
         <FinancialsRouteFallback message="Financials is temporarily unavailable. The rest of the app is still available." />
       )
+    }
+
+    return this.props.children
+  }
+}
+
+class AppRouteErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <AppRouteFallback title={this.props.title} />
     }
 
     return this.props.children
@@ -168,11 +198,19 @@ export default function App() {
   }
 
   const cachedPages = {
-    dashboard: <Dashboard session={session} subscription={subscription} />,
+    dashboard: (
+      <AppRouteErrorBoundary title="Dashboard">
+        <Dashboard session={session} subscription={subscription} />
+      </AppRouteErrorBoundary>
+    ),
     properties: <Properties />,
     cashflow: <CashFlow />,
     mortgages: <Mortgages session={session} />,
-    growthScenarios: <PortfolioGrowthScenariosRebuild />,
+    growthScenarios: (
+      <AppRouteErrorBoundary title="Growth Scenarios">
+        <PortfolioGrowthScenariosRebuild />
+      </AppRouteErrorBoundary>
+    ),
     financials: (
       <FinancialsErrorBoundary>
         <Suspense fallback={<FinancialsRouteFallback />}>

@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ArrowRight, ChevronRight } from 'lucide-react'
 
 function formatCurrency(value) {
@@ -22,19 +23,37 @@ function formatCompactCurrency(value) {
   return `${value < 0 ? '-' : ''}${formatCurrency(numeric)}`
 }
 
-function buildCurvePath(points) {
+function buildLinePath(points) {
   if (!points.length) return ''
 
   let path = `M ${points[0].x} ${points[0].y}`
 
   for (let index = 1; index < points.length; index += 1) {
     const current = points[index]
-    const previous = points[index - 1]
-    const controlX = (previous.x + current.x) / 2
-    path += ` C ${controlX} ${previous.y}, ${controlX} ${current.y}, ${current.x} ${current.y}`
+    path += ` L ${current.x} ${current.y}`
   }
 
   return path
+}
+
+function buildAreaPath(points, baselineY) {
+  if (!points.length) return ''
+
+  const linePath = buildLinePath(points)
+  const lastPoint = points[points.length - 1]
+  const firstPoint = points[0]
+
+  return `${linePath} L ${lastPoint.x} ${baselineY} L ${firstPoint.x} ${baselineY} Z`
+}
+
+function scaleY(value, minVal, maxVal, svgHeight) {
+  const padding = 8
+  const drawableHeight = svgHeight - padding * 2
+  const range = maxVal - minVal
+
+  if (range === 0) return padding + drawableHeight / 2
+
+  return svgHeight - padding - ((value - minVal) / range) * drawableHeight
 }
 
 function pointToPercentX(pointX, viewBoxWidth = 520) {
@@ -69,18 +88,21 @@ export default function HeroDecisionCard({
   currentEquity = 576500,
   year3Equity = 720000,
   year5Equity = 875138,
+  year10Equity = null,
   acquisitionReadinessScore = 79,
   acquisitionReadinessLabel = 'Getting close',
+  acquisitionReadiness = null,
   unlockValue = 39016,
   isExecutable = true,
 }) {
-  const pathRef = useRef(null)
-  const fillRef = useRef(null)
+  const navigate = useNavigate()
+  const strokePathRef = useRef(null)
+  const fillPathRef = useRef(null)
+  const endDotRef = useRef(null)
   const rafRef = useRef([])
   const pulseTimeoutRef = useRef(null)
-  const pulseResetTimeoutRef = useRef(null)
   const [hasAnimated, setHasAnimated] = useState(false)
-  const [isEndpointPulsing, setIsEndpointPulsing] = useState(false)
+  const [isReadinessExpanded, setIsReadinessExpanded] = useState(false)
 
   const purchaseRangeLowNumber = toFiniteNumber(purchaseRangeLow)
   const purchaseRangeHighNumber = toFiniteNumber(purchaseRangeHigh)
@@ -90,8 +112,21 @@ export default function HeroDecisionCard({
   const currentEquityNumber = toFiniteNumber(currentEquity)
   const year3EquityNumber = toFiniteNumber(year3Equity)
   const year5EquityNumber = toFiniteNumber(year5Equity)
-  const acquisitionReadinessScoreNumber = toFiniteNumber(acquisitionReadinessScore)
+  const year10EquityNumber = toFiniteNumber(year10Equity)
+  const acquisitionReadinessData =
+    acquisitionReadiness && typeof acquisitionReadiness === 'object'
+      ? acquisitionReadiness
+      : acquisitionReadinessScore && typeof acquisitionReadinessScore === 'object'
+        ? acquisitionReadinessScore
+        : null
+  const acquisitionReadinessScoreNumber = toFiniteNumber(
+    acquisitionReadinessData?.finalScore ?? acquisitionReadinessScore
+  )
   const unlockValueNumber = toFiniteNumber(unlockValue)
+  const acquisitionReadinessLabelValue =
+    typeof acquisitionReadinessLabel === 'string' && acquisitionReadinessLabel
+      ? acquisitionReadinessLabel
+      : acquisitionReadinessData?.label ?? 'Getting close'
 
   const purchaseRangeDisplay =
     purchaseRangeLowNumber != null && purchaseRangeHighNumber != null
@@ -118,6 +153,12 @@ export default function HeroDecisionCard({
       : '0%'
   const unlockValueDisplay =
     unlockValueNumber != null ? formatCurrency(unlockValueNumber) : '--'
+  const unlockSummaryDisplay =
+    unlockValueNumber != null ? `expands purchase range by +${unlockValueDisplay}` : 'Complete setup to unlock'
+  const unlockStripDisplay =
+    unlockValueNumber != null
+      ? `Reduce card limits → +${unlockValueDisplay} borrowing capacity`
+      : 'Unavailable until setup complete'
   const hasScenarioData =
     purchaseRangeLowNumber != null &&
     purchaseRangeHighNumber != null &&
@@ -130,41 +171,107 @@ export default function HeroDecisionCard({
     purchaseRangeHighNumber != null
   const isDataRichBlockedScenario = hasScenarioData === true && isExecutableScenario === false
   const hasNoScenarioData = hasScenarioData === false
+  const readinessPillars = acquisitionReadinessData?.pillars ?? null
+  const toPillarScoreDisplay = (value) => {
+    const numeric = toFiniteNumber(value)
+    if (numeric == null) return null
+    const percentage = numeric <= 1 ? Math.round(numeric * 100) : Math.round(numeric)
+    return `${percentage}%`
+  }
+  const acquisitionSummaryCopy = isExecutableScenario
+    ? 'Executable now.'
+    : hasScenarioData
+      ? 'Building toward viability.'
+      : 'Setup in progress.'
+  const acquisitionBreakdownRows = [
+    {
+      label: 'Data completeness',
+      value: toPillarScoreDisplay(readinessPillars?.dataCompleteness?.score),
+    },
+    {
+      label: 'Borrowing capacity',
+      value: toPillarScoreDisplay(readinessPillars?.borrowingCapacity?.score),
+    },
+    {
+      label: 'Capital position',
+      value: toPillarScoreDisplay(readinessPillars?.capitalPosition?.score),
+    },
+    {
+      label: 'Cash flow health',
+      value: toPillarScoreDisplay(readinessPillars?.cashFlowHealth?.score),
+    },
+    {
+      label: 'Portfolio equity',
+      value: toPillarScoreDisplay(readinessPillars?.portfolioEquity?.score),
+    },
+  ].filter((row) => row.value != null)
+  const hasLimitedReadinessDrivers = acquisitionBreakdownRows.length <= 1
 
   const baselineYear0 = currentEquityNumber ?? 0
   const baselineYear3 =
     currentEquityNumber != null ? Math.round(currentEquityNumber * Math.pow(1.06, 3)) : 0
   const baselineYear5 =
     currentEquityNumber != null ? Math.round(currentEquityNumber * Math.pow(1.06, 5)) : 0
+  const baselineYear10 =
+    currentEquityNumber != null ? Math.round(currentEquityNumber * Math.pow(1.06, 10)) : 0
   const acquisitionYear0 = baselineYear0
-  const acquisitionYear3 = baselineYear3 + (typeof year3Equity === 'number' ? year3Equity : 0)
-  const acquisitionYear5 = baselineYear5 + (typeof year5Equity === 'number' ? year5Equity : 0)
+  const acquisitionYear3 = baselineYear3 + (year3EquityNumber ?? 0)
+  const acquisitionYear5 = baselineYear5 + (year5EquityNumber ?? 0)
+  const acquisitionYear10 = baselineYear10 + (year10EquityNumber ?? 0)
+  const hasYear10Point = year10EquityNumber != null
 
-  const chartTopY = 42
-  const chartBottomY = 138
   const chartFloorY = 182
-  const chartXPositions = [36, 262, 484]
+  const chartXPositions = hasYear10Point
+    ? [36, 184, 305, 484]
+    : [36, 262, 484]
   const visibleValues = hasScenarioData
-    ? [baselineYear0, baselineYear3, baselineYear5, acquisitionYear0, acquisitionYear3, acquisitionYear5]
-    : [baselineYear0, baselineYear3, baselineYear5]
-  const chartMaxValue = Math.max(...visibleValues, 1)
-  const toChartY = (value) =>
-    chartBottomY - (Number(value || 0) / chartMaxValue) * (chartBottomY - chartTopY)
+    ? hasYear10Point
+      ? [
+          baselineYear0,
+          baselineYear3,
+          baselineYear5,
+          baselineYear10,
+          acquisitionYear0,
+          acquisitionYear3,
+          acquisitionYear5,
+          acquisitionYear10,
+        ]
+      : [baselineYear0, baselineYear3, baselineYear5, acquisitionYear0, acquisitionYear3, acquisitionYear5]
+    : hasYear10Point
+      ? [currentEquityNumber ?? 0, baselineYear3, baselineYear5, baselineYear10]
+      : [currentEquityNumber ?? 0, baselineYear3, baselineYear5]
+  const minVal = Math.min(...visibleValues) * 0.98
+  const maxVal = Math.max(...visibleValues) * 1.02
+  const toChartY = (value) => scaleY(Number(value || 0), minVal, maxVal, chartFloorY)
 
-  const baselinePoints = [
-    { x: chartXPositions[0], y: toChartY(baselineYear0), label: 'Today' },
-    { x: chartXPositions[1], y: toChartY(baselineYear3), label: 'Year 3' },
-    { x: chartXPositions[2], y: toChartY(baselineYear5), label: 'Year 5' },
-  ]
-  const acquisitionPoints = [
-    { x: chartXPositions[0], y: toChartY(acquisitionYear0), label: 'Today' },
-    { x: chartXPositions[1], y: toChartY(acquisitionYear3), label: 'Year 3' },
-    { x: chartXPositions[2], y: toChartY(acquisitionYear5), label: 'Year 5' },
-  ]
+  const baselinePoints = hasYear10Point
+    ? [
+        { x: chartXPositions[0], y: toChartY(baselineYear0), label: 'Today' },
+        { x: chartXPositions[1], y: toChartY(baselineYear3), label: 'Year 3' },
+        { x: chartXPositions[2], y: toChartY(baselineYear5), label: 'Year 5' },
+        { x: chartXPositions[3], y: toChartY(baselineYear10), label: 'Year 10' },
+      ]
+    : [
+        { x: chartXPositions[0], y: toChartY(baselineYear0), label: 'Today' },
+        { x: chartXPositions[1], y: toChartY(baselineYear3), label: 'Year 3' },
+        { x: chartXPositions[2], y: toChartY(baselineYear5), label: 'Year 5' },
+      ]
+  const acquisitionPoints = hasYear10Point
+    ? [
+        { x: chartXPositions[0], y: toChartY(acquisitionYear0), label: 'Today' },
+        { x: chartXPositions[1], y: toChartY(acquisitionYear3), label: 'Year 3' },
+        { x: chartXPositions[2], y: toChartY(acquisitionYear5), label: 'Year 5' },
+        { x: chartXPositions[3], y: toChartY(acquisitionYear10), label: 'Year 10' },
+      ]
+    : [
+        { x: chartXPositions[0], y: toChartY(acquisitionYear0), label: 'Today' },
+        { x: chartXPositions[1], y: toChartY(acquisitionYear3), label: 'Year 3' },
+        { x: chartXPositions[2], y: toChartY(acquisitionYear5), label: 'Year 5' },
+      ]
   const primaryChartPoints = hasScenarioData ? acquisitionPoints : baselinePoints
-  const baselinePath = buildCurvePath(baselinePoints)
-  const primaryPath = buildCurvePath(primaryChartPoints)
-  const areaPath = `${primaryPath} L ${primaryChartPoints[primaryChartPoints.length - 1].x} ${chartFloorY} L ${primaryChartPoints[0].x} ${chartFloorY} Z`
+  const baselinePath = buildLinePath(baselinePoints)
+  const primaryPath = buildLinePath(primaryChartPoints)
+  const areaPath = buildAreaPath(primaryChartPoints, chartFloorY)
   const chartYear3Display =
     hasScenarioData && acquisitionYear3 > 0
       ? `~${formatCompactCurrency(acquisitionYear3)}`
@@ -177,33 +284,43 @@ export default function HeroDecisionCard({
       : hasNoScenarioData && baselineYear5 > 0
         ? `~${formatCurrency(baselineYear5)}`
         : '--'
+  const chartYear10Display =
+    hasYear10Point && hasScenarioData && acquisitionYear10 > 0
+      ? `~${formatCurrency(acquisitionYear10)}`
+      : hasYear10Point && hasNoScenarioData && baselineYear10 > 0
+        ? `~${formatCurrency(baselineYear10)}`
+        : '--'
   const acquisitionDifference = acquisitionYear5 - baselineYear5
   const acquisitionDifferenceDisplay = hasScenarioData
     ? `${acquisitionDifference >= 0 ? '+' : '-'}${formatCurrency(Math.abs(acquisitionDifference))} target property equity by year 5`
     : null
 
   useEffect(() => {
-    const pathElement = pathRef.current
-    const fillElement = fillRef.current
-    if (!pathElement) return undefined
+    const strokeElement = strokePathRef.current
+    const fillElement = fillPathRef.current
+    const endpointElement = endDotRef.current
+    if (!strokeElement) return undefined
 
-    const totalLength = pathElement.getTotalLength()
-    pathElement.style.strokeDasharray = `${totalLength}`
-    pathElement.style.strokeDashoffset = `${totalLength}`
-    pathElement.style.transition = 'none'
+    const totalLength = strokeElement.getTotalLength()
+    strokeElement.style.strokeDasharray = `${totalLength}`
+    strokeElement.style.strokeDashoffset = `${totalLength}`
+    strokeElement.style.transition = 'none'
 
     if (fillElement) {
       fillElement.style.opacity = '0'
       fillElement.style.transition = 'opacity 600ms ease-in 200ms'
     }
 
+    if (endpointElement) {
+      endpointElement.style.animation = 'none'
+    }
+
     setHasAnimated(false)
-    setIsEndpointPulsing(false)
 
     const firstFrame = requestAnimationFrame(() => {
       const secondFrame = requestAnimationFrame(() => {
-        pathElement.style.transition = 'stroke-dashoffset 900ms ease-in-out'
-        pathElement.style.strokeDashoffset = '0'
+        strokeElement.style.transition = 'stroke-dashoffset 900ms ease-in-out'
+        strokeElement.style.strokeDashoffset = '0'
         if (fillElement && hasScenarioData) {
           fillElement.style.opacity = '1'
         }
@@ -214,10 +331,9 @@ export default function HeroDecisionCard({
     rafRef.current = [firstFrame]
 
     pulseTimeoutRef.current = window.setTimeout(() => {
-      setIsEndpointPulsing(true)
-      pulseResetTimeoutRef.current = window.setTimeout(() => {
-        setIsEndpointPulsing(false)
-      }, 400)
+      if (endpointElement) {
+        endpointElement.style.animation = 'heroDecisionEndDotPulse 400ms ease-in-out'
+      }
     }, 950)
 
     return () => {
@@ -226,13 +342,13 @@ export default function HeroDecisionCard({
       if (pulseTimeoutRef.current != null) {
         clearTimeout(pulseTimeoutRef.current)
       }
-      if (pulseResetTimeoutRef.current != null) {
-        clearTimeout(pulseResetTimeoutRef.current)
-      }
-      pathElement.style.transition = 'none'
-      pathElement.style.strokeDashoffset = `${totalLength}`
+      strokeElement.style.transition = 'none'
+      strokeElement.style.strokeDashoffset = `${totalLength}`
       if (fillElement) {
         fillElement.style.opacity = '0'
+      }
+      if (endpointElement) {
+        endpointElement.style.animation = 'none'
       }
     }
   }, [hasScenarioData, primaryPath])
@@ -244,7 +360,7 @@ export default function HeroDecisionCard({
       <div className="pointer-events-none absolute right-12 top-8 h-56 w-56 rounded-full bg-emerald-50 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-16 right-20 h-64 w-64 rounded-full bg-lime-100/60 blur-3xl" />
 
-      <div className="relative grid gap-8 xl:grid-cols-[minmax(0,1.55fr)_320px] xl:gap-7">
+      <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1.55fr)_320px] lg:gap-7">
         <div className="min-w-0">
           <style>{`
             @keyframes heroDecisionEndDotPulse {
@@ -260,7 +376,7 @@ export default function HeroDecisionCard({
               </p>
               <div className="mt-4 flex flex-wrap items-center gap-2.5">
                 <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-700">
-                  {isExecutableScenario ? 'Appears executable' : 'Building toward'}
+                  {isExecutableScenario ? 'Indicatively viable' : 'Building toward'}
                 </span>
                 <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600">
                   High confidence
@@ -270,7 +386,7 @@ export default function HeroDecisionCard({
           </div>
 
           <div className="mt-7 max-w-4xl">
-            <h1 className="max-w-3xl text-[2.3rem] font-semibold leading-[1.06] tracking-[-0.04em] text-slate-950 md:text-[3.25rem]">
+            <h1 className="max-w-3xl text-[2.3rem] font-semibold leading-[1.06] tracking-[-0.04em] text-slate-950 max-[480px]:text-[2rem] md:text-[3.25rem]">
               {isExecutableScenario
                 ? 'Buy 1 investment property'
                 : 'Building toward your next acquisition'}
@@ -281,38 +397,25 @@ export default function HeroDecisionCard({
             <p className="mt-5 max-w-2xl text-[1.05rem] leading-8 text-emerald-800">
               {isExecutableScenario ? (
                 <>
-                  Based on current inputs, this pathway
-                  <br />
-                  appears fundable and executable - subject
-                  <br />
+                  Based on current inputs, this pathway appears viable and illustrative - subject
                   to lender assessment and market conditions.
                 </>
               ) : isDataRichBlockedScenario ? (
                 <>
-                  Based on current inputs, no fully executable
-                  <br />
-                  acquisition scenario exists yet. Focus on
-                  <br />
-                  the top actions below to strengthen your
-                  <br />
-                  position.
+                  Based on current inputs, no currently viable acquisition scenario appears available based on current inputs.
+                  Focus on the top actions below to strengthen your position.
                 </>
               ) : (
                 <>
-                  Based on current inputs, no fully executable
-                  <br />
-                  acquisition scenario exists yet. Focus on
-                  <br />
-                  the top actions below to strengthen your
-                  <br />
-                  position.
+                  Based on current inputs, no currently viable acquisition scenario appears available based on current inputs.
+                  Focus on the top actions below to strengthen your position.
                 </>
               )}
             </p>
           </div>
 
           {hasScenarioData ? (
-            <div className="mt-8 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-8 grid gap-3 min-[481px]:grid-cols-1 md:grid-cols-2 xl:grid-cols-4 max-[480px]:grid-cols-1">
               <StatTile
                 eyebrow="Executable range"
                 value={executableRangeDisplay}
@@ -348,7 +451,7 @@ export default function HeroDecisionCard({
                 {hasScenarioData ? (
                   <>
                     <p className="mt-2 text-sm leading-6 text-slate-500">
-                      Compare the projected 5-year outcome of
+                      Compare the illustrative 5-year outcome of
                       <br />
                       taking the next acquisition vs staying on
                       <br />
@@ -389,7 +492,7 @@ export default function HeroDecisionCard({
             <div className="mt-4 overflow-hidden rounded-[1.5rem] border border-white/70 bg-white/65 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] md:px-4">
               <svg
                 viewBox="0 0 520 200"
-                className="h-[188px] w-full"
+                className="h-[188px] w-full max-[480px]:h-[156px]"
                 role="img"
                 aria-label="Portfolio wealth trajectory chart"
                 data-animated={hasAnimated ? 'true' : 'false'}
@@ -407,7 +510,7 @@ export default function HeroDecisionCard({
                 </defs>
 
                 {hasScenarioData ? (
-                  <path ref={fillRef} d={areaPath} fill="url(#heroDecisionFill)" style={{ opacity: 0 }} />
+                  <path ref={fillPathRef} d={areaPath} fill="url(#heroDecisionFill)" style={{ opacity: 0 }} />
                 ) : null}
                 {hasScenarioData ? (
                   <path
@@ -420,7 +523,7 @@ export default function HeroDecisionCard({
                   />
                 ) : null}
                 <path
-                  ref={pathRef}
+                  ref={strokePathRef}
                   d={primaryPath}
                   fill="none"
                   stroke={hasScenarioData ? 'url(#heroDecisionStroke)' : '#1D9E75'}
@@ -445,6 +548,7 @@ export default function HeroDecisionCard({
                 {primaryChartPoints.map((point, index) => (
                   <g key={point.label}>
                     <circle
+                      ref={index === primaryChartPoints.length - 1 ? endDotRef : null}
                       cx={point.x}
                       cy={point.y}
                       r={index === primaryChartPoints.length - 1 ? 6.5 : 4}
@@ -453,9 +557,7 @@ export default function HeroDecisionCard({
                         index === primaryChartPoints.length - 1
                           ? {
                               transformOrigin: `${point.x}px ${point.y}px`,
-                              animation: isEndpointPulsing
-                                ? 'heroDecisionEndDotPulse 400ms ease-in-out'
-                                : 'none',
+                              animation: 'none',
                             }
                           : undefined
                       }
@@ -467,13 +569,13 @@ export default function HeroDecisionCard({
                 ))}
               </svg>
 
-              <div className="relative mt-1.5 h-[52px]">
+              <div className="relative mt-1.5 h-[52px] max-[480px]:h-[44px]">
                 {[
                   {
                     label: 'Today',
                     value: currentEquityDisplay,
                     point: primaryChartPoints[0],
-                    alignClass: 'text-left translate-x-2',
+                    alignClass: 'text-left translate-x-2 max-[480px]:translate-x-0',
                   },
                   {
                     label: 'Year 3',
@@ -485,16 +587,29 @@ export default function HeroDecisionCard({
                     label: 'Year 5',
                     value: chartYear5Display,
                     point: primaryChartPoints[2],
-                    alignClass: 'text-right -translate-x-[calc(100%+8px)]',
+                    alignClass: hasYear10Point
+                      ? 'text-center -translate-x-1/2'
+                      : 'text-right -translate-x-[calc(100%+8px)] max-[480px]:-translate-x-full',
                   },
+                  ...(hasYear10Point
+                    ? [
+                        {
+                          label: 'Year 10',
+                          value: chartYear10Display,
+                          point: primaryChartPoints[3],
+                          alignClass:
+                            'text-right -translate-x-[calc(100%+8px)] max-[480px]:-translate-x-full',
+                        },
+                      ]
+                    : []),
                 ].map(({ label, value, point, alignClass }) => (
                   <div
                     key={label}
                     className={`absolute top-0 ${alignClass}`}
                     style={{ left: pointToPercentX(point.x) }}
                   >
-                    <p className="text-xs uppercase tracking-[0.18em] text-slate-400">{label}</p>
-                    <p className="mt-1 text-base font-semibold tracking-tight text-slate-900">{value}</p>
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-400 max-[480px]:text-[10px]">{label}</p>
+                    <p className="mt-1 text-base font-semibold tracking-tight text-slate-900 max-[480px]:text-[13px]">{value}</p>
                   </div>
                 ))}
               </div>
@@ -505,7 +620,7 @@ export default function HeroDecisionCard({
             <p className="text-sm leading-6 text-emerald-900">
               <span className="mr-2 inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 align-middle" />
               Next upgrade: reduce credit card limits →
-              <span className="font-semibold"> expands purchase range by +{unlockValueDisplay}</span>
+              <span className="font-semibold"> {unlockSummaryDisplay}</span>
               <br />
               without changing your executable path today.
             </p>
@@ -519,22 +634,17 @@ export default function HeroDecisionCard({
             </p>
             <button
               type="button"
+              onClick={() => navigate('/growth-scenarios')}
               className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-[1.15rem] bg-white px-4 py-3 text-sm font-semibold text-emerald-950 shadow-[0_18px_40px_-28px_rgba(255,255,255,0.28)] transition-all duration-150 ease-out hover:bg-[#eef5f2] hover:shadow-[0_0_0_3px_rgba(29,158,117,0.25)]"
             >
-              {isExecutableScenario ? 'Deploy this strategy' : 'See what unlocks this'}
+              Explore scenarios
               <ArrowRight size={16} />
-            </button>
-            <button
-              type="button"
-              className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-emerald-100 transition-colors hover:text-white"
-            >
-              Explore full scenario
-              <ChevronRight size={16} />
             </button>
           </div>
 
           <button
             type="button"
+            onClick={() => navigate('/growth-scenarios')}
             className="rounded-[1.6rem] border border-slate-200 bg-white px-5 py-4 text-left text-sm font-semibold text-slate-800 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.16)] transition-colors duration-150 ease-out hover:bg-[#eef5f2]"
           >
             View 30-year projection
@@ -549,7 +659,7 @@ export default function HeroDecisionCard({
                 {acquisitionReadinessScoreDisplay}
               </p>
               <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-                {acquisitionReadinessLabel}
+                {acquisitionReadinessLabelValue}
               </span>
             </div>
             <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-emerald-50">
@@ -559,10 +669,58 @@ export default function HeroDecisionCard({
               />
             </div>
             <p className="mt-4 text-sm leading-6 text-slate-600">
-              Executable now.
-              <br />
-              Optimisation unlocks stronger capacity.
+              {acquisitionSummaryCopy}
             </p>
+            {acquisitionBreakdownRows.length > 0 ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setIsReadinessExpanded((current) => !current)}
+                  className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900"
+                >
+                  See what drives this score
+                  <ChevronRight
+                    size={15}
+                    className={`transition-transform duration-250 ease-out ${
+                      isReadinessExpanded ? 'rotate-90' : ''
+                    }`}
+                  />
+                </button>
+
+                <div
+                  className="overflow-hidden transition-[max-height] duration-300 ease-in-out"
+                  style={{ maxHeight: isReadinessExpanded ? '320px' : '0px' }}
+                >
+                  <div className="mt-4 border-t border-[rgba(0,0,0,0.08)] pt-4">
+                    <p className="text-[11px] leading-[1.5] text-slate-500">
+                      Your acquisition position is derived from the key criteria below.
+                    </p>
+                    {acquisitionBreakdownRows.length > 0 ? (
+                      <div className="mt-3 divide-y divide-[rgba(0,0,0,0.06)]">
+                        {acquisitionBreakdownRows.map((row) => (
+                          <div
+                            key={row.label}
+                            className="flex items-center justify-between gap-4 py-2.5 text-sm"
+                          >
+                            <span className="text-slate-600">{row.label}</span>
+                            <span className="font-medium text-slate-900">{row.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                    {hasLimitedReadinessDrivers ? (
+                      <p className="mt-3 text-[11px] leading-[1.5] text-slate-500">
+                        More score drivers will appear as additional readiness inputs become available.
+                      </p>
+                    ) : (
+                      <p className="mt-3 text-[11px] leading-[1.5] text-slate-500">
+                        Weighted to derive your overall acquisition position score.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </>
+            ) : null}
           </div>
 
           <div
@@ -571,7 +729,7 @@ export default function HeroDecisionCard({
           >
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Top unlock</p>
             <p className="mt-1 text-[12px] leading-5">
-              Reduce card limits → +{unlockValueDisplay} borrowing capacity
+              {unlockStripDisplay}
             </p>
           </div>
 
@@ -585,3 +743,7 @@ export default function HeroDecisionCard({
     </section>
   )
 }
+
+
+
+
