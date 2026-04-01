@@ -179,7 +179,7 @@ export default function HeroDecisionCard({
         : '--'
   const acquisitionDifference = acquisitionYear5 - baselineYear5
   const acquisitionDifferenceDisplay = hasScenarioData
-    ? `${acquisitionDifference >= 0 ? '+' : '-'}${formatCurrency(Math.abs(acquisitionDifference))} vs doing nothing`
+    ? `${acquisitionDifference >= 0 ? '+' : '-'}${formatCurrency(Math.abs(acquisitionDifference))} target property equity by year 5`
     : null
 
   useEffect(() => {

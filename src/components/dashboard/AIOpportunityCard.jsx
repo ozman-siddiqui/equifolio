@@ -36,9 +36,9 @@ function formatBreakEven(value) {
 function getConfidenceBadgeClass(confidenceLevel) {
   const normalized = String(confidenceLevel || '').toLowerCase()
 
-  if (normalized === 'high') return 'bg-green-100 text-green-700'
-  if (normalized === 'medium') return 'bg-amber-100 text-amber-700'
-  return 'bg-gray-100 text-gray-700'
+  if (normalized === 'high') return 'bg-[#E1F5EE] text-[#085041]'
+  if (normalized === 'medium') return 'bg-[#FAEEDA] text-[#633806]'
+  return 'bg-[#ebebeb] text-[#333333]'
 }
 
 async function fetchOpportunityRows(userId) {
@@ -332,14 +332,14 @@ export default function AIOpportunityCard({ currentUserId, loans = [] }) {
 
   if (loading) {
     return (
-      <section className="mt-6 overflow-hidden rounded-2xl border border-gray-100 bg-white">
-        <div className="border-b border-gray-100 p-6">
+      <section className="h-full overflow-hidden rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+        <div className="border-b border-[rgba(0,0,0,0.08)] px-[22px] py-[18px]">
           <div className="h-5 w-36 animate-pulse rounded bg-gray-100" />
           <div className="mt-3 h-8 w-2/3 animate-pulse rounded bg-gray-100" />
           <div className="mt-3 h-4 w-full animate-pulse rounded bg-gray-100" />
         </div>
-        <div className="p-6">
-          <div className="h-40 animate-pulse rounded-2xl bg-gray-50" />
+        <div className="px-[22px] py-[18px]">
+          <div className="h-40 animate-pulse rounded-[16px] bg-[var(--color-background-secondary)]" />
         </div>
       </section>
     )
@@ -348,30 +348,38 @@ export default function AIOpportunityCard({ currentUserId, loans = [] }) {
   if (shouldRenderNull) return null
 
   return (
-    <section className="mt-6 overflow-hidden rounded-2xl border border-gray-100 bg-white">
-      <div className="border-b border-gray-100 p-6">
+    <section className="h-full overflow-hidden rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+      <div className="border-b border-[rgba(0,0,0,0.08)] px-[22px] py-[18px]">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700">
-              <Brain size={13} />
-              AI Opportunity Engine
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-2 rounded-full bg-[#E1F5EE] px-[10px] py-[3px] text-[10px] font-medium text-[#085041]">
+                <Brain size={13} />
+                AI Opportunity Engine
+              </div>
+              {cumulativeValue > 0 ? (
+                <div className="inline-flex items-center gap-2 rounded-full bg-[var(--color-background-secondary)] px-[10px] py-[3px] text-[10px] font-medium text-[var(--color-text-primary)]">
+                  <span className="text-[var(--color-text-tertiary)]">Total value identified</span>
+                  <span>{formatCurrency(cumulativeValue)}</span>
+                </div>
+              ) : null}
             </div>
             {showValueStrip ? (
               <>
-                <h2 className="mt-4 text-lg md:text-xl font-semibold text-gray-900">
+                <h2 className="mt-4 text-[15px] font-medium text-[var(--color-text-primary)]">
                   Vaulta has identified {formatCurrency(cumulativeValue)} in potential portfolio
                   improvements
                 </h2>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-2 text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
                   {totalDetected} opportunities detected since you joined
                 </p>
               </>
             ) : (
               <>
-                <h2 className="mt-4 text-lg md:text-xl font-semibold text-gray-900">
+                <h2 className="mt-4 text-[15px] font-medium text-[var(--color-text-primary)]">
                   Refinance opportunities
                 </h2>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-2 text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
                   Indicative benchmark checks across your recorded mortgages.
                 </p>
               </>
@@ -380,17 +388,17 @@ export default function AIOpportunityCard({ currentUserId, loans = [] }) {
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="px-[22px] py-[18px]">
         {incompleteLoans.length > 0 ? (
-          <div className="mb-5 rounded-2xl border border-amber-100 bg-amber-50/70 p-4">
-            <p className="text-sm text-amber-900">
+          <div className="mb-4 rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[#FAEEDA] p-4">
+            <p className="text-[13px] leading-[1.6] text-[#633806]">
               Some mortgage details are incomplete. Complete your loan information to unlock
               refinance opportunity detection.
             </p>
             <button
               type="button"
               onClick={() => navigate('/mortgages')}
-              className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700"
+              className="mt-3 inline-flex items-center gap-2 text-[13px] font-medium text-primary-600 hover:text-primary-700"
             >
               Update mortgages
               <ArrowRight size={15} />
@@ -399,32 +407,56 @@ export default function AIOpportunityCard({ currentUserId, loans = [] }) {
         ) : null}
 
         {showNoOpportunities ? (
-          <div className="rounded-2xl border border-gray-100 bg-gray-50/70 p-5">
-            <p className="text-base font-semibold text-gray-900">
+          <div className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-secondary)] p-[18px]">
+            <p className="text-[15px] font-medium text-[var(--color-text-primary)]">
               No significant refinance opportunities detected at this time.
             </p>
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
               We check your loans against current market benchmarks automatically.
             </p>
 
-            {cumulativeValue > 0 ? (
-              <div className="mt-3 rounded-[10px] border border-emerald-100 bg-[#f4faf7] px-[14px] py-[10px]">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">
-                  Total value identified since joining
+            <div className="mt-4">
+              <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
+                What we monitor
+              </p>
+              <div className="mt-2">
+                <div className="flex items-center justify-between gap-4 border-b-[0.5px] border-[rgba(0,0,0,0.06)] py-[6px] text-[12px]">
+                  <span className="text-[var(--color-text-primary)]">Refinance opportunities</span>
+                  <span className="text-[var(--color-text-secondary)]">Checked automatically</span>
+                </div>
+                <div className="flex items-center justify-between gap-4 border-b-[0.5px] border-[rgba(0,0,0,0.06)] py-[6px] text-[12px]">
+                  <span className="text-[var(--color-text-primary)]">Interest rate benchmarks</span>
+                  <span className="text-[var(--color-text-secondary)]">Updated regularly</span>
+                </div>
+                <div className="flex items-center justify-between gap-4 border-b-[0.5px] border-[rgba(0,0,0,0.06)] py-[6px] text-[12px]">
+                  <span className="text-[var(--color-text-primary)]">Portfolio health alerts</span>
+                  <span className="text-[var(--color-text-secondary)]">Active monitoring</span>
+                </div>
+              </div>
+            </div>
+
+            {(cumulativeValue > 0 || totalDetected > 0) ? (
+              <div className="mt-[10px] border-t-[0.5px] border-[rgba(0,0,0,0.06)] pt-[10px]">
+                <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
+                  Value summary
                 </p>
-                <p className="mt-1 text-lg font-semibold text-gray-900">
-                  {formatCurrency(cumulativeValue)}
-                </p>
-                <p className="mt-1 text-xs text-gray-500">
-                  {totalDetected} opportunities detected since you joined
-                </p>
+                {cumulativeValue > 0 ? (
+                  <p className="mt-1 text-[15px] font-medium text-[var(--color-text-primary)]">
+                    {formatCurrency(cumulativeValue)} identified so far
+                  </p>
+                ) : null}
+                {totalDetected > 0 ? (
+                  <p className="mt-1 text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]">
+                    {totalDetected} opportunities detected since you joined
+                  </p>
+                ) : null}
               </div>
             ) : null}
           </div>
         ) : (
           <div className="space-y-4">
             {actionError ? (
-              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[#FCEBEB] px-4 py-3 text-[13px] text-[#791F1F]">
                 {actionError}
               </div>
             ) : null}
@@ -432,7 +464,7 @@ export default function AIOpportunityCard({ currentUserId, loans = [] }) {
             {topOpportunities.map((opportunity) => (
               <article
                 key={opportunity.id}
-                className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm shadow-gray-100/70"
+                className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] p-[18px] shadow-[0_10px_24px_rgba(15,23,42,0.04)]"
                 style={{ borderLeftWidth: 3, borderLeftColor: '#f59e0b' }}
               >
                 {(() => {
@@ -446,15 +478,15 @@ export default function AIOpportunityCard({ currentUserId, loans = [] }) {
                     <>
                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                         <div className="min-w-0">
-                          <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-gray-400">
+                          <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
                             Refinance Opportunity
                           </p>
-                          <h3 className="mt-3 text-base font-semibold text-gray-900">
+                          <h3 className="mt-3 text-[15px] font-medium text-[var(--color-text-primary)]">
                             {opportunity.propertyAddress}
                           </h3>
                         </div>
                         <span
-                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getConfidenceBadgeClass(
+                          className={`inline-flex rounded-full px-[10px] py-[3px] text-[10px] font-medium ${getConfidenceBadgeClass(
                             opportunity.confidence_level
                           )}`}
                         >
@@ -464,20 +496,20 @@ export default function AIOpportunityCard({ currentUserId, loans = [] }) {
                         </span>
                       </div>
 
-                      <p className="mt-4 text-sm leading-6 text-gray-600">
+                      <p className="mt-4 text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
                         {opportunity.narrative}
                       </p>
 
                       <div className="mt-4 flex flex-wrap gap-3">
-                        <div className="inline-flex rounded-full bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-800">
+                        <div className="inline-flex rounded-full bg-[var(--color-background-secondary)] px-[10px] py-[3px] text-[10px] font-medium text-[var(--color-text-primary)]">
                           {formatCurrency(monthlySaving)}/mo
                         </div>
-                        <div className="inline-flex rounded-full bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-800">
+                        <div className="inline-flex rounded-full bg-[var(--color-background-secondary)] px-[10px] py-[3px] text-[10px] font-medium text-[var(--color-text-primary)]">
                           {formatCurrency(annualSaving)}/yr
                         </div>
                       </div>
 
-                      <p className="mt-3 text-sm text-gray-500">
+                      <p className="mt-3 text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]">
                         Estimated break-even: {formatBreakEven(opportunity.break_even_months)}
                       </p>
                     </>
@@ -514,8 +546,8 @@ export default function AIOpportunityCard({ currentUserId, loans = [] }) {
                 </div>
 
                 {actedFormId === opportunity.id ? (
-                  <div className="mt-4 rounded-2xl border border-gray-100 bg-gray-50/70 p-4">
-                    <label className="block text-sm font-medium text-gray-700">
+                  <div className="mt-4 rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-secondary)] p-4">
+                    <label className="block text-[13px] font-medium text-[var(--color-text-primary)]">
                       What rate did you secure? (optional)
                     </label>
                     <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -530,7 +562,7 @@ export default function AIOpportunityCard({ currentUserId, loans = [] }) {
                             [opportunity.id]: event.target.value,
                           }))
                         }
-                        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-primary-400 sm:max-w-[220px]"
+                        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-[13px] text-gray-900 outline-none transition focus:border-primary-400 sm:max-w-[220px]"
                         placeholder="e.g. 5.89"
                       />
                       <button
@@ -552,7 +584,7 @@ export default function AIOpportunityCard({ currentUserId, loans = [] }) {
           </div>
         )}
 
-        <p className="mt-5 text-xs leading-5 text-gray-400">
+        <p className="mt-4 text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]">
           These figures are illustrative estimates based on your inputs and indicative market
           benchmarks. They do not constitute financial advice. Actual savings will vary based on
           individual circumstances and lender assessment. Consider discussing options with a

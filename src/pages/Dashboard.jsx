@@ -12,7 +12,6 @@ import DashboardBorrowingPowerCard from '../components/dashboard/BorrowingPowerC
 import BorrowingPowerBreakdown from '../components/dashboard/BorrowingPowerBreakdown'
 import HeroDecisionCard from '../components/dashboard/HeroDecisionCard'
 import PropertyCard from '../components/dashboard/PropertyCard'
-import ScenarioCard from '../components/dashboard/ScenarioCard'
 import SetupProgress from '../components/dashboard/SetupProgress'
 import { buildAlerts } from '../components/AlertsDropdown'
 import { utilityPrimaryButtonClass, utilitySecondaryButtonClass } from '../components/CardPrimitives'
@@ -432,6 +431,14 @@ export default function Dashboard({ session, subscription }) {
       null)
     : null
 
+  const heroYear3Equity =
+    leadScenario?.projectionData?.find((point) => point.year === 3)?.netEquity ?? null
+
+  const heroYear5Equity =
+    leadScenario?.projectionData?.find((point) => point.year === 5)?.netEquity ??
+    leadScenario?.fiveYearEquityProjection ??
+    null
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -533,8 +540,8 @@ export default function Dashboard({ session, subscription }) {
             monthlyHoldingCost={heroMonthlyHoldingCost}
             grossYield={heroGrossYield}
             currentEquity={commandCenter?.hero?.netPosition?.value ?? commandCenter?.totalValue ?? 0}
-            year3Equity={720000}
-            year5Equity={875138}
+            year3Equity={heroYear3Equity}
+            year5Equity={heroYear5Equity}
             unlockValue={commandCenter?.hero?.borrowingPower?.unlockPotential ?? 0}
             acquisitionReadinessScore={acquisitionReadiness?.finalScore ?? null}
             acquisitionReadinessLabel={acquisitionReadiness?.label ?? null}
@@ -589,7 +596,6 @@ export default function Dashboard({ session, subscription }) {
                           label: 'LVR',
                           targetLabel: 'Target 60%',
                           valuePct: 60,
-                          note: 'Hover: card lifts 2px, border darkens subtly',
                         }
                   }
                   subtitle={
@@ -730,6 +736,18 @@ export default function Dashboard({ session, subscription }) {
               )}
             </section>
 
+            {dashboardState.canShowBorrowing ? (
+              <section
+                className={`mt-5 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+                style={isDashboardMounted ? { animationDelay: '150ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+              >
+                <BorrowingPowerBreakdown
+                  analysis={borrowingPowerAnalysis}
+                  onViewFullBreakdown={() => navigate('/borrowing-power')}
+                />
+              </section>
+            ) : null}
+
             {dashboardState.canShowTopActions ? (
               <section
                 className={`mt-6 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
@@ -807,20 +825,20 @@ export default function Dashboard({ session, subscription }) {
 
             {dashboardState.canShowBorrowing && commandCenter.compareOptions?.length > 0 ? (
               <section
-                className={`mt-8 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+                className={`mt-8 rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] p-[22px] shadow-[0_10px_24px_rgba(15,23,42,0.04)] md:px-[26px] md:py-[22px] ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
                 style={isDashboardMounted ? { animationDelay: '240ms' } : { opacity: 0, transform: 'translateY(8px)' }}
               >
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+                <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
                   Trade-offs
                 </p>
-                <h2 className="mt-2 text-2xl font-semibold text-gray-900">
+                <h2 className="mt-2 text-[15px] font-medium text-[var(--color-text-primary)]">
                   Compare your options
                 </h2>
-                <p className="mt-2 text-sm leading-6 text-gray-600">
-                  See the financial consequences of staying put, applying the top recommendation, or deploying capital now.
+                <p className="mt-2 text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
+                  Compare the annual cash-flow outcome of staying on your current path, applying the top action, or adding the modeled acquisition.
                 </p>
 
-                <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-3">
+                <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
                   {commandCenter.compareOptions.map((option) => (
                     <CompareOptionCard key={option.id} option={option} />
                   ))}
@@ -832,47 +850,46 @@ export default function Dashboard({ session, subscription }) {
               className={`mt-5 grid grid-cols-1 gap-6 xl:grid-cols-[1.45fr,0.8fr] ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
               style={isDashboardMounted ? { animationDelay: '270ms' } : { opacity: 0, transform: 'translateY(8px)' }}
             >
-              {dashboardState.canShowBorrowing && commandCenter.capacityUseCases.length > 0 ? (
-                <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
-                  <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-                        Growth
-                      </p>
-                      <h2 className="mt-2 text-2xl font-semibold text-gray-900">
-                        Deploy your borrowing capacity
-                      </h2>
-                      <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
-                        Engine-generated acquisition scenarios based on your real serviceability and capital position.
-                      </p>
-                    </div>
+              <section
+                className="min-h-[140px] rounded-[16px] border-[0.5px] p-[22px] shadow-[0_10px_24px_rgba(15,23,42,0.04)] md:px-[26px] md:py-[22px]"
+                style={{
+                  background: 'linear-gradient(135deg, #f4faf7 0%, #ffffff 100%)',
+                  borderColor: 'rgba(0,0,0,0.08)',
+                }}
+              >
+                <div className="flex h-full flex-col justify-between gap-5 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="max-w-2xl">
+                    <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
+                      Growth Scenario Studio
+                    </p>
+                    <h2 className="mt-2 text-[15px] font-medium text-[var(--color-text-primary)]">
+                      Stress-test every acquisition path
+                    </h2>
+                    <p className="mt-3 max-w-xl text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
+                      Explore multiple buy strategies, compare serviceability outcomes,
+                      and model your 30-year wealth trajectory using your real portfolio
+                      data.
+                    </p>
                   </div>
 
-                  <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                    {commandCenter.capacityUseCases.slice(0, 3).map((scenario, index) => (
-                      <ScenarioCard
-                        key={scenario.id}
-                        label={`Option ${String.fromCharCode(65 + index)}`}
-                        title={scenario.title}
-                        priceRangeLabel={scenario.estimatedPriceRangeLabel}
-                        priceRange={scenario.estimatedPriceRange}
-                        yieldText={scenario.expectedRentalYield}
-                        metricText={scenario.monthlyCashFlow}
-                        rationale={scenario.outcome}
-                        onExplore={() => navigate('/growth-scenarios')}
-                      />
-                    ))}
+                  <div className="flex flex-col items-start lg:items-end">
+                    <button
+                      type="button"
+                      onClick={() => navigate('/growth-scenarios')}
+                      className="inline-flex h-[44px] items-center rounded-[12px] bg-[#133230] px-[18px] text-[13px] font-medium text-white transition-colors hover:bg-[#0f2927]"
+                    >
+                      Open Scenario Studio →
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/growth-scenarios')}
+                      className="mt-2 inline-flex h-[40px] items-center rounded-[12px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-white px-[18px] text-[13px] text-gray-800 transition-colors hover:bg-gray-50"
+                    >
+                      Open 30Y Projection
+                    </button>
                   </div>
-                </section>
-              ) : dashboardState.canShowBorrowing ? null : (
-                <LockedChecklistCard
-                  eyebrow="Growth"
-                  title="Complete setup to unlock borrowing analysis"
-                  body="Scenarios only appear when serviceability inputs are complete enough to support a real borrowing view."
-                  missingSections={dashboardState.missingSections}
-                  onAction={(route) => navigate(route)}
-                />
-              )}
+                </div>
+              </section>
             </section>
 
             <section
@@ -880,16 +897,16 @@ export default function Dashboard({ session, subscription }) {
               style={isDashboardMounted ? { animationDelay: '300ms' } : { opacity: 0, transform: 'translateY(8px)' }}
             >
               <div className="h-full [&>section]:h-full">
-                <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
-                  <div className="flex items-end justify-between gap-4 border-b border-[rgba(0,0,0,0.08)] pb-5">
+                <section className="h-full rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] p-[22px] shadow-[0_10px_24px_rgba(15,23,42,0.04)] md:px-[26px] md:py-[22px]">
+                  <div className="flex items-end justify-between gap-4 border-b border-[rgba(0,0,0,0.08)] pb-4">
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+                      <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
                         Portfolio
                       </p>
-                      <h2 className="mt-2 text-2xl font-semibold text-gray-900">
+                      <h2 className="mt-2 text-[15px] font-medium text-[var(--color-text-primary)]">
                         Properties at a glance
                       </h2>
-                      <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+                      <p className="mt-2 max-w-2xl text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
                         Each property shows its current position, so you can spot where
                         the next intervention matters most.
                       </p>
@@ -905,7 +922,7 @@ export default function Dashboard({ session, subscription }) {
                     </button>
                   </div>
 
-                  <div className="mt-5 space-y-4">
+                  <div className="mt-4 space-y-3">
                     {commandCenter.portfolioProperties.length > 0 ? (
                       commandCenter.portfolioProperties.map((property) => (
                         <PropertyCard
@@ -938,69 +955,76 @@ export default function Dashboard({ session, subscription }) {
 
             {dashboardState.canShowBorrowing && Array.isArray(borrowingPowerAnalysis?.topConstraints) && borrowingPowerAnalysis.topConstraints.length > 0 ? (
               <section
-                className={`mt-5 rounded-[18px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-white p-6 shadow-[0_10px_24px_rgba(15,23,42,0.04)] transition-colors hover:border-[rgba(16,92,75,0.14)] md:p-7 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+                className={`mt-5 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
                 style={isDashboardMounted ? { animationDelay: '360ms' } : { opacity: 0, transform: 'translateY(8px)' }}
               >
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+                <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
                   Constraints
                 </p>
-                <h2 className="mt-2 text-2xl font-semibold text-gray-900">
+                <h2 className="mt-2 text-[15px] font-medium text-[var(--color-text-primary)]">
                   What&apos;s holding you back
                 </h2>
-                <p className="mt-2 text-sm leading-6 text-gray-600">
+                <p className="mt-2 text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
                   Your borrowing is primarily limited by:
                 </p>
 
-                <ul className="mt-5 space-y-3 text-sm leading-6 text-gray-700">
+                <ul className="mt-4 space-y-2 text-sm leading-6 text-gray-700">
                   {borrowingPowerAnalysis.topConstraints.slice(0, 2).map((constraint) => (
-                    <li key={constraint.type} className="flex items-start gap-3 rounded-[14px] border border-[rgba(0,0,0,0.06)] bg-[rgba(248,250,252,0.78)] px-4 py-3.5">
-                      <span className="mt-[10px] h-1.5 w-1.5 shrink-0 rounded-full bg-primary-600" />
-                      <div>
-                        <p className="font-medium text-gray-900">{constraint.message}</p>
-                        <p className="text-xs uppercase tracking-wide text-gray-400">
-                          {constraint.severity} severity
-                        </p>
-                      </div>
+                    <li
+                      key={constraint.type}
+                      className="flex items-center justify-between gap-4 rounded-r-[10px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-secondary)] px-[14px] py-[10px]"
+                      style={{
+                        borderLeftWidth: 3,
+                        borderLeftColor:
+                          constraint.severity === 'High'
+                            ? '#A32D2D'
+                            : '#EF9F27',
+                      }}
+                    >
+                      <p className="text-[13px] leading-[1.6] text-[var(--color-text-primary)]">
+                        {constraint.message}
+                      </p>
+                      <span
+                        className="shrink-0 rounded-full px-[10px] py-[3px] text-[10px] font-medium"
+                        style={{
+                          backgroundColor:
+                            constraint.severity === 'High' ? '#FCEBEB' : '#FAEEDA',
+                          color: constraint.severity === 'High' ? '#791F1F' : '#633806',
+                        }}
+                      >
+                        {constraint.severity}
+                      </span>
                     </li>
                   ))}
                 </ul>
               </section>
             ) : null}
-            {dashboardState.canShowBorrowing ? (
+            {commandCenter.urgentAlerts.length > 0 ? (
               <section
                 className={`mt-5 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
                 style={isDashboardMounted ? { animationDelay: '360ms' } : { opacity: 0, transform: 'translateY(8px)' }}
               >
-                <BorrowingPowerBreakdown
-                  analysis={borrowingPowerAnalysis}
-                  onViewFullBreakdown={() => navigate('/borrowing-power')}
-                />
-              </section>
-            ) : null}
-
-            {commandCenter.urgentAlerts.length > 0 ? (
-              <section
-                className={`mt-5 rounded-[18px] border-[0.5px] border-[rgba(239,68,68,0.18)] bg-[linear-gradient(180deg,rgba(254,242,242,0.68),rgba(255,255,255,1))] p-6 shadow-[0_10px_24px_rgba(239,68,68,0.05)] md:p-7 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
-                style={isDashboardMounted ? { animationDelay: '360ms' } : { opacity: 0, transform: 'translateY(8px)' }}
-              >
-                <div className="flex items-center gap-2 text-red-700">
+                <div className="flex items-center gap-2 text-[#791F1F]">
                   <Siren size={18} />
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em]">
+                  <p className="text-[10px] font-medium uppercase tracking-[0.09em]">
                     Smart Alerts
                   </p>
                 </div>
 
-                <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
                   {commandCenter.urgentAlerts.map((alert) => (
                     <button
                       key={alert.id}
                       type="button"
                       onClick={() => navigate(alert.route)}
-                      className="rounded-[14px] border border-[rgba(239,68,68,0.14)] bg-white/88 p-5 text-left transition-all duration-200 hover:border-[rgba(239,68,68,0.22)] hover:bg-white"
+                      className="rounded-r-[12px] border border-[rgba(0,0,0,0.08)] bg-[#FCEBEB] px-4 py-3 text-left transition-all duration-200 hover:border-[rgba(0,0,0,0.08)] hover:bg-[#FCEBEB]"
+                      style={{ borderLeftWidth: 3, borderLeftColor: '#A32D2D' }}
                     >
-                      <p className="text-sm font-semibold text-gray-900">{alert.title}</p>
-                      <p className="mt-2 text-sm font-medium text-red-700">{alert.impact}</p>
-                      <p className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary-600">
+                      <p className="text-[13px] font-medium text-[var(--color-text-primary)]">
+                        {alert.title}
+                      </p>
+                      <p className="mt-1 text-[13px] leading-[1.6] text-[#A32D2D]">{alert.impact}</p>
+                      <p className="mt-3 inline-flex items-center gap-2 text-[13px] font-medium text-primary-600">
                         Explore
                         <ChevronRight size={15} />
                       </p>
@@ -1105,31 +1129,77 @@ function EmptyState({ title, description, actionLabel = null, onAction = null })
 
 function CompareOptionCard({ option }) {
   const annualTone =
-    Number(option.annualImpact) >= 0 ? 'text-primary-700' : 'text-red-500'
+    Number(option.annualImpact) >= 0 ? 'text-[#0F6E56]' : 'text-[#A32D2D]'
+  const accentColor =
+    option.id === 'do-nothing'
+      ? '#F09595'
+      : option.id === 'apply-top-action'
+        ? '#1D9E75'
+        : '#EF9F27'
+  const borrowingLabel =
+    option.id === 'do-nothing'
+      ? 'Current borrowing headroom'
+      : option.id === 'apply-top-action'
+        ? 'Borrowing headroom after action'
+        : option.id === 'buy-now'
+          ? 'Remaining headroom after purchase'
+          : 'Borrowing headroom'
+  const outcomeHelper =
+    option.id === 'do-nothing'
+      ? 'Current annual portfolio cash-flow outcome'
+      : option.id === 'apply-top-action'
+        ? 'Annual outcome after applying the top action'
+        : option.id === 'buy-now'
+          ? 'Annual outcome after adding the acquisition'
+          : null
 
   return (
-    <article className="rounded-3xl border border-gray-100 bg-gray-50/70 p-5 transition-[transform,box-shadow] duration-150 ease-out will-change-transform hover:-translate-y-[2px] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+    <article
+      className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] p-[22px] transition-[transform,box-shadow] duration-150 ease-out will-change-transform hover:-translate-y-[2px] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
+      style={{ borderTopWidth: 3, borderTopColor: accentColor }}
+    >
+      <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
         {option.scenario}
       </p>
-      <p className={`mt-3 text-2xl font-semibold tracking-tight ${annualTone}`}>
+      <p className={`mt-3 text-[26px] font-medium tracking-[-0.5px] ${annualTone}`}>
         {`${Number(option.annualImpact) >= 0 ? '+' : '-'}${formatCurrency(
           Math.abs(Number(option.annualImpact || 0))
         )}/year`}
       </p>
-      <div className="mt-4 space-y-2 text-sm text-gray-600">
+      {outcomeHelper ? (
+        <p className="mt-[6px] text-[12px] leading-[1.5] text-[var(--color-text-secondary)]">{outcomeHelper}</p>
+      ) : null}
+      <div className="mt-4 space-y-2 text-[13px] text-[var(--color-text-secondary)]">
         <div className="flex items-center justify-between gap-4">
-          <span>Borrowing position</span>
-          <span className="font-semibold text-gray-900">
+          <span>{borrowingLabel}</span>
+          <span className="font-medium text-[var(--color-text-primary)]">
             {formatCurrency(option.borrowing)}
           </span>
         </div>
         <div className="flex items-center justify-between gap-4">
           <span>Risk</span>
-          <span className="font-semibold capitalize text-gray-900">{option.risk}</span>
+          <span
+            className="rounded-full px-[10px] py-[3px] text-[10px] font-medium capitalize"
+            style={{
+              backgroundColor:
+                option.risk === 'low'
+                  ? '#ebebeb'
+                  : option.risk === 'medium'
+                    ? '#FAEEDA'
+                    : '#FCEBEB',
+              color:
+                option.risk === 'low'
+                  ? '#333'
+                  : option.risk === 'medium'
+                    ? '#633806'
+                    : '#791F1F',
+            }}
+          >
+            {option.risk}
+          </span>
         </div>
       </div>
-      <p className="mt-4 text-sm leading-6 text-gray-600">{option.description}</p>
+      <p className="mt-4 text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">{option.description}</p>
     </article>
   )
 }

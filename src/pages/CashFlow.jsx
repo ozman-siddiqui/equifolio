@@ -219,23 +219,23 @@ export default function CashFlow() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--color-background-tertiary)] flex items-center justify-center">
         <div className="text-gray-400">Loading cash flow...</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="max-w-7xl mx-auto px-4 py-8 space-y-6">
-        <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <div className="p-6 md:p-8 border-b border-gray-100">
+    <div className="min-h-screen bg-[var(--color-background-tertiary)]">
+      <main className="mx-auto max-w-7xl space-y-[22px] px-6 py-6">
+        <section className="overflow-hidden rounded-[18px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)]">
+          <div className="border-b-[0.5px] border-[rgba(0,0,0,0.06)] p-6 md:p-8">
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
               <div className="min-w-0 flex-1">
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+                <h1 className="text-[28px] font-medium tracking-[-0.3px] text-[var(--color-text-primary)]">
                   Cash Flow
                 </h1>
-                <p className="text-gray-500 mt-2 max-w-2xl">
+                <p className="mt-2 max-w-2xl text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
                   Start with the portfolio picture, compare property-level performance,
                   then drill into filtered transaction detail only when you need it.
                 </p>
@@ -265,37 +265,37 @@ export default function CashFlow() {
               icon={<TrendingUp size={16} />}
               label="Total Income"
               value={formatCurrency(portfolioSummary.income)}
-              valueClassName="text-green-600"
+              valueClassName="text-[#0F6E56]"
             />
             <MetricCard
               icon={<TrendingDown size={16} />}
               label="Total Expenses"
               value={formatCurrency(portfolioSummary.expenses)}
-              valueClassName="text-red-500"
+              valueClassName="text-[#A32D2D]"
             />
             <MetricCard
               icon={<DollarSign size={16} />}
               label="Net Cash Flow"
               value={formatCurrency(portfolioSummary.net)}
               valueClassName={
-                portfolioSummary.net >= 0 ? 'text-green-600' : 'text-red-500'
+                portfolioSummary.net >= 0 ? 'text-[#0F6E56]' : 'text-[#A32D2D]'
               }
             />
           </div>
         </section>
 
-        <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-100">
+        <section className="overflow-hidden rounded-[18px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)]">
+          <div className="border-b-[0.5px] border-[rgba(0,0,0,0.06)] p-6">
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Trend</h2>
-                <p className="text-sm text-gray-500 mt-1">
+                <h2 className="text-[15px] font-medium text-[var(--color-text-primary)]">Trend</h2>
+                <p className="mt-1 text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
                   Monthly cash flow trend for the selected detail scope.
                 </p>
               </div>
 
               <div className="w-full lg:w-[280px]">
-                <label className="block text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
+                <label className="mb-2 block text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
                   Scope
                 </label>
                 <select
@@ -349,10 +349,10 @@ export default function CashFlow() {
           </div>
         </section>
 
-        <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-900">Property Breakdown</h2>
-            <p className="text-sm text-gray-500 mt-1">
+        <section className="overflow-hidden rounded-[18px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)]">
+          <div className="border-b-[0.5px] border-[rgba(0,0,0,0.06)] p-6">
+            <h2 className="text-[15px] font-medium text-[var(--color-text-primary)]">Property Breakdown</h2>
+            <p className="mt-1 text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
               Compare each property at a glance before drilling into detailed transactions.
             </p>
           </div>
@@ -372,22 +372,22 @@ export default function CashFlow() {
                   key={entry.propertyId}
                   type="button"
                   onClick={() => setSelectedDetailPropertyId(entry.propertyId)}
-                  className={`text-left rounded-2xl border p-5 transition-colors ${
+                  className={`text-left rounded-[16px] border border-[rgba(0,0,0,0.08)] px-[22px] py-[18px] transition-transform duration-150 ease-[ease] will-change-transform hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.07)] ${
                     String(effectiveDetailPropertyId) === String(entry.propertyId)
-                      ? 'border-primary-200 bg-primary-50/60 shadow-sm shadow-primary-100/60'
-                      : 'border-gray-100 bg-white hover:bg-gray-50 hover:border-gray-200 hover:shadow-sm'
+                      ? 'border-[#b8e8d8] bg-[#E1F5EE] shadow-sm shadow-[#b8e8d8]/60'
+                      : 'bg-[var(--color-background-primary)] hover:bg-gray-50 hover:border-gray-200'
                   }`}
                 >
                   <div className="space-y-4">
                     <div>
                       <div className="flex items-center gap-2">
                         <Building2 size={16} className="text-gray-400 shrink-0" />
-                        <h3 className="text-base font-semibold text-gray-900 break-words">
+                        <h3 className="break-words text-[15px] font-medium text-[var(--color-text-primary)]">
                           {entry.property.address}
                         </h3>
                       </div>
 
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="mt-1 text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
                         {entry.property.suburb}, {entry.property.state}
                       </p>
                     </div>
@@ -408,17 +408,17 @@ export default function CashFlow() {
                       <MetricTile
                         label="Income"
                         value={formatCurrency(entry.income)}
-                        valueClassName="text-green-600"
+                        valueClassName="text-[#0F6E56]"
                       />
                       <MetricTile
                         label="Expenses"
                         value={formatCurrency(entry.expenses)}
-                        valueClassName="text-red-500"
+                        valueClassName="text-[#A32D2D]"
                       />
                       <MetricTile
                         label="Net"
                         value={formatCurrency(entry.net)}
-                        valueClassName={entry.net >= 0 ? 'text-green-600' : 'text-red-500'}
+                        valueClassName={entry.net >= 0 ? 'text-[#0F6E56]' : 'text-[#A32D2D]'}
                       />
                     </div>
                   </div>
@@ -428,19 +428,19 @@ export default function CashFlow() {
           </div>
         </section>
 
-        <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-100">
+        <section className="overflow-hidden rounded-[18px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)]">
+          <div className="border-b-[0.5px] border-[rgba(0,0,0,0.06)] p-6">
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Transactions</h2>
-                <p className="text-sm text-gray-500 mt-1">
+                <h2 className="text-[15px] font-medium text-[var(--color-text-primary)]">Transactions</h2>
+                <p className="mt-1 text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
                   Filter to one property or stay at portfolio level, then narrow by date range.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full lg:max-w-3xl">
                 <div>
-                  <label className="block text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
+                  <label className="mb-2 block text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
                     Property
                   </label>
                   <select
@@ -458,7 +458,7 @@ export default function CashFlow() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
+                  <label className="mb-2 block text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
                     Start date
                   </label>
                   <input
@@ -470,7 +470,7 @@ export default function CashFlow() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
+                  <label className="mb-2 block text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
                     End date
                   </label>
                   <input
@@ -490,19 +490,19 @@ export default function CashFlow() {
                 icon={<TrendingUp size={16} />}
                 label="Filtered Income"
                 value={formatCurrency(filteredSummary.income)}
-                valueClassName="text-green-600"
+                valueClassName="text-[#0F6E56]"
               />
               <MetricCard
                 icon={<TrendingDown size={16} />}
                 label="Filtered Expenses"
                 value={formatCurrency(filteredSummary.expenses)}
-                valueClassName="text-red-500"
+                valueClassName="text-[#A32D2D]"
               />
               <MetricCard
                 icon={<DollarSign size={16} />}
                 label="Filtered Net"
                 value={formatCurrency(filteredSummary.net)}
-                valueClassName={filteredSummary.net >= 0 ? 'text-green-600' : 'text-red-500'}
+                valueClassName={filteredSummary.net >= 0 ? 'text-[#0F6E56]' : 'text-[#A32D2D]'}
               />
             </div>
 
@@ -520,16 +520,16 @@ export default function CashFlow() {
                   return (
                     <div
                       key={transaction.id}
-                      className="rounded-2xl border border-gray-100 p-4"
+                      className="rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[22px] py-[18px]"
                     >
                       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span
-                              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
+                              className={`inline-flex items-center rounded-[20px] px-[10px] py-[3px] text-[10px] font-medium ${
                                 transaction.type === 'income'
-                                  ? 'bg-green-50 text-green-700'
-                                  : 'bg-red-50 text-red-700'
+                                  ? 'bg-[#E1F5EE] text-[#085041]'
+                                  : 'bg-[#FCEBEB] text-[#791F1F]'
                               }`}
                             >
                               {transaction.type}
@@ -582,7 +582,7 @@ export default function CashFlow() {
 
                           <button
                             onClick={() => handleDeleteTransaction(transaction.id)}
-                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-red-500 hover:bg-gray-50 text-sm font-medium"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-[#A32D2D] hover:bg-gray-50"
                             type="button"
                           >
                             <Trash2 size={14} />
@@ -628,11 +628,11 @@ function TrendTooltip({ active, payload, label }) {
   const net = income - expenses
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-3 shadow-lg text-xs">
+    <div className="rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] p-3 text-xs shadow-lg">
       <p className="font-semibold text-gray-700 mb-2">{label}</p>
-      <p className="text-green-600">Income: {formatCurrency(income)}</p>
-      <p className="text-red-500">Expenses: {formatCurrency(expenses)}</p>
-      <p className={`font-semibold mt-1 ${net >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+      <p className="text-[#0F6E56]">Income: {formatCurrency(income)}</p>
+      <p className="text-[#A32D2D]">Expenses: {formatCurrency(expenses)}</p>
+      <p className={`mt-1 font-semibold ${net >= 0 ? 'text-[#0F6E56]' : 'text-[#A32D2D]'}`}>
         Net: {formatCurrency(net)}
       </p>
     </div>
@@ -641,12 +641,12 @@ function TrendTooltip({ active, payload, label }) {
 
 function MetricCard({ icon, label, value, valueClassName = 'text-gray-900' }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-5">
+    <div className="rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[22px] py-[18px]">
       <div className="flex items-center gap-2 text-gray-400 mb-3">
         {icon}
-        <span className="text-xs font-medium uppercase tracking-wide">{label}</span>
+        <span className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">{label}</span>
       </div>
-      <p className={`text-xl md:text-2xl font-bold ${valueClassName}`}>{value}</p>
+      <p className={`text-[26px] font-medium tracking-[-0.5px] ${valueClassName}`}>{value}</p>
     </div>
   )
 }
@@ -654,8 +654,8 @@ function MetricCard({ icon, label, value, valueClassName = 'text-gray-900' }) {
 function Field({ label, value, valueClassName = 'text-gray-900' }) {
   return (
     <div>
-      <p className="text-xs text-gray-400">{label}</p>
-      <div className={`text-sm font-medium mt-1 break-words ${valueClassName}`}>{value}</div>
+      <p className="text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]">{label}</p>
+      <div className={`mt-1 break-words text-[13px] font-normal leading-[1.6] ${valueClassName}`}>{value}</div>
     </div>
   )
 }
@@ -669,8 +669,8 @@ function TransactionAmount({ amount, type, frequency }) {
   const monthlyEquivalent = normalizedFrequency
     ? getMonthlyAmount(Math.abs(amount), normalizedFrequency)
     : null
-  const toneClass = type === 'income' ? 'text-green-600' : 'text-red-500'
-  const secondaryToneClass = type === 'income' ? 'text-green-500/80' : 'text-red-400'
+  const toneClass = type === 'income' ? 'text-[#0F6E56]' : 'text-[#A32D2D]'
+  const secondaryToneClass = type === 'income' ? 'text-[#0F6E56]/80' : 'text-[#A32D2D]/80'
 
   return (
     <div className="space-y-0.5">
@@ -693,8 +693,8 @@ function EmptyState({ icon, title, description }) {
       <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-3">
         {icon}
       </div>
-      <p className="text-sm font-semibold text-gray-900">{title}</p>
-      <p className="text-sm text-gray-500 mt-1">{description}</p>
+      <p className="text-[15px] font-medium text-[var(--color-text-primary)]">{title}</p>
+      <p className="mt-1 text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">{description}</p>
     </div>
   )
 }
