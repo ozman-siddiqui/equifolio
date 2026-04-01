@@ -631,20 +631,20 @@ export default function Financials({ session = null }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--color-background-tertiary)] flex items-center justify-center">
         <div className="text-gray-400">Loading financials...</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="max-w-7xl mx-auto px-4 py-8 space-y-6">
-        <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <div className="p-6 md:p-8 border-b border-gray-100">
+    <div className="min-h-screen bg-[var(--color-background-tertiary)]">
+      <main className="mx-auto max-w-7xl space-y-[22px] px-6 py-6">
+        <section className="overflow-hidden rounded-[18px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)]">
+          <div className="border-b-[0.5px] border-[rgba(0,0,0,0.06)] p-6 md:p-8">
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
               <div>
-                <div className="inline-flex items-center gap-2 text-xs font-medium text-primary-700 bg-primary-50 px-3 py-1 rounded-full mb-4">
+                <div className="mb-4 inline-flex items-center gap-2 rounded-[20px] bg-[#E1F5EE] px-[10px] py-[3px] text-[10px] font-medium text-[#085041]">
                   <Wallet size={13} />
                   Financial Data Layer
                 </div>
@@ -660,19 +660,19 @@ export default function Financials({ session = null }) {
 
           <div className="grid grid-cols-1 gap-4 bg-gray-50/70 p-6 md:grid-cols-3 md:p-8">
             <TopMetricCard
-              icon={<BriefcaseBusiness size={16} className="text-primary-600" />}
+              icon={<BriefcaseBusiness size={16} className="text-[#0F6E56]" />}
               label="Household Income"
               value={formatCurrency(financialProfile?.household_income_annual || 0)}
               helper="Annual borrower income on file"
             />
             <TopMetricCard
-              icon={<Wallet size={16} className="text-orange-600" />}
+              icon={<Wallet size={16} className="text-[#854F0B]" />}
               label="Living Expenses"
               value={formatCurrency(financialProfile?.living_expenses_monthly || 0)}
               helper="Monthly living expense baseline"
             />
             <TopMetricCard
-              icon={<CreditCard size={16} className="text-red-500" />}
+              icon={<CreditCard size={16} className="text-[#A32D2D]" />}
               label="Liabilities"
               value={liabilitiesLoading ? '...' : liabilities.length}
               helper={liabilitiesError ? 'Unavailable' : 'Tracked personal liabilities'}
@@ -681,11 +681,11 @@ export default function Financials({ session = null }) {
         </section>
 
         {error ? (
-          <section className="rounded-2xl border border-amber-200 bg-amber-50/70 p-5">
-            <p className="text-sm font-semibold text-amber-800">
+          <section className="rounded-[16px] border border-[#b8e8d8] bg-[#FAEEDA] px-[22px] py-[18px]">
+            <p className="text-sm font-semibold text-[#854F0B]">
               Financial profile data is not available yet
             </p>
-            <p className="mt-1 text-sm text-amber-700">
+            <p className="mt-1 text-sm text-[#854F0B]">
               This page will stay stable even if the backend table is not available yet.
             </p>
           </section>
@@ -851,7 +851,7 @@ export default function Financials({ session = null }) {
                       </div>
 
                       {ownershipSplitInlineError ? (
-                        <p className="text-sm text-red-600">{ownershipSplitInlineError}</p>
+                        <p className="text-sm text-[#A32D2D]">{ownershipSplitInlineError}</p>
                       ) : (
                         <p className="text-sm text-gray-500">
                           Split total: {ownershipSplitTotal} / 100
@@ -859,7 +859,7 @@ export default function Financials({ session = null }) {
                       )}
 
                       {showPartnerIncomeWarning ? (
-                        <p className="text-sm text-amber-700">
+                        <p className="text-sm text-[#854F0B]">
                           Add partner income to estimate joint ownership tax benefit accurately.
                         </p>
                       ) : null}
@@ -930,13 +930,13 @@ export default function Financials({ session = null }) {
               </FinancialCard>
 
               {profileState.error ? (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="rounded-xl border border-[#FCEBEB] bg-[#FCEBEB] px-4 py-3 text-sm text-[#791F1F]">
                   {profileState.error}
                 </div>
               ) : null}
 
               {profileState.success ? (
-                <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                <div className="rounded-xl border border-[#b8e8d8] bg-[#E1F5EE] px-4 py-3 text-sm text-[#085041]">
                   {profileState.success}
                 </div>
               ) : null}
@@ -984,25 +984,25 @@ export default function Financials({ session = null }) {
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
               <TopMetricCard
-                icon={<CreditCard size={16} className="text-primary-600" />}
+                icon={<CreditCard size={16} className="text-[#0F6E56]" />}
                 label="Liabilities Count"
                 value={liabilitiesSummary.totalCount}
                 helper="Total liabilities on file"
               />
               <TopMetricCard
-                icon={<Wallet size={16} className="text-orange-600" />}
+                icon={<Wallet size={16} className="text-[#854F0B]" />}
                 label="Outstanding Balance"
                 value={formatCurrency(liabilitiesSummary.totalOutstandingBalance)}
                 helper="Total balance across liabilities"
               />
               <TopMetricCard
-                icon={<Wallet size={16} className="text-red-500" />}
+                icon={<Wallet size={16} className="text-[#A32D2D]" />}
                 label="Monthly Repayments"
                 value={formatCurrency(liabilitiesSummary.totalMonthlyRepayments)}
                 helper="Combined monthly repayments"
               />
               <TopMetricCard
-                icon={<CreditCard size={16} className="text-primary-600" />}
+                icon={<CreditCard size={16} className="text-[#0F6E56]" />}
                 label="Revolving Limits"
                 value={formatCurrency(liabilitiesSummary.totalRevolvingCreditLimits)}
                 helper="Credit card limits only"
@@ -1024,13 +1024,13 @@ export default function Financials({ session = null }) {
             </div>
 
             {liabilitiesError ? (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+              <div className="rounded-xl border border-[#FAEEDA] bg-[#FAEEDA] px-4 py-3 text-sm text-[#633806]">
                 {liabilitiesError}
               </div>
             ) : null}
 
             {showLiabilityForm ? (
-              <form onSubmit={handleSaveLiability} className="rounded-2xl border border-gray-100 bg-gray-50 p-5 space-y-4">
+              <form onSubmit={handleSaveLiability} className="space-y-4 rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-gray-50 px-[22px] py-[18px]">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Field label="Liability type">
                     <select
@@ -1096,13 +1096,13 @@ export default function Financials({ session = null }) {
                 </div>
 
                 {liabilityState.error ? (
-                  <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <div className="rounded-xl border border-[#FCEBEB] bg-[#FCEBEB] px-4 py-3 text-sm text-[#791F1F]">
                     {liabilityState.error}
                   </div>
                 ) : null}
 
                 {liabilityState.success ? (
-                  <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                  <div className="rounded-xl border border-[#b8e8d8] bg-[#E1F5EE] px-4 py-3 text-sm text-[#085041]">
                     {liabilityState.success}
                   </div>
                 ) : null}
@@ -1145,12 +1145,12 @@ export default function Financials({ session = null }) {
             ) : (
               <div className="space-y-3">
                 {liabilities.map((liability) => (
-                  <div key={liability.id} className="rounded-2xl border border-gray-100 p-4">
+                  <div key={liability.id} className="rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[22px] py-[18px]">
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="text-sm font-semibold text-gray-900">{liability.name}</p>
-                          <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-600">
+                          <span className="rounded-[20px] bg-[#ebebeb] px-[10px] py-[3px] text-[10px] font-medium text-[#333]">
                             {LIABILITY_TYPES.find((option) => option.value === liability.type)?.label || liability.type}
                           </span>
                         </div>
@@ -1196,8 +1196,8 @@ function FinancialCard({ title, description, children, className = '', nested = 
     <section
       className={
         nested
-          ? 'rounded-2xl border border-gray-100 bg-gray-50 p-5'
-          : `bg-white rounded-2xl border border-gray-100 p-6 ${className}`
+          ? 'rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-gray-50 px-[22px] py-[18px]'
+          : `rounded-[18px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[26px] py-[22px] ${className}`
       }
     >
       <div className={nested ? '' : 'mb-5'}>
@@ -1221,7 +1221,7 @@ function Field({ label, helper = '', children }) {
 
 function TopMetricCard({ icon, label, value, helper }) {
   return (
-    <div className="rounded-xl border border-gray-100 bg-white p-5">
+    <div className="rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[22px] py-[18px]">
       <div className="flex items-center gap-2 text-gray-500">
         {icon}
         <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">{label}</p>
@@ -1234,7 +1234,7 @@ function TopMetricCard({ icon, label, value, helper }) {
 
 function SummaryRow({ label, value }) {
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-gray-100 py-3 last:border-0">
+    <div className="flex items-center justify-between gap-4 border-b-[0.5px] border-[rgba(0,0,0,0.06)] py-3 last:border-0">
       <span className="text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">{label}</span>
       <span className="text-right text-[13px] font-normal leading-[1.6] text-[var(--color-text-primary)]">{value}</span>
     </div>

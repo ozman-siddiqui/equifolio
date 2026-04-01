@@ -164,7 +164,7 @@ function AssumptionTrace({ text, className = '' }) {
 
 function BreakdownRow({ label, value, strong = false, helper = null }) {
   return (
-    <div className="flex items-start justify-between gap-3">
+    <div className="flex items-start justify-between gap-3 border-b-[0.5px] border-[rgba(0,0,0,0.06)] py-[7px] last:border-b-0">
       <div className="min-w-0">
         <span
           className={`text-[13px] leading-[1.6] ${
@@ -205,7 +205,7 @@ function TaxAssumptionsContent({
   className = '',
 }) {
   return (
-    <div className={`${className} space-y-4 rounded-[1.5rem] border border-slate-200/75 bg-slate-50/70 px-5 py-5 md:px-6 md:py-6`.trim()}>
+    <div className={`${className} space-y-4 rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-slate-50/70 px-[22px] py-[18px] md:px-[22px] md:py-[18px]`.trim()}>
       <div className="flex items-start justify-between gap-4">
         <span className="text-[1.03rem] text-slate-500">Ownership</span>
         <select
@@ -251,10 +251,10 @@ function TaxAssumptionsContent({
           </div>
 
           {ownershipSplitInlineError ? (
-            <p className="text-sm text-red-600">{ownershipSplitInlineError}</p>
+            <p className="text-sm text-[#A32D2D]">{ownershipSplitInlineError}</p>
           ) : null}
           {showJointOwnershipIncomeWarning ? (
-            <p className="text-sm text-amber-700">
+            <p className="text-sm text-[#854F0B]">
               Add partner income to estimate joint ownership tax benefit accurately.
             </p>
           ) : null}
@@ -321,7 +321,7 @@ function GraphPanel({
       {children}
       {insight || traceability || note || confidenceLabel ? (
         <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_1fr]">
-          <div className="rounded-[1.45rem] border border-slate-200/80 bg-slate-50/80 px-4 py-4 md:px-5">
+          <div className="rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-slate-50/80 px-[22px] py-[18px] md:px-[22px] md:py-[18px]">
             <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
               Insight
             </p>
@@ -336,7 +336,7 @@ function GraphPanel({
               </p>
             ) : null}
           </div>
-          <div className="rounded-[1.45rem] border border-slate-200/80 bg-white px-4 py-4 md:px-5">
+          <div className="rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[22px] py-[18px] md:px-[22px] md:py-[18px]">
             <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
               Traceability
             </p>
@@ -356,7 +356,7 @@ function GraphPanel({
         </div>
       ) : null}
       {warning ? (
-        <p className="mt-2 text-[13px] font-normal leading-[1.6] text-amber-700">{warning}</p>
+        <p className="mt-2 text-[13px] font-normal leading-[1.6] text-[#854F0B]">{warning}</p>
       ) : null}
     </div>
   )
@@ -470,7 +470,7 @@ function AnalysisChartCard({
   const tooltipWidthEstimate = 252
 
   return (
-    <div className="rounded-[1.75rem] border border-slate-200/80 bg-white p-5 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.35)] md:p-6">
+    <div className="rounded-[14px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[#ffffff] px-[18px] py-[16px] shadow-[0_24px_70px_-48px_rgba(15,23,42,0.35)] md:px-[18px] md:py-[16px]">
       <div className="mb-5">
         <p className="text-[15px] font-medium text-[var(--color-text-primary)]">{title}</p>
         {subtitle ? (
@@ -480,7 +480,7 @@ function AnalysisChartCard({
         ) : null}
       </div>
 
-      <div className="rounded-[1.45rem] border border-slate-100 bg-slate-50/40 p-4 md:p-5">
+      <div className="rounded-[14px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[#ffffff] px-[18px] py-[16px] md:px-[18px] md:py-[16px]">
         {hasSeries ? (
           <div className="mb-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[0.93rem] font-medium text-slate-700">
             {safeSeries
@@ -788,7 +788,7 @@ function DepreciationControls({
           type="checkbox"
           checked={includeDepreciation}
           onChange={(event) => onIncludeDepreciationChange(event.target.checked)}
-          className="h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-600"
+          className="h-4 w-4 rounded border-slate-300 text-[#0F6E56] focus:ring-[#0F6E56]"
         />
       </label>
       {includeDepreciation ? (
@@ -815,7 +815,7 @@ function DepreciationControls({
             Typical range: $3,000-$10,000 depending on property
           </p>
           {showHighDepreciationWarning ? (
-            <p className="mt-2 text-sm text-amber-700">
+            <p className="mt-2 text-sm text-[#854F0B]">
               High depreciation - ensure this reflects a new or recently built property
             </p>
           ) : null}
@@ -893,14 +893,14 @@ function MonthlyCashFlowBreakdown({
 
   return (
     <details
-      className={`${className} rounded-[2rem] border border-slate-200/75 bg-slate-50/70 px-5 py-4 md:px-6`.trim()}
+      className={`${className} rounded-[14px] border border-[#EF9F27] bg-[#FAEEDA] px-[18px] py-[16px]`.trim()}
     >
-      <summary className="cursor-pointer list-none text-sm font-medium text-slate-700 marker:hidden">
+      <summary className="cursor-pointer list-none text-[13px] font-medium text-[var(--color-text-primary)] marker:hidden">
         View monthly cash flow breakdown
       </summary>
-      <div className="mt-4 rounded-[1.5rem] border border-slate-200/75 bg-white p-5 md:p-6">
+      <div className="mt-4 rounded-[14px] border border-[#EF9F27] bg-[var(--color-background-primary)] px-[18px] py-[16px]">
         {scenarioPurchasePrice !== null && scenarioLoanAmount !== null ? (
-          <p className="mb-4 text-sm text-slate-600">
+          <p className="mb-4 text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
             Based on ~{formatCurrency(scenarioPurchasePrice)} purchase price with{' '}
             {formatCurrency(scenarioLoanAmount)} loan at {scenarioRatePct.toFixed(1)}%
           </p>
@@ -909,17 +909,17 @@ function MonthlyCashFlowBreakdown({
           text={`Inputs used: rent, loan repayment, and property expenses · Assumptions: ${repaymentTypeLabel} repayment at ${scenarioRatePct.toFixed(1)}% and structured expense allowances`}
           className="mb-4"
         />
-        <div className="space-y-3">
+        <div className="space-y-0">
           <BreakdownRow label="Rent" value={formatCurrency(monthlyRent)} />
           <BreakdownRow
             label={`Loan repayment (${repaymentTypeLabel} @ ${scenarioRatePct.toFixed(1)}%)`}
             value={`-${formatCurrency(Math.abs(monthlyRepayment))}`}
           />
-          <div className="rounded-xl border border-slate-200/75 bg-slate-50/70 p-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+          <div className="rounded-[14px] border border-[#EF9F27] bg-[#FAEEDA] px-[18px] py-[16px]">
+            <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
               Expenses
             </p>
-            <div className="mt-3 space-y-3">
+            <div className="mt-3 space-y-0">
               <BreakdownRow
                 label="Property management"
                 value={`-${formatCurrency(Math.abs(Number(expenseBreakdown.propertyManagement || 0)))}`}
@@ -950,7 +950,7 @@ function MonthlyCashFlowBreakdown({
                 strong
               />
             </div>
-            <p className="mt-3 text-xs leading-5 text-slate-500">
+            <p className="mt-3 text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]">
               Assumptions: Property management{' '}
               {(
                 Number(expenseBreakdown.assumptions?.propertyManagementRate || 0) * 100
@@ -991,12 +991,12 @@ function MonthlyCashFlowBreakdown({
                 )}/month`}
                 strong
               />
-              <p className="text-xs text-slate-500">
+              <p className="text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]">
                 Tax benefit is estimated from current income and Australian tax brackets.
               </p>
               {includeDepreciation &&
               getSafeNumber(negativeGearing?.depreciationTaxBenefitMonthly) !== null ? (
-                <p className="text-xs text-slate-500">
+                <p className="text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]">
                   Depreciation adds an estimated +
                   {formatCurrency(negativeGearing.depreciationTaxBenefitMonthly)}/month to tax
                   benefit.
@@ -1004,11 +1004,11 @@ function MonthlyCashFlowBreakdown({
               ) : null}
             </>
           ) : hasTaxableIncome ? (
-            <p className="text-xs text-slate-500">
+            <p className="text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]">
               Tax estimate unavailable until ownership inputs are complete.
             </p>
           ) : (
-            <p className="text-xs text-slate-500">Add income to estimate tax benefit</p>
+            <p className="text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]">Add income to estimate tax benefit</p>
           )}
         </div>
       </div>
@@ -1021,12 +1021,12 @@ function ScenarioFundingBreakdown({ breakdown, className = '' }) {
 
   return (
     <div
-      className={`${className} rounded-[2rem] border border-slate-200/75 bg-slate-50/70 px-6 py-6 md:px-8 md:py-8`.trim()}
+      className={`${className} rounded-[14px] border border-[#c8e8dc] bg-[#f4faf7] px-[18px] py-[16px]`.trim()}
     >
-      <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500">
+      <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
         Funding Breakdown
       </p>
-      <div className="mt-5 space-y-3">
+      <div className="mt-4 space-y-0">
         <BreakdownRow label="Available capital" value={breakdown.availableCapital} strong />
         <BreakdownRow label="Deposit required" value={breakdown.depositRequired} />
         <BreakdownRow label="Acquisition costs" value={breakdown.acquisitionCosts} />
@@ -1040,14 +1040,14 @@ function ScenarioFundingBreakdown({ breakdown, className = '' }) {
 function ScenarioMetric({ label, value, className = '', valueClassName = '' }) {
   return (
     <div
-      className={`flex min-w-0 w-full overflow-hidden rounded-xl bg-slate-50 px-4 py-4 transition-[opacity,transform,background-color] duration-200 ${className}`.trim()}
+      className={`flex min-w-0 w-full overflow-hidden rounded-[14px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-secondary)] px-[18px] py-[16px] transition-[opacity,transform,background-color] duration-200 ${className}`.trim()}
     >
       <div className="flex min-w-0 w-full flex-col items-start gap-3">
-        <p className="text-[10px] font-medium uppercase leading-tight tracking-[0.16em] text-slate-500 md:text-[11px]">
+        <p className="text-[10px] font-medium uppercase leading-tight tracking-[0.09em] text-[var(--color-text-tertiary)]">
           {label}
         </p>
         <p
-          className={`min-w-0 max-w-full truncate whitespace-nowrap text-[20px] font-semibold leading-none tracking-tight text-slate-900 transition-[opacity,transform,color] duration-200 md:text-[22px] ${valueClassName}`.trim()}
+          className={`min-w-0 max-w-full truncate whitespace-nowrap text-[20px] font-medium leading-none tracking-[-0.03em] text-[var(--color-text-primary)] transition-[opacity,transform,color] duration-200 md:text-[22px] ${valueClassName}`.trim()}
         >
           {value}
         </p>
@@ -1921,9 +1921,9 @@ export default function PortfolioGrowthScenariosRebuild() {
   )
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      <main className="mx-auto max-w-[1680px] px-3 py-6 md:px-4 md:py-10">
-        <section className="rounded-[30px] border border-slate-200/80 bg-white px-7 py-6 shadow-[0_6px_20px_rgba(15,23,42,0.03)] md:px-9 md:py-7">
+    <div className="min-h-screen bg-[var(--color-background-tertiary)]">
+      <main className="mx-auto max-w-[1680px] px-6 py-6">
+        <section className="rounded-[18px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[26px] py-[22px] shadow-[0_6px_20px_rgba(15,23,42,0.03)] md:px-[26px] md:py-[22px]">
           <div className="max-w-[900px]">
             <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
               Growth Scenarios
@@ -1934,15 +1934,15 @@ export default function PortfolioGrowthScenariosRebuild() {
             </h1>
 
             <p className="mt-4 max-w-[760px] text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
-              Compare the next acquisition paths available from your current position and see which one creates the strongest 5-year outcome.
+              Stress-test the next acquisition path using your live portfolio inputs, compare executable and blocked strategies, and inspect the funding, carry, and wealth outcome before committing to a move.
             </p>
           </div>
         </section>
 
-        <section className="sticky top-3 z-30 mt-5">
-          <div className="rounded-[1.9rem] border border-slate-200/80 bg-white/95 px-5 py-4 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.12)] backdrop-blur md:px-6 md:py-5">
+        <section className="sticky top-3 z-30 mt-[22px]">
+          <div className="rounded-[18px] border border-[rgba(0,0,0,0.08)] bg-white/95 px-[26px] py-[22px] shadow-[0_18px_40px_-28px_rgba(15,23,42,0.12)] backdrop-blur md:px-[26px] md:py-[22px]">
             <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-[1.25fr_1.2fr_0.95fr]">
-              <div className="min-w-0 h-full rounded-[1.4rem] border border-slate-200/70 bg-slate-50/70 px-4 py-4">
+              <div className="min-w-0 h-full rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-slate-50/70 px-[22px] py-[18px]">
                 <div className="flex h-full flex-col justify-between">
                   <div className="flex items-end justify-between gap-4">
                     <div>
@@ -1969,7 +1969,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                 </div>
               </div>
 
-              <div className="min-w-0 h-full rounded-[1.4rem] border border-slate-200/70 bg-slate-50/70 px-4 py-4">
+              <div className="min-w-0 h-full rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-slate-50/70 px-[22px] py-[18px]">
                 <div className="flex h-full flex-col justify-between">
                   <div className="flex items-end justify-between gap-4">
                     <div>
@@ -2036,7 +2036,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                         }}
                         className={`inline-flex min-h-[36px] items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                           Math.abs(effectiveInterestRate - rate) < 0.001
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                            ? 'border-[#b8e8d8] bg-[#E1F5EE] text-[#085041]'
                             : 'border-slate-200/75 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                         }`}
                       >
@@ -2047,7 +2047,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                 </div>
               </div>
 
-              <div className="min-w-0 h-full rounded-[1.4rem] border border-slate-200/70 bg-slate-50/70 px-4 py-4">
+              <div className="min-w-0 h-full rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-slate-50/70 px-[22px] py-[18px]">
                 <div className="flex h-full flex-col justify-between">
                   <div>
                     <p className={microLabelClass}>Ownership</p>
@@ -2057,7 +2057,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                         onClick={() => handleOwnershipStructureChange('individual')}
                         className={`rounded-[0.95rem] border px-3 py-2 text-sm font-medium transition-colors ${
                           ownershipStructure !== 'joint'
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                            ? 'border-[#b8e8d8] bg-[#E1F5EE] text-[#085041]'
                             : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                         }`}
                       >
@@ -2068,7 +2068,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                         onClick={() => handleOwnershipStructureChange('joint')}
                         className={`rounded-[0.95rem] border px-3 py-2 text-sm font-medium transition-colors ${
                           ownershipStructure === 'joint'
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                            ? 'border-[#b8e8d8] bg-[#E1F5EE] text-[#085041]'
                             : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                         }`}
                       >
@@ -2166,10 +2166,10 @@ export default function PortfolioGrowthScenariosRebuild() {
                           </div>
                         </div>
                         {ownershipSplitInlineError ? (
-                          <p className="text-sm text-red-600">{ownershipSplitInlineError}</p>
+                          <p className="text-sm text-[#A32D2D]">{ownershipSplitInlineError}</p>
                         ) : null}
                         {showJointOwnershipIncomeWarning ? (
-                          <p className="text-sm text-amber-700">
+                          <p className="text-sm text-[#854F0B]">
                             Add partner income to estimate joint ownership tax benefit accurately.
                           </p>
                         ) : null}
@@ -2193,15 +2193,15 @@ export default function PortfolioGrowthScenariosRebuild() {
           ) : null}
         </section>
 
-        <section className="mt-8 rounded-[30px] border border-slate-200/70 bg-white/50 px-6 py-5 md:px-8 md:py-6">
+        <section className="mt-[22px] rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[22px] py-[22px] shadow-[0_10px_24px_rgba(15,23,42,0.04)] md:px-[26px] md:py-[22px]">
           <div className="mb-5 md:mb-6">
-            <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-slate-500">
+            <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
               Scenario comparison
             </p>
-            <h2 className="mt-2 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
+            <h2 className="mt-2 text-[15px] font-medium text-[var(--color-text-primary)]">
               Compare your next acquisition paths
             </h2>
-            <p className="mt-2.5 max-w-[68ch] text-[14px] leading-6 text-slate-600 md:text-[15px]">
+            <p className="mt-2.5 max-w-[68ch] text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
               Review the recommended and alternative paths side by side, including projected
               equity, acquisition size, yield, and execution constraints.
             </p>
@@ -2212,24 +2212,24 @@ export default function PortfolioGrowthScenariosRebuild() {
               isScenarioRefreshing ? 'opacity-60' : 'opacity-100'
             }`}
           >
-            <article className="flex h-full min-h-[520px] flex-col rounded-[24px] border border-slate-200/70 bg-white shadow-[0_14px_34px_rgba(15,23,42,0.06)] ring-1 ring-emerald-100">
+            <article className="flex h-full min-h-[520px] flex-col rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] shadow-[0_10px_24px_rgba(15,23,42,0.04)] transition-[transform,box-shadow] duration-150 ease-out hover:-translate-y-[2px] hover:shadow-[0_4px_16px_rgba(0,0,0,0.07)]" style={{ borderTopWidth: 3, borderTopColor: '#1D9E75' }}>
               <div className="flex h-full min-h-[520px] w-full flex-col bg-white p-6 md:p-7">
                 <div>
                   <div className="flex items-center justify-between gap-6">
                     <div
-                      className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ring-1 ${
+                      className={`inline-flex rounded-[20px] px-[10px] py-[3px] text-[10px] font-medium ${
                         hasExecutableScenario
-                          ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-                          : 'bg-amber-50 text-amber-700 ring-amber-200'
+                          ? 'bg-[#E1F5EE] text-[#085041]'
+                          : 'bg-[#FAEEDA] text-[#633806]'
                       }`}
                     >
                       {hasExecutableScenario ? 'EXECUTABLE NOW' : 'Not executable'}
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1.5 pl-4 text-right">
-                      <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-slate-500">
+                      <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
                         {hasExecutableScenario ? 'Recommended Path' : 'Current State'}
                       </p>
-                      <p className="text-[14px] font-semibold tracking-[-0.01em] text-slate-800">
+                      <p className="text-[13px] font-medium text-[var(--color-text-primary)]">
                         {suggestedPathStatus}
                       </p>
                     </div>
@@ -2237,22 +2237,22 @@ export default function PortfolioGrowthScenariosRebuild() {
 
                     <div className="mt-8">
                     <div className="min-h-[56px] flex items-start">
-                      <h2 className="overflow-hidden text-ellipsis text-[20px] font-semibold tracking-tight text-slate-900 md:whitespace-nowrap md:text-[22px]">
+                      <h2 className="overflow-hidden text-ellipsis text-[15px] font-medium text-[var(--color-text-primary)] md:whitespace-nowrap">
                         {suggestedPathTitle}
                       </h2>
                     </div>
                     <div className="min-h-[56px]">
                       {suggestedPathDescription ? (
-                        <p className="mt-4 text-[14px] leading-relaxed text-slate-600">
+                        <p className="mt-4 text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
                           {suggestedPathDescription}
                         </p>
                       ) : null}
                       {suggestedPathSupportText ? (
-                        <p className="mt-2 text-[13px] leading-relaxed text-slate-500">
+                        <p className="mt-2 text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]">
                           {suggestedPathSupportText}
                         </p>
                       ) : hasExecutableScenario ? null : (
-                        <p className="mt-2 text-[14px] leading-relaxed text-slate-600">
+                        <p className="mt-2 text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
                           {scenarioModel.viability?.message ||
                             'Current borrowing capacity, deployable capital, and realistic market-entry assumptions do not yet support a fundable acquisition path.'}
                         </p>
@@ -2307,10 +2307,10 @@ export default function PortfolioGrowthScenariosRebuild() {
                   <div
                     className={`flex min-h-[60px] items-center rounded-[16px] px-5 py-4 ${
                       hasExecutableScenario && Number(topSuggestedScenario?.requiredCapitalGap || 0) > 0
-                        ? 'bg-amber-50/45 text-amber-700 ring-1 ring-amber-100'
+                        ? 'bg-[#FAEEDA] text-[#633806]'
                         : hasExecutableScenario
-                          ? 'bg-emerald-50/50 text-emerald-800 ring-1 ring-emerald-100'
-                          : 'bg-amber-50/45 text-amber-700 ring-1 ring-amber-100'
+                          ? 'bg-[#E1F5EE] text-[#085041]'
+                          : 'bg-[#FAEEDA] text-[#633806]'
                     }`}
                   >
                     <p className="text-[15px] font-medium leading-7">
@@ -2325,20 +2325,20 @@ export default function PortfolioGrowthScenariosRebuild() {
               </div>
             </article>
 
-            <article className="flex h-full min-h-[520px] flex-col rounded-[24px] border border-slate-200/70 bg-white/95 shadow-[0_6px_18px_rgba(15,23,42,0.03)]">
+            <article className="flex h-full min-h-[520px] flex-col rounded-[16px] border border-dashed border-[rgba(0,0,0,0.12)] bg-[var(--color-background-primary)] opacity-85">
               <div className="flex h-full min-h-[520px] w-full flex-col bg-white p-6 md:p-7">
                 <div>
                   <div className="flex items-center justify-between gap-6">
-                    <div className="inline-flex rounded-full bg-rose-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-rose-700 ring-1 ring-rose-200">
+                    <div className="inline-flex rounded-[20px] bg-[#FCEBEB] px-[10px] py-[3px] text-[10px] font-medium text-[#791F1F]">
                       {String(topAlternativeScenario?.scenarioStateLabel || '').toLowerCase() === 'blocked'
                         ? 'Blocked'
                         : 'Alternative'}
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1.5 pl-4 text-right">
-                      <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-slate-500">
+                      <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
                         Alternative Path
                       </p>
-                      <p className="text-[14px] font-semibold tracking-[-0.01em] text-slate-800">
+                      <p className="text-[13px] font-medium text-[var(--color-text-primary)]">
                         {topAlternativeScenario?.blockedReason ? 'Not executable' : 'Inferior outcome'}
                       </p>
                     </div>
@@ -2346,12 +2346,12 @@ export default function PortfolioGrowthScenariosRebuild() {
 
                   <div className="mt-7">
                     <div className="min-h-[56px] flex items-start">
-                      <h2 className="overflow-hidden text-ellipsis text-[20px] font-semibold tracking-tight text-slate-900 md:whitespace-nowrap md:text-[22px]">
+                      <h2 className="overflow-hidden text-ellipsis text-[15px] font-medium text-[var(--color-text-primary)] md:whitespace-nowrap">
                         {topAlternativeScenario?.title}
                       </h2>
                     </div>
                     <div className="min-h-[48px]">
-                      <p className="mt-2 text-[14px] leading-relaxed text-slate-600">
+                      <p className="mt-2 text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
                         {topAlternativeScenario?.blockedExplanation ||
                           topAlternativeScenario?.stateSummary ||
                           topAlternativeScenario?.rationale ||
@@ -2386,8 +2386,8 @@ export default function PortfolioGrowthScenariosRebuild() {
                 </div>
 
                 <div className="mt-auto pt-5">
-                  <div className="flex min-h-[60px] items-center rounded-[16px] bg-rose-50/55 px-5 py-4 ring-1 ring-rose-100">
-                    <p className="text-[15px] font-medium leading-7 text-rose-700">
+                  <div className="flex min-h-[60px] items-center rounded-[16px] bg-[#FCEBEB] px-5 py-4 ring-1 ring-[#FCEBEB]">
+                    <p className="text-[15px] font-medium leading-7 text-[#791F1F]">
                       {String(topAlternativeScenario?.blockedReason || '').toLowerCase().includes('floor')
                         ? 'Blocked: below realistic market floor'
                         : Number(topAlternativeScenario?.requiredCapitalGap || 0) > 0
@@ -2407,19 +2407,24 @@ export default function PortfolioGrowthScenariosRebuild() {
         </section>
         {hasExecutableScenario ? (
           <>
-        <section className="mt-10 md:mt-12">
+        <section className="mt-[22px]">
           <article
-            className={`rounded-[2.15rem] border px-6 pt-6 pb-6 shadow-[0_28px_80px_-50px_rgba(15,23,42,0.2)] md:px-8 ${
+            className={`rounded-r-[16px] border-[0.5px] px-6 pt-6 pb-6 shadow-[0_10px_24px_rgba(15,23,42,0.04)] md:px-8 ${
               isCapitalConstraint || isBorrowingConstraint
-                ? 'border-amber-300/85 bg-gradient-to-r from-amber-50/95 via-amber-50/70 to-rose-50/55'
-                : 'border-slate-200/80 bg-white'
+                ? 'border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)]'
+                : 'border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)]'
             }`}
+            style={{
+              borderLeftWidth: 4,
+              borderLeftColor:
+                isCapitalConstraint || isBorrowingConstraint ? '#A32D2D' : '#1D9E75',
+            }}
           >
             <p className={microLabelClass}>Limiting Factor</p>
-            <h3 className="mt-4 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
+            <h3 className="mt-4 text-[15px] font-medium text-[var(--color-text-primary)]">
               {limitingFactorHeading}
             </h3>
-            <p className="mt-3 max-w-[56rem] text-[1.03rem] leading-8 text-slate-700">
+            <p className="mt-3 max-w-[56rem] text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
               {limitingFactorSummary}
             </p>
 
@@ -2450,7 +2455,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                 <p className={microLabelClass}>Capital Shortfall</p>
                 <p
                   className={`mt-2 text-[1.35rem] font-semibold tracking-tight ${
-                    remainingCapitalGap > 0 ? 'text-amber-700' : 'text-emerald-700'
+                    remainingCapitalGap > 0 ? 'text-[#854F0B]' : 'text-[#0F6E56]'
                   }`}
                 >
                   {remainingCapitalGap > 0 ? formatCurrency(remainingCapitalGap) : 'No shortfall'}
@@ -2469,7 +2474,7 @@ export default function PortfolioGrowthScenariosRebuild() {
           </article>
         </section>
 
-        <section className="mt-10 rounded-[2.1rem] border border-slate-200/80 bg-white px-6 pt-6 pb-6 shadow-[0_28px_80px_-58px_rgba(15,23,42,0.24)] md:mt-12 md:px-8">
+        <section className="mt-[22px] rounded-[2.1rem] border border-slate-200/80 bg-white px-6 pt-6 pb-6 shadow-[0_28px_80px_-58px_rgba(15,23,42,0.24)] md:px-8">
           <p className={microLabelClass}>Executive Summary</p>
           <h2 className="mt-4 max-w-[18ch] text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
             {recommendedNextMoveSummary
@@ -2484,7 +2489,7 @@ export default function PortfolioGrowthScenariosRebuild() {
               recommendedScenario?.feasibilityMessage}
           </p>
 
-          <div className="mt-7 grid grid-cols-2 overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-slate-50/70 sm:grid-cols-4">
+          <div className="mt-7 grid grid-cols-2 overflow-hidden rounded-[1.5rem] border-t-[0.5px] border-t-[rgba(0,0,0,0.06)] border-slate-200/80 bg-slate-50/70 sm:grid-cols-4">
             <div className="border-b border-slate-200/80 px-5 py-5 sm:border-b-0 sm:border-r">
               <p className={microLabelClass}>Purchase Price</p>
               <p className="mt-2 text-[1.7rem] font-semibold tracking-tight text-slate-950">
@@ -2515,7 +2520,7 @@ export default function PortfolioGrowthScenariosRebuild() {
               </p>
               <p
                 className={`mt-2 text-[1.7rem] font-semibold tracking-tight ${
-                  remainingCapitalGap > 0 ? 'text-amber-700' : 'text-emerald-700'
+                  remainingCapitalGap > 0 ? 'text-[#854F0B]' : 'text-[#0F6E56]'
                 }`}
               >
                 {remainingCapitalGap > 0 ? formatCurrency(remainingCapitalGap) : 'Fully funded'}
@@ -2524,7 +2529,7 @@ export default function PortfolioGrowthScenariosRebuild() {
           </div>
         </section>
 
-        <section className="mt-10 md:mt-12">
+        <section className="mt-[22px]">
           <div className="rounded-[2.2rem] border border-slate-200/80 bg-white px-6 pt-6 pb-6 shadow-[0_24px_70px_-54px_rgba(15,23,42,0.18)] md:px-8">
             <p className={microLabelClass}>Execution Readiness</p>
           <h3 className="mt-4 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
@@ -2536,9 +2541,9 @@ export default function PortfolioGrowthScenariosRebuild() {
           </p>
 
             <div className="mt-8 grid grid-cols-1 gap-5 xl:grid-cols-[1fr_auto_1fr_auto_1fr] xl:items-stretch">
-              <article className="rounded-[2rem] border border-emerald-200/80 bg-emerald-50/55 px-7 py-8 text-center shadow-[0_20px_50px_-42px_rgba(15,23,42,0.18)] md:px-8 md:py-9">
+              <article className="rounded-[2rem] border border-[#b8e8d8] bg-[#E1F5EE] px-7 py-8 text-center shadow-[0_20px_50px_-42px_rgba(15,23,42,0.18)] md:px-8 md:py-9">
                 <p className={microLabelClass}>Available Capital</p>
-                <p className="mt-4 text-[2.55rem] font-semibold tracking-tight text-emerald-800">
+                <p className="mt-4 text-[2.55rem] font-semibold tracking-tight text-[#0F6E56]">
                   {formatCurrency(recommendedAvailableCapital)}
                 </p>
                 <p className="mt-4 text-[1rem] leading-7 text-slate-600">
@@ -2608,13 +2613,13 @@ export default function PortfolioGrowthScenariosRebuild() {
 
               <article className={`rounded-[2rem] border px-7 py-8 text-center shadow-[0_20px_50px_-42px_rgba(15,23,42,0.18)] md:px-8 md:py-9 ${
                 remainingCapitalGap > 0
-                  ? 'border-amber-200/80 bg-amber-50/60'
-                  : 'border-emerald-200/80 bg-emerald-50/55'
+                  ? 'border-[#FAEEDA] bg-[#FAEEDA]'
+                  : 'border-[#b8e8d8] bg-[#E1F5EE]'
               }`}>
                 <p className={microLabelClass}>{remainingCapitalGap > 0 ? 'Capital Gap' : 'Surplus'}</p>
                 <p
                   className={`mt-4 text-[2.55rem] font-semibold tracking-tight ${
-                    remainingCapitalGap > 0 ? 'text-amber-700' : 'text-emerald-700'
+                    remainingCapitalGap > 0 ? 'text-[#854F0B]' : 'text-[#0F6E56]'
                   }`}
                 >
                   {remainingCapitalGap > 0
@@ -2631,7 +2636,7 @@ export default function PortfolioGrowthScenariosRebuild() {
           </div>
         </section>
 
-        <section className="mt-10 rounded-[2.25rem] border border-slate-200/80 bg-white px-6 pt-6 pb-6 shadow-[0_28px_80px_-58px_rgba(15,23,42,0.2)] md:mt-12 md:px-8">
+        <section className="mt-[22px] rounded-[2.25rem] border border-slate-200/80 bg-white px-6 pt-6 pb-6 shadow-[0_28px_80px_-58px_rgba(15,23,42,0.2)] md:px-8">
           <p className={microLabelClass}>Wealth Outcome</p>
           <h3 className="mt-4 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
             Economic outcome after capital and carry
@@ -2688,8 +2693,8 @@ export default function PortfolioGrowthScenariosRebuild() {
             <article
               className={`flex-1 rounded-[1.8rem] border px-6 py-6 shadow-[0_20px_50px_-42px_rgba(15,23,42,0.16)] ${
                 Number(topSuggestedScenario?.economicOutcome5Y || 0) >= 0
-                  ? 'border-emerald-200/80 bg-emerald-50/55'
-                  : 'border-rose-200/80 bg-rose-50/55'
+                  ? 'border-[#b8e8d8] bg-[#E1F5EE]'
+                  : 'border-[#FCEBEB] bg-[#FCEBEB]'
               }`}
             >
               <p className={microLabelClass}>Economic Outcome (5Y)</p>
@@ -2703,7 +2708,7 @@ export default function PortfolioGrowthScenariosRebuild() {
           </div>
         </section>
 
-        <section className="mt-10 border-b border-slate-200/75 md:mt-12">
+        <section className="mt-[22px] border-b-[0.5px] border-[rgba(0,0,0,0.06)]">
           <div className="-mb-px flex flex-wrap gap-2.5 md:gap-3.5">
             <button
               type="button"
@@ -2771,9 +2776,9 @@ export default function PortfolioGrowthScenariosRebuild() {
 
             <div className="mt-11 rounded-[1.9rem] border border-slate-100/90 bg-slate-50/40 px-6 py-8 md:px-8 md:py-10">
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_auto_1fr_auto_1fr] xl:items-center">
-              <article className="rounded-[2rem] border border-emerald-200/75 bg-emerald-50/50 px-7 py-8 text-center md:min-h-[248px] md:px-8 md:py-9">
+              <article className="rounded-[2rem] border border-[#b8e8d8] bg-[#E1F5EE] px-7 py-8 text-center md:min-h-[248px] md:px-8 md:py-9">
                 <p className={microLabelClass}>Available Capital</p>
-                <p className="mt-4 text-4xl font-semibold tracking-tight text-emerald-800">
+                <p className="mt-4 text-4xl font-semibold tracking-tight text-[#0F6E56]">
                   {recommendedWealthBreakdown.availableCapital}
                 </p>
                 <p className="mt-5 text-base leading-8 text-slate-600">
@@ -2799,9 +2804,9 @@ export default function PortfolioGrowthScenariosRebuild() {
                 &rarr;
               </div>
 
-              <article className="rounded-[2rem] border border-amber-200/75 bg-amber-50/50 px-7 py-8 text-center md:min-h-[248px] md:px-8 md:py-9">
+              <article className="rounded-[2rem] border border-[#FAEEDA] bg-[#FAEEDA] px-7 py-8 text-center md:min-h-[248px] md:px-8 md:py-9">
                 <p className={microLabelClass}>Shortfall</p>
-                <p className="mt-4 text-4xl font-semibold tracking-tight text-amber-700">
+                <p className="mt-4 text-4xl font-semibold tracking-tight text-[#854F0B]">
                   {recommendedWealthBreakdown.remainingCapitalGap}
                 </p>
                 <p className="mt-5 text-base leading-8 text-slate-600">
@@ -2857,9 +2862,9 @@ export default function PortfolioGrowthScenariosRebuild() {
                   +
                 </div>
 
-                <article className="min-w-0 w-full overflow-hidden rounded-[2rem] border border-emerald-200/75 bg-emerald-50/50 px-7 py-8 text-center md:min-h-[285px] md:px-8 md:py-9">
+                <article className="min-w-0 w-full overflow-hidden rounded-[2rem] border border-[#b8e8d8] bg-[#E1F5EE] px-7 py-8 text-center md:min-h-[285px] md:px-8 md:py-9">
                   <p className={microLabelClass}>ATO Benefit</p>
-                  <p className="mt-4 whitespace-nowrap text-[28px] font-semibold leading-tight tracking-[-0.03em] text-emerald-800 md:text-[30px]">
+                  <p className="mt-4 whitespace-nowrap text-[28px] font-semibold leading-tight tracking-[-0.03em] text-[#0F6E56] md:text-[30px]">
                     {`+${formatCurrency(recommendedScenarioSafeTaxView?.totalTaxBenefitMonthly || 0)}`}
                   </p>
                   <p className="mt-5 text-base leading-8 text-slate-600">
@@ -2875,9 +2880,9 @@ export default function PortfolioGrowthScenariosRebuild() {
                   =
                 </div>
 
-                <article className="min-w-0 w-full overflow-hidden rounded-[2rem] border border-amber-200/75 bg-amber-50/50 px-7 py-8 text-center md:min-h-[285px] md:px-8 md:py-9">
+                <article className="min-w-0 w-full overflow-hidden rounded-[2rem] border border-[#FAEEDA] bg-[#FAEEDA] px-7 py-8 text-center md:min-h-[285px] md:px-8 md:py-9">
                   <p className={microLabelClass}>Net Cost</p>
-                  <p className="mt-4 whitespace-nowrap text-[28px] font-semibold leading-tight tracking-[-0.03em] text-amber-700 md:text-[30px]">
+                  <p className="mt-4 whitespace-nowrap text-[28px] font-semibold leading-tight tracking-[-0.03em] text-[#854F0B] md:text-[30px]">
                     {`${Number(
                       (recommendedScenarioSafeTaxView?.afterTaxMonthlyImpact ??
                         recommendedScenario?.estimatedMonthlyCashFlow) ||
@@ -2949,7 +2954,7 @@ export default function PortfolioGrowthScenariosRebuild() {
         ) : null}
           </>
         ) : (
-          <section className="mt-10 rounded-[2rem] border border-amber-200/80 bg-amber-50/55 px-6 py-6 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:mt-12 md:px-8">
+        <section className="mt-[22px] rounded-[2rem] border border-[#FAEEDA] bg-[#FAEEDA] px-6 py-6 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:px-8">
             <p className={microLabelClass}>Execution Status</p>
             <h3 className="mt-4 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
               No executable acquisition scenario under current settings
@@ -2988,7 +2993,7 @@ export default function PortfolioGrowthScenariosRebuild() {
           </section>
         )}
 
-        <section className="mt-10 rounded-[2rem] border border-slate-200/75 bg-white px-6 pt-6 pb-6 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:mt-12 md:px-8">
+        <section className="mt-[22px] rounded-[2rem] border border-slate-200/75 bg-white px-6 pt-6 pb-6 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:px-8">
           <p className={microLabelClass}>Confidence</p>
           <p className="mt-4 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
             {getConfidenceSummary(Number(scenarioModel.confidence?.score || 0))}
@@ -2998,7 +3003,7 @@ export default function PortfolioGrowthScenariosRebuild() {
           </p>
         </section>
 
-        <section className="mt-10 rounded-[2rem] border border-slate-200/75 bg-white px-6 pt-6 pb-6 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:mt-12 md:px-8">
+        <section className="mt-[22px] rounded-[2rem] border border-slate-200/75 bg-white px-6 pt-6 pb-6 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:px-8">
           <p className={microLabelClass}>Advanced analysis</p>
           <h3 className="mt-4 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
             Optimise the scenario under tougher rates, tighter buffers, and different capital structures.

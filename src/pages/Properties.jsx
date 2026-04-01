@@ -114,20 +114,20 @@ export default function Properties() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--color-background-tertiary)] flex items-center justify-center">
         <div className="text-gray-400">Loading properties...</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <div className="p-6 md:p-8 border-b border-gray-100">
+    <div className="min-h-screen bg-[var(--color-background-tertiary)]">
+      <main className="mx-auto max-w-7xl px-6 py-6">
+        <section className="overflow-hidden rounded-[18px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)]">
+          <div className="border-b-[0.5px] border-[rgba(0,0,0,0.06)] p-6 md:p-8">
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
               <div>
-                <div className="inline-flex items-center gap-2 text-xs font-medium text-primary-700 bg-primary-50 px-3 py-1 rounded-full mb-4">
+                <div className="mb-4 inline-flex items-center gap-2 rounded-[20px] bg-[#E1F5EE] px-[10px] py-[3px] text-[10px] font-medium text-[#085041]">
                   <Building2 size={13} />
                   Portfolio Workspace
                 </div>
@@ -157,13 +157,13 @@ export default function Properties() {
             <SummaryCard
               label="Total Equity"
               value={formatCurrency(metrics.totalEquity)}
-              valueClassName={metrics.totalEquity >= 0 ? 'text-green-600' : 'text-red-500'}
+              valueClassName={metrics.totalEquity >= 0 ? 'text-[#0F6E56]' : 'text-[#A32D2D]'}
             />
           </div>
         </section>
 
-        <section className="mt-6 bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-100">
+        <section className="mt-[22px] overflow-hidden rounded-[18px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)]">
+          <div className="border-b-[0.5px] border-[rgba(0,0,0,0.06)] p-6">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               <div className="lg:col-span-6">
                 <label className="mb-2 block text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
@@ -280,7 +280,7 @@ export default function Properties() {
 
 function SummaryCard({ label, value, valueClassName = 'text-gray-900' }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-5">
+    <div className="rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[22px] py-[18px]">
       <p className="mb-1 text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">{label}</p>
       <p className={`text-[26px] font-medium tracking-[-0.5px] ${valueClassName}`}>{value}</p>
     </div>

@@ -49,39 +49,39 @@ const formatConfidenceLabel = (value) => {
 function getRecommendationTone(type) {
   if (type === 'refinance') {
     return {
-      card: 'border-green-200 bg-green-50/40',
-      badge: 'bg-green-100 text-green-700',
-      icon: 'text-green-600',
+      card: 'border-[#b8e8d8] bg-[#E1F5EE]',
+      badge: 'rounded-[20px] bg-[#E1F5EE] px-[10px] py-[3px] text-[10px] font-medium text-[#085041]',
+      icon: 'text-[#0F6E56]',
     }
   }
 
   if (type === 'watch') {
     return {
-      card: 'border-amber-200 bg-amber-50/40',
-      badge: 'bg-amber-100 text-amber-700',
-      icon: 'text-amber-600',
+      card: 'border-[#FAEEDA] bg-[#FAEEDA]',
+      badge: 'rounded-[20px] bg-[#FAEEDA] px-[10px] py-[3px] text-[10px] font-medium text-[#633806]',
+      icon: 'text-[#854F0B]',
     }
   }
 
   if (type === 'insufficient_data') {
     return {
-      card: 'border-red-200 bg-red-50/40',
-      badge: 'bg-red-100 text-red-700',
-      icon: 'text-red-600',
+      card: 'border-[#FCEBEB] bg-[#FCEBEB]',
+      badge: 'rounded-[20px] bg-[#FCEBEB] px-[10px] py-[3px] text-[10px] font-medium text-[#791F1F]',
+      icon: 'text-[#A32D2D]',
     }
   }
 
   return {
     card: 'border-gray-200 bg-white',
-    badge: 'bg-gray-100 text-gray-600',
+    badge: 'rounded-[20px] bg-[#ebebeb] px-[10px] py-[3px] text-[10px] font-medium text-[#333]',
     icon: 'text-gray-500',
   }
 }
 
 function getConfidenceBadgeClass(label) {
-  if (label === 'High') return 'bg-green-100 text-green-700'
-  if (label === 'Medium') return 'bg-amber-100 text-amber-700'
-  return 'bg-gray-100 text-gray-600'
+  if (label === 'High') return 'rounded-[20px] bg-[#E1F5EE] px-[10px] py-[3px] text-[10px] font-medium text-[#085041]'
+  if (label === 'Medium') return 'rounded-[20px] bg-[#FAEEDA] px-[10px] py-[3px] text-[10px] font-medium text-[#633806]'
+  return 'rounded-[20px] bg-[#ebebeb] px-[10px] py-[3px] text-[10px] font-medium text-[#333]'
 }
 
 export default function Mortgages({ session = null }) {
@@ -456,29 +456,29 @@ export default function Mortgages({ session = null }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--color-background-tertiary)] flex items-center justify-center">
         <div className="text-gray-400">Loading mortgages...</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="mx-auto max-w-7xl space-y-6 px-4 py-8">
+    <div className="min-h-screen bg-[var(--color-background-tertiary)]">
+      <main className="mx-auto max-w-7xl space-y-[22px] px-6 py-6">
         {financialPrompt ? (
           <section
             className={`rounded-2xl border p-5 md:p-6 ${
               financialPrompt.tone === 'primary'
-                ? 'border-primary-200 bg-primary-50/70'
-                : 'border-amber-200 bg-amber-50/70'
+                ? 'border-[#b8e8d8] bg-[#E1F5EE]'
+                : 'border-[#FAEEDA] bg-[#FAEEDA]'
             }`}
           >
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <p
                 className={`text-sm font-medium ${
                   financialPrompt.tone === 'primary'
-                    ? 'text-primary-800'
-                    : 'text-amber-800'
+                    ? 'text-[#085041]'
+                    : 'text-[#854F0B]'
                 }`}
               >
                 {financialPrompt.message}
@@ -499,11 +499,11 @@ export default function Mortgages({ session = null }) {
           </section>
         ) : null}
 
-        <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
-          <div className="border-b border-gray-100 p-6 md:p-8">
+        <section className="overflow-hidden rounded-[18px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)]">
+          <div className="border-b-[0.5px] border-[rgba(0,0,0,0.06)] p-6 md:p-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
-                <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700">
+                <div className="mb-4 inline-flex items-center gap-2 rounded-[20px] bg-[#E1F5EE] px-[10px] py-[3px] text-[10px] font-medium text-[#085041]">
                   <Sparkles size={13} />
                   Refinance Engine v2
                 </div>
@@ -531,25 +531,25 @@ export default function Mortgages({ session = null }) {
 
           <div className="grid grid-cols-1 gap-4 bg-gray-50/70 p-6 md:grid-cols-2 xl:grid-cols-4 md:p-8">
             <TopMetricCard
-              icon={<CreditCard size={16} className="text-primary-600" />}
+              icon={<CreditCard size={16} className="text-[#0F6E56]" />}
               label="Loans"
               value={overview.loanCount}
               helper="Active debt facilities analysed"
             />
             <TopMetricCard
-              icon={<Building2 size={16} className="text-orange-600" />}
+              icon={<Building2 size={16} className="text-[#854F0B]" />}
               label="Total Debt"
               value={formatCurrency(overview.totalDebt)}
               helper="Combined outstanding balances"
             />
             <TopMetricCard
-              icon={<TrendingDown size={16} className="text-green-600" />}
+              icon={<TrendingDown size={16} className="text-[#0F6E56]" />}
               label="Monthly Repayments"
               value={formatCurrency(overview.monthlyRepayments)}
               helper="Current scheduled repayments across loans"
             />
             <TopMetricCard
-              icon={<PiggyBank size={16} className="text-amber-600" />}
+              icon={<PiggyBank size={16} className="text-[#854F0B]" />}
               label="Potential Annual Savings"
               value={formatCurrency(overview.annualSavings)}
               helper={
@@ -564,16 +564,16 @@ export default function Mortgages({ session = null }) {
                   : 'No positive refinance savings detected'
               }
               valueClassName={
-                overview.annualSavings > 0 ? 'text-amber-700' : 'text-gray-900'
+                overview.annualSavings > 0 ? 'text-[#854F0B]' : 'text-gray-900'
               }
             />
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
-          <div className="border-b border-gray-100 p-6">
+        <section className="overflow-hidden rounded-[18px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)]">
+          <div className="border-b-[0.5px] border-[rgba(0,0,0,0.06)] p-6">
             <div className="flex items-center gap-2">
-              <Sparkles size={16} className="text-primary-600" />
+              <Sparkles size={16} className="text-[#0F6E56]" />
               <h2 className="text-[15px] font-medium text-[var(--color-text-primary)]">Portfolio ranking</h2>
             </div>
             <p className="mt-2 text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
@@ -594,8 +594,8 @@ export default function Mortgages({ session = null }) {
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
-          <div className="grid grid-cols-1 gap-4 border-b border-gray-100 p-6 lg:grid-cols-12">
+        <section className="overflow-hidden rounded-[18px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)]">
+          <div className="grid grid-cols-1 gap-4 border-b-[0.5px] border-[rgba(0,0,0,0.06)] p-6 lg:grid-cols-12">
             <div className="lg:col-span-8">
               <label className="mb-2 block text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
                 Search
@@ -778,7 +778,7 @@ function MortgageAnalysisCard({
 
   return (
     <article
-      className={`flex h-full flex-col rounded-2xl border p-5 shadow-sm md:p-6 ${tone.card}`}
+      className={`flex h-full flex-col rounded-[16px] border border-[rgba(0,0,0,0.08)] px-[22px] py-[18px] transition-[transform,box-shadow,border-color] duration-150 ease-[ease] will-change-transform hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.07)] md:px-[22px] md:py-[18px] ${tone.card}`}
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
         <div className="min-w-0 space-y-2">
@@ -786,14 +786,14 @@ function MortgageAnalysisCard({
             <h2 className="text-lg font-semibold text-gray-900">
               {analysis.lender || 'Unnamed lender'}
             </h2>
-            <span className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-600">
+            <span className="rounded-[20px] bg-[#ebebeb] px-[10px] py-[3px] text-[10px] font-medium text-[#333]">
               {analysis.fixedVariable || 'Loan'}
             </span>
-            <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${tone.badge}`}>
+            <span className={tone.badge}>
               {recommendationBadgeLabel}
             </span>
             {isTopOpportunity ? (
-              <span className="rounded-full bg-primary-100 px-2.5 py-1 text-xs font-medium text-primary-700">
+              <span className="rounded-[20px] bg-[#E1F5EE] px-[10px] py-[3px] text-[10px] font-medium text-[#085041]">
                 Top opportunity
               </span>
             ) : null}
@@ -817,7 +817,7 @@ function MortgageAnalysisCard({
         </div>
       </div>
 
-      <section className="mt-5 rounded-2xl border border-gray-100 bg-white p-5">
+      <section className="mt-5 rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[22px] py-[18px]">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
@@ -835,9 +835,9 @@ function MortgageAnalysisCard({
           </div>
 
           <span
-            className={`rounded-full px-2.5 py-1 text-xs font-medium ${getConfidenceBadgeClass(
+            className={getConfidenceBadgeClass(
               displayConfidenceLabel
-            )}`}
+            )}
           >
             Confidence {displayConfidenceLabel}
           </span>
@@ -846,7 +846,7 @@ function MortgageAnalysisCard({
 
       {opportunity ? (
         <section
-          className="mt-4 rounded-2xl border border-gray-100 bg-white p-5"
+          className="mt-4 rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[22px] py-[18px]"
           style={{ borderLeftWidth: 3, borderLeftColor: '#f59e0b' }}
         >
           <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
@@ -896,13 +896,13 @@ function MortgageAnalysisCard({
           </div>
 
           {actionError ? (
-            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="mt-4 rounded-xl border border-[#FCEBEB] bg-[#FCEBEB] px-4 py-3 text-sm text-[#791F1F]">
               {actionError}
             </div>
           ) : null}
 
           {showActedForm ? (
-            <div className="mt-4 rounded-2xl border border-gray-100 bg-gray-50/70 p-4">
+            <div className="mt-4 rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-gray-50/70 px-[22px] py-[18px]">
               <label className="block text-sm font-medium text-gray-700">
                 What rate did you secure? (optional)
               </label>
@@ -975,7 +975,7 @@ function MortgageAnalysisCard({
         {Number.isFinite(analysis.daysUntilFixedExpiry) &&
         analysis.daysUntilFixedExpiry > 0 &&
         analysis.daysUntilFixedExpiry <= 120 ? (
-          <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-medium text-amber-700">
+          <span className="inline-flex items-center gap-2 rounded-[20px] bg-[#FAEEDA] px-[10px] py-[3px] text-[10px] font-medium text-[#633806]">
             <CalendarClock size={13} />
             Fixed rate expires in {analysis.daysUntilFixedExpiry} days
           </span>
@@ -987,7 +987,7 @@ function MortgageAnalysisCard({
 
 function InlineMetric({ label, value }) {
   return (
-    <div className="min-w-0 rounded-xl border border-gray-100 bg-gray-50/70 px-3 py-2">
+    <div className="min-w-0 rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-gray-50/70 px-[22px] py-[18px]">
       <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">{label}</p>
       <p className="mt-1 truncate text-[13px] font-normal leading-[1.6] text-[var(--color-text-primary)]">{value}</p>
     </div>
@@ -1031,7 +1031,7 @@ function RankingRow({ analysis, rank }) {
 
 function TopMetricCard({ icon, label, value, helper, valueClassName = 'text-gray-900' }) {
   return (
-    <div className="rounded-xl border border-gray-100 bg-white p-5">
+    <div className="rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[22px] py-[18px]">
       <div className="flex items-center gap-2 text-gray-500">
         {icon}
         <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">{label}</p>
