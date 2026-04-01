@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight, Plus, Siren, Sparkles } from 'lucide-react'
 
@@ -20,7 +20,6 @@ import usePortfolioData from '../hooks/usePortfolioData'
 import calculateBorrowingPower from '../lib/borrowingPowerEngine'
 import buildDashboardCommandCenter from '../lib/dashboardCommandCenter'
 import buildDashboardCompleteness from '../lib/dashboardCompleteness'
-import buildDashboardFinancialAudit from '../lib/dashboardFinancialAudit'
 import buildDashboardStateResolver from '../lib/dashboardStateResolver'
 import { calculateAcquisitionReadiness } from '../lib/acquisitionReadinessScore'
 import { calculateYieldFirstScenario } from '../lib/yieldFirstStrategy'
@@ -145,11 +144,10 @@ export default function Dashboard({ session, subscription }) {
   const growthScenarios = commandCenter?.growthScenarios
 
   const borrowingRenderState = useMemo(() => {
-    const setupComplete = Boolean(dashboardState?.setupComplete)
     const analysisStatus = borrowingPowerAnalysis?.status
     const confidence = borrowingPowerAnalysis?.confidenceLabel || 'Low'
 
-    if (!setupComplete) {
+    if (!dashboardState?.setupComplete) {
       return {
         state: 'locked',
         confidence,
@@ -180,120 +178,49 @@ export default function Dashboard({ session, subscription }) {
       confidence,
       warning: null,
     }
-  }, [dashboardState, borrowingPowerAnalysis])
-
-  const dashboardFinancialAudit = useMemo(
-    () =>
-      buildDashboardFinancialAudit({
-        properties,
-        loans,
-        transactions,
-        financialProfile,
-        liabilities,
-        borrowingAnalysis: borrowingPowerAnalysis,
-        dashboardCompleteness,
-        dashboardState,
-        commandCenter,
-        borrowingRenderState,
-      }),
-    [
-      properties,
-      loans,
-      transactions,
-      financialProfile,
-      liabilities,
-      borrowingPowerAnalysis,
-      dashboardCompleteness,
-      dashboardState,
-      commandCenter,
-      borrowingRenderState,
-    ]
-  )
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.__equifolioDashboardAudit = dashboardFinancialAudit
-    }
-
-    console.debug('Equifolio dashboard financial audit', dashboardFinancialAudit)
-  }, [dashboardFinancialAudit])
-
-  useEffect(() => {
-    const borrowingSnapshot = {
-      scope: 'dashboard',
-      inputs: {
-        financialProfilePresent: Boolean(financialProfile),
-        liabilityCount: Array.isArray(liabilities) ? liabilities.length : null,
-        loanCount: Array.isArray(loans) ? loans.length : null,
-        transactionCount: Array.isArray(transactions) ? transactions.length : null,
-      },
-      calculatedSurplus: borrowingPowerAnalysis?.net_monthly_surplus ?? null,
-      borrowingCapacity: borrowingPowerAnalysis?.borrowing_power_estimate ?? null,
-      assessedMortgageCommitments:
-        borrowingPowerAnalysis?.assessed_mortgage_commitments_monthly ?? null,
-    }
-
-    if (typeof window !== 'undefined') {
-      window.__equifolioBorrowingSnapshots = {
-        ...(window.__equifolioBorrowingSnapshots || {}),
-        dashboard: borrowingSnapshot,
-      }
-    }
-
-    const debugPayload = {
-      setupComplete: dashboardState?.isSetupComplete,
-      unifiedSetupComplete: dashboardState?.setupComplete,
-      setupProgress: {
-        setupCompletionLabel: dashboardState?.setupCompletionLabel,
-        stage: dashboardState?.stage,
-        checklist: dashboardState?.setupChecklist,
-      },
-      financialProfile,
-      liabilities,
-      loans,
-      borrowingInputs: borrowingSnapshot.inputs,
-      assessedMortgageCommitments:
-        borrowingPowerAnalysis?.assessed_mortgage_commitments_monthly ?? null,
-      calculatedSurplus: borrowingSnapshot.calculatedSurplus,
-      borrowingCapacity: borrowingSnapshot.borrowingCapacity,
-      borrowingRenderState: borrowingRenderState.state,
-      borrowingConfidenceState: borrowingRenderState.confidence,
-    }
-
-    console.debug('Equifolio borrowing render debug', debugPayload)
-
-    if (dashboardState?.setupComplete && borrowingRenderState.state === 'locked') {
-      console.warn('Setup/borrowing state mismatch detected', debugPayload)
-    }
   }, [
-    dashboardState,
-    financialProfile,
-    liabilities,
-    loans,
-    transactions,
-    borrowingPowerAnalysis,
-    borrowingRenderState,
+    dashboardState?.setupComplete,
+    borrowingPowerAnalysis?.status,
+    borrowingPowerAnalysis?.confidenceLabel,
   ])
 
   const totalPropertyValue = useMemo(
     () => properties.reduce((sum, property) => sum + Number(property?.current_value || 0), 0),
     [properties]
   )
+  const totalRecordedDebt = useMemo(
+    () => loans.reduce((sum, loan) => sum + Number(loan?.current_balance || 0), 0),
+    [loans]
+  )
+  const currentLvrPct = useMemo(() => {
+    if (!totalPropertyValue || dashboardState.showNetPositionPartial) return null
+    return (totalRecordedDebt / totalPropertyValue) * 100
+  }, [dashboardState.showNetPositionPartial, totalPropertyValue, totalRecordedDebt])
+  const portfolioProperties = commandCenter?.portfolioProperties
   const netEquityDetailRows = useMemo(
     () =>
-      (commandCenter?.portfolioProperties || [])
+      (portfolioProperties || [])
         .filter((property) => property?.equity != null)
-        .slice(0, 2)
         .map((property) => ({
           label: property.address,
           value: formatCurrency(property.equity),
+          tone: Number(property.equity) < 0 ? 'text-[#A32D2D]' : 'text-gray-900',
+          badge:
+            Number(property.equity) < 0
+              ? {
+                  label: 'Negative equity',
+                  backgroundColor: '#FCEBEB',
+                  color: '#791F1F',
+                }
+              : null,
         })),
-    [commandCenter]
+    [portfolioProperties]
   )
+  const capacityUseCaseCount = commandCenter?.capacityUseCases?.length ?? 0
 
   const yieldFirstScenario = useMemo(
     () => {
-      if (!commandCenter || !borrowingPowerAnalysis || !growthScenarios) return null
+      if (!borrowingPowerAnalysis || !growthScenarios) return null
 
       const borrowingCapacity = Number(
         borrowingPowerAnalysis?.borrowing_power_estimate
@@ -327,16 +254,16 @@ export default function Dashboard({ session, subscription }) {
           borrowingPowerAnalysis?.net_monthly_surplus ?? 0
         ),
         totalPortfolioValue,
-        metroBlocked: (commandCenter?.capacityUseCases?.length || 0) === 0,
+        metroBlocked: capacityUseCaseCount === 0,
       })
 
       return result
     },
-    [borrowingPowerAnalysis, commandCenter, growthScenarios, totalPropertyValue]
+    [borrowingPowerAnalysis, growthScenarios, totalPropertyValue, capacityUseCaseCount]
   )
 
   const acquisitionReadiness = useMemo(() => {
-    if (!commandCenter || !growthScenarios || !yieldFirstScenario) return null
+    if (!growthScenarios || !yieldFirstScenario) return null
 
     return calculateAcquisitionReadiness({
       borrowingCapacity: Number(
@@ -384,7 +311,6 @@ export default function Dashboard({ session, subscription }) {
       )
     })
   }, [
-    commandCenter,
     growthScenarios,
     yieldFirstScenario,
     borrowingPowerAnalysis,
@@ -392,52 +318,64 @@ export default function Dashboard({ session, subscription }) {
     liabilities,
   ])
 
-  const leadScenario =
-    commandCenter?.growthScenarios?.feasibleStrategies?.[0] ??
-    commandCenter?.growthScenarios?.nearViableStrategies?.[0] ??
-    commandCenter?.growthScenarios?.bestBlockedStrategy ??
-    null
+  const leadScenario = useMemo(
+    () =>
+      commandCenter?.growthScenarios?.feasibleStrategies?.[0] ??
+      commandCenter?.growthScenarios?.nearViableStrategies?.[0] ??
+      commandCenter?.growthScenarios?.bestBlockedStrategy ??
+      null,
+    [commandCenter?.growthScenarios]
+  )
 
-  const heroRangeLow = leadScenario
-    ? Math.round(
-        (leadScenario.fallbackPrice ??
-          leadScenario.scenarioPurchasePrice ??
-          475000) * 0.95
-      )
-    : null
+  const heroDecisionProps = useMemo(() => {
+    const purchasePrice =
+      leadScenario?.fallbackPrice ??
+      leadScenario?.scenarioPurchasePrice ??
+      475000
 
-  const heroRangeHigh = leadScenario
-    ? Math.round(
-        (leadScenario.fallbackPrice ??
-          leadScenario.scenarioPurchasePrice ??
-          475000) * 1.10
-      )
-    : null
-
-  const heroMonthlyHoldingCost = leadScenario
-    ? (leadScenario.estimatedMonthlyCashFlow ??
-      leadScenario.estimatedPostPurchaseSurplus ??
-      null)
-    : null
-
-  const heroGrossYield = leadScenario
-    ? (leadScenario.estimatedGrossYield ??
-      leadScenario.expectedRentalYield ??
-      null)
-    : null
-
-  const heroFiveYearUplift = leadScenario
-    ? (leadScenario.fiveYearEquityProjection ??
-      null)
-    : null
-
-  const heroYear3Equity =
-    leadScenario?.projectionData?.find((point) => point.year === 3)?.netEquity ?? null
-
-  const heroYear5Equity =
-    leadScenario?.projectionData?.find((point) => point.year === 5)?.netEquity ??
-    leadScenario?.fiveYearEquityProjection ??
-    null
+    return {
+      purchaseRangeLow: leadScenario ? Math.round(purchasePrice * 0.95) : null,
+      purchaseRangeHigh: leadScenario ? Math.round(purchasePrice * 1.1) : null,
+      fiveYearEquityUplift: leadScenario?.fiveYearEquityProjection ?? null,
+      monthlyHoldingCost:
+        leadScenario?.estimatedMonthlyCashFlow ??
+        leadScenario?.estimatedPostPurchaseSurplus ??
+        null,
+      grossYield:
+        leadScenario?.estimatedGrossYield ??
+        leadScenario?.expectedRentalYield ??
+        null,
+      currentEquity: commandCenter?.hero?.netPosition?.value ?? commandCenter?.totalValue ?? 0,
+      year3Equity:
+        leadScenario?.projectionData?.find((point) => point.year === 3)?.netEquity ?? null,
+      year5Equity:
+        leadScenario?.projectionData?.find((point) => point.year === 5)?.netEquity ??
+        leadScenario?.fiveYearEquityProjection ??
+        null,
+      year10Equity:
+        leadScenario?.projectionData?.find((point) => point.year === 10)?.netEquity ?? null,
+      unlockValue: dashboardState.canShowBorrowing
+        ? commandCenter?.hero?.borrowingPower?.unlockPotential ?? null
+        : null,
+      acquisitionReadiness,
+      acquisitionReadinessScore: acquisitionReadiness?.finalScore ?? null,
+      acquisitionReadinessLabel: acquisitionReadiness?.label ?? null,
+      isExecutable: Boolean(
+        capacityUseCaseCount > 0 ||
+        (yieldFirstScenario?.isExecutable ?? false)
+      ),
+    }
+  }, [
+    leadScenario,
+    commandCenter?.hero?.netPosition?.value,
+    commandCenter?.hero?.borrowingPower?.unlockPotential,
+    commandCenter?.totalValue,
+    dashboardState.canShowBorrowing,
+    acquisitionReadiness?.finalScore,
+    acquisitionReadiness?.label,
+    capacityUseCaseCount,
+    yieldFirstScenario?.isExecutable,
+  ])
 
   if (loading) {
     return (
@@ -533,24 +471,7 @@ export default function Dashboard({ session, subscription }) {
           className={`mt-5 mb-[22px] ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
           style={isDashboardMounted ? { animationDelay: '50ms' } : { opacity: 0, transform: 'translateY(8px)' }}
         >
-          <HeroDecisionCard
-            purchaseRangeLow={heroRangeLow}
-            purchaseRangeHigh={heroRangeHigh}
-            fiveYearEquityUplift={heroFiveYearUplift}
-            monthlyHoldingCost={heroMonthlyHoldingCost}
-            grossYield={heroGrossYield}
-            currentEquity={commandCenter?.hero?.netPosition?.value ?? commandCenter?.totalValue ?? 0}
-            year3Equity={heroYear3Equity}
-            year5Equity={heroYear5Equity}
-            unlockValue={commandCenter?.hero?.borrowingPower?.unlockPotential ?? 0}
-            acquisitionReadinessScore={acquisitionReadiness?.finalScore ?? null}
-            acquisitionReadinessLabel={acquisitionReadiness?.label ?? null}
-            isExecutable={Boolean(
-              (commandCenter?.capacityUseCases?.length ?? 0) > 0 ||
-              yieldFirstScenario?.isExecutable ??
-              false
-            )}
-          />
+          <HeroDecisionCard {...heroDecisionProps} />
         </div>
 
         {!dashboardState.hasProperties ? (
@@ -569,7 +490,7 @@ export default function Dashboard({ session, subscription }) {
         ) : (
           <>
             <section
-              className={`mt-6 grid grid-cols-1 gap-5 xl:grid-cols-3 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+              className={`mt-6 grid grid-cols-1 gap-5 lg:grid-cols-3 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
               style={isDashboardMounted ? { animationDelay: '120ms' } : { opacity: 0, transform: 'translateY(8px)' }}
             >
               {dashboardState.canShowNetPosition ? (
@@ -581,13 +502,34 @@ export default function Dashboard({ session, subscription }) {
                       ? totalPropertyValue
                       : commandCenter.hero.netPosition.value
                   }
+                  valueTone={
+                    !dashboardState.showNetPositionPartial &&
+                    Number(commandCenter.hero.netPosition.value) < 0
+                      ? 'text-[#A32D2D]'
+                      : null
+                  }
                   helper={
                     dashboardState.showNetPositionPartial
                       ? 'Asset-only view until all mortgages are recorded'
                       : 'Assets minus total debt'
                   }
+                  statusBadge={
+                    !dashboardState.showNetPositionPartial &&
+                    Number(commandCenter.hero.netPosition.value) < 0
+                      ? {
+                          label: 'Negative equity',
+                          backgroundColor: '#FCEBEB',
+                          color: '#791F1F',
+                        }
+                      : null
+                  }
                   detailRows={
                     dashboardState.showNetPositionPartial ? [] : netEquityDetailRows
+                  }
+                  detailEmptyState={
+                    dashboardState.showNetPositionPartial
+                      ? null
+                      : 'No properties recorded yet'
                   }
                   progressInfo={
                     dashboardState.showNetPositionPartial
@@ -595,7 +537,15 @@ export default function Dashboard({ session, subscription }) {
                       : {
                           label: 'LVR',
                           targetLabel: 'Target 60%',
-                          valuePct: 60,
+                          valuePct: currentLvrPct ?? 0,
+                          badge:
+                            currentLvrPct != null && currentLvrPct > 100
+                              ? {
+                                  label: 'Above 100% LVR',
+                                  backgroundColor: '#FAEEDA',
+                                  color: '#633806',
+                                }
+                              : null,
                         }
                   }
                   subtitle={
@@ -688,9 +638,14 @@ export default function Dashboard({ session, subscription }) {
               {dashboardState.canShowBorrowing ? (
                 <DashboardBorrowingPowerCard
                   currentCapacity={commandCenter.hero.borrowingPower.currentCapacity}
-                  unlockPotential={commandCenter.hero.borrowingPower.unlockPotential}
+                  unlockPotential={
+                    borrowingRenderState.state === 'locked'
+                      ? null
+                      : commandCenter.hero.borrowingPower.unlockPotential
+                  }
                   detailRows={[
-                    ...(commandCenter.hero.borrowingPower.unlockPotential != null
+                    ...((borrowingRenderState.state !== 'locked' &&
+                      commandCenter.hero.borrowingPower.unlockPotential != null)
                       ? [{
                           label: 'Unlock via card limits',
                           value: formatCurrency(commandCenter.hero.borrowingPower.unlockPotential),
@@ -765,7 +720,7 @@ export default function Dashboard({ session, subscription }) {
                   </p>
                 </div>
 
-                <div className="mt-5 grid grid-cols-1 gap-[14px] xl:grid-cols-2">
+                <div className="mt-5 grid grid-cols-1 gap-[14px] md:grid-cols-2">
                   {commandCenter.topActions.slice(0, 2).map((action, index) => (
                     <ActionCard
                       key={action.id}
@@ -838,7 +793,7 @@ export default function Dashboard({ session, subscription }) {
                   Compare the annual cash-flow outcome of staying on your current path, applying the top action, or adding the modeled acquisition.
                 </p>
 
-                <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
+                <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {commandCenter.compareOptions.map((option) => (
                     <CompareOptionCard key={option.id} option={option} />
                   ))}
@@ -853,7 +808,7 @@ export default function Dashboard({ session, subscription }) {
               <section
                 className="min-h-[140px] rounded-[16px] border-[0.5px] p-[22px] shadow-[0_10px_24px_rgba(15,23,42,0.04)] md:px-[26px] md:py-[22px]"
                 style={{
-                  background: 'linear-gradient(135deg, #f4faf7 0%, #ffffff 100%)',
+                  background: 'linear-gradient(135deg, #f4faf7 0%, var(--color-background-primary) 100%)',
                   borderColor: 'rgba(0,0,0,0.08)',
                 }}
               >
@@ -878,14 +833,18 @@ export default function Dashboard({ session, subscription }) {
                       onClick={() => navigate('/growth-scenarios')}
                       className="inline-flex h-[44px] items-center rounded-[12px] bg-[#133230] px-[18px] text-[13px] font-medium text-white transition-colors hover:bg-[#0f2927]"
                     >
-                      Open Scenario Studio →
+                      Explore scenarios
                     </button>
                     <button
                       type="button"
-                      onClick={() => navigate('/growth-scenarios')}
-                      className="mt-2 inline-flex h-[40px] items-center rounded-[12px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-white px-[18px] text-[13px] text-gray-800 transition-colors hover:bg-gray-50"
+                      onClick={() => navigate('/growth-scenarios#wealth-projection')}
+                      className="mt-2 inline-flex h-[42px] items-center rounded-[14px] border px-[18px] text-[13px] font-medium text-[var(--color-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_8px_18px_rgba(15,23,42,0.04)] transition-[transform,background,border-color,box-shadow] duration-150 ease-out hover:-translate-y-px hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_12px_22px_rgba(15,23,42,0.06)]"
+                      style={{
+                        borderColor: 'rgba(15, 110, 86, 0.14)',
+                        background: 'linear-gradient(180deg, #ffffff 0%, #f8fbfa 100%)',
+                      }}
                     >
-                      Open 30Y Projection
+                      View 30-year projection
                     </button>
                   </div>
                 </div>
@@ -893,7 +852,7 @@ export default function Dashboard({ session, subscription }) {
             </section>
 
             <section
-              className={`mt-5 grid grid-cols-1 gap-[14px] xl:grid-cols-2 xl:items-stretch ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+              className={`mt-5 grid grid-cols-1 gap-[14px] md:grid-cols-2 md:items-stretch ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
               style={isDashboardMounted ? { animationDelay: '300ms' } : { opacity: 0, transform: 'translateY(8px)' }}
             >
               <div className="h-full [&>section]:h-full">
@@ -1203,3 +1162,7 @@ function CompareOptionCard({ option }) {
     </article>
   )
 }
+
+
+
+
