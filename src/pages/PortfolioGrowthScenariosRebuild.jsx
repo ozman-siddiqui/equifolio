@@ -1,13 +1,18 @@
-﻿import { startTransition, useEffect, useMemo, useState } from 'react'
+﻿import { startTransition, useEffect, useMemo, useRef, useState } from 'react'
 
 import useFinancialData from '../hooks/useFinancialData'
 import usePortfolioData from '../hooks/usePortfolioData'
+import { buildAlerts } from '../components/AlertsDropdown'
 import calculateBorrowingPower from '../lib/borrowingPowerEngine'
+import buildDashboardCommandCenter from '../lib/dashboardCommandCenter'
+import buildDashboardCompleteness from '../lib/dashboardCompleteness'
+import buildDashboardStateResolver from '../lib/dashboardStateResolver'
 import buildPortfolioGrowthScenarios, {
   calculateEconomicOutcome,
 } from '../lib/portfolioGrowthScenarios'
 import { calculateNegativeGearingTaxBenefit } from '../lib/negativeGearingTaxBenefit'
 import { calculateAfterTaxHoldingCost } from '../lib/afterTaxHoldingCost'
+import { estimateRepayment, getRemainingTermMonths } from '../lib/mortgageMath'
 import { normalizeTaxOwnership } from '../lib/taxOwnership'
 import { useGrowthScenariosUiStore } from '../stores/growthScenariosUiStore'
 
@@ -22,6 +27,7 @@ const DEPOSIT_STRATEGY_OPTIONS = [
 const INTEREST_RATE_QUICK_PICKS = [5.8, 6.5, 7.0, 8.0]
 const STRESS_TEST_RATES = [5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5]
 const DEFAULT_DEBT_RATE_PCT = 5.8
+const DEFAULT_LOAN_TERM_MONTHS = 360
 
 function getConfidenceLabel(score) {
   if (score >= 85) return 'High'
@@ -88,6 +94,57 @@ function normalizeInterestRateInput(value, fallback) {
   const numericValue = Number(value)
   if (!Number.isFinite(numericValue) || numericValue <= 0) return fallback
   return Math.min(15, numericValue)
+}
+
+function formatCompactAmount(value) {
+  const n = Math.abs(Number(value || 0))
+  const sign = Number(value) < 0 ? '-' : ''
+  if (n >= 1_000_000) return `${sign}$${(n / 1_000_000).toFixed(2)}m`
+  if (n >= 1_000) return `${sign}$${Math.round(n / 1_000)}k`
+  return formatCurrency(Number(value || 0))
+}
+
+function projectLoanBalanceAtYear(loan, targetYear) {
+  const principal = Number(loan?.current_balance || 0)
+  if (!Number.isFinite(principal) || principal <= 0) return 0
+
+  const annualRate = Number(loan?.interest_rate || 0)
+  const repaymentType =
+    String(loan?.repayment_type || '').trim().toLowerCase() === 'interest only'
+      ? 'Interest Only'
+      : 'Principal and Interest'
+  const { months: remainingTermMonths } = getRemainingTermMonths(
+    loan,
+    DEFAULT_LOAN_TERM_MONTHS
+  )
+  const elapsedMonths = Math.max(
+    0,
+    Math.min(Math.round(Number(targetYear || 0) * 12), remainingTermMonths)
+  )
+
+  if (repaymentType === 'Interest Only') {
+    return Math.round(principal)
+  }
+
+  const repayment = estimateRepayment({
+    principal,
+    annualRate,
+    repaymentType,
+    remainingTermMonths,
+  })
+
+  if (!Number.isFinite(repayment) || repayment <= 0) return Math.round(principal)
+
+  const monthlyRate = annualRate / 100 / 12
+  if (!Number.isFinite(monthlyRate) || monthlyRate <= 0) {
+    return Math.max(0, Math.round(principal - repayment * elapsedMonths))
+  }
+
+  const growthFactor = Math.pow(1 + monthlyRate, elapsedMonths)
+  const remainingBalance =
+    principal * growthFactor - repayment * ((growthFactor - 1) / monthlyRate)
+
+  return Math.max(0, Math.round(remainingBalance))
 }
 
 function normalizeScenario(scenario) {
@@ -320,39 +377,41 @@ function GraphPanel({
       ) : null}
       {children}
       {insight || traceability || note || confidenceLabel ? (
-        <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_1fr]">
-          <div className="rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-slate-50/80 px-[22px] py-[18px] md:px-[22px] md:py-[18px]">
+        <div className="mt-[10px] border-t-[0.5px] border-[rgba(0,0,0,0.06)] pt-[10px]">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_1fr]">
+          <div className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-slate-50/80 px-[18px] py-[16px] md:px-[18px] md:py-[16px]">
             <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
               Insight
             </p>
             {insight ? (
-              <p className="mt-3 text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
+              <p className="mt-3 text-[12px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
                 {insight}
               </p>
             ) : null}
             {note ? (
-              <p className="mt-2 text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]">
+              <p className="mt-2 text-[12px] leading-[1.6] text-[var(--color-text-secondary)]">
                 {note}
               </p>
             ) : null}
           </div>
-          <div className="rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[22px] py-[18px] md:px-[22px] md:py-[18px]">
+          <div className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[18px] py-[16px] md:px-[18px] md:py-[16px]">
             <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
               Traceability
             </p>
             <div className="mt-3 flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:gap-x-4 md:gap-y-2">
               {traceability ? (
-                <p className="text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]">
+                <p className="text-[12px] leading-[1.6] text-[var(--color-text-secondary)]">
                   {traceability}
                 </p>
               ) : null}
               {confidenceLabel ? (
-                <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
+                <p className="text-[12px] font-medium leading-[1.6] text-[var(--color-text-secondary)]">
                   Confidence: {confidenceLabel}
                 </p>
               ) : null}
             </div>
           </div>
+        </div>
         </div>
       ) : null}
       {warning ? (
@@ -1061,6 +1120,8 @@ export default function PortfolioGrowthScenariosRebuild() {
   const { financialProfile, liabilities, loading: financialLoading } = useFinancialData()
   const [isScenarioRefreshing, setIsScenarioRefreshing] = useState(false)
   const [isDeferredAnalysisReady, setIsDeferredAnalysisReady] = useState(false)
+  const [selectedGrowthRate, setSelectedGrowthRate] = useState(6)
+  const [selectedProjectionYears, setSelectedProjectionYears] = useState(10)
   const activeTab = useGrowthScenariosUiStore((state) => state.activeTab)
   const setActiveTab = useGrowthScenariosUiStore((state) => state.setActiveTab)
   const includeDepreciation = useGrowthScenariosUiStore((state) => state.includeDepreciation)
@@ -1136,11 +1197,215 @@ export default function PortfolioGrowthScenariosRebuild() {
       }),
     [financialProfile, liabilities, loans, transactions]
   )
+  const dashboardAlerts = useMemo(() => buildAlerts(properties, loans), [properties, loans])
+  const dashboardCompleteness = useMemo(
+    () =>
+      buildDashboardCompleteness({
+        properties,
+        loans,
+        financialProfile,
+        liabilities,
+      }),
+    [properties, loans, financialProfile, liabilities]
+  )
+  const dashboardState = useMemo(
+    () =>
+      buildDashboardStateResolver({
+        properties,
+        loans,
+        transactions,
+        financialProfile,
+        liabilities,
+        dashboardCompleteness,
+        borrowingAnalysis,
+      }),
+    [
+      properties,
+      loans,
+      transactions,
+      financialProfile,
+      liabilities,
+      dashboardCompleteness,
+      borrowingAnalysis,
+    ]
+  )
+  const dashboardCommandCenter = useMemo(
+    () =>
+      buildDashboardCommandCenter({
+        properties,
+        loans,
+        transactions,
+        alerts: dashboardAlerts,
+        borrowingAnalysis,
+        dashboardCompleteness,
+        dashboardState,
+        financialProfile,
+        liabilities,
+      }),
+    [
+      properties,
+      loans,
+      transactions,
+      dashboardAlerts,
+      borrowingAnalysis,
+      dashboardCompleteness,
+      dashboardState,
+      financialProfile,
+      liabilities,
+    ]
+  )
+  const dashboardTopActionSummaries = useMemo(
+    () => (dashboardCommandCenter?.topActionSummaries || []).slice(0, 2),
+    [dashboardCommandCenter?.topActionSummaries]
+  )
+  const currentPortfolioNetEquity = useMemo(
+    () =>
+      Math.round(
+        properties.reduce((sum, property) => sum + Number(property?.current_value || 0), 0) -
+          loans.reduce((sum, loan) => sum + Number(loan?.current_balance || 0), 0)
+      ),
+    [properties, loans]
+  )
+  const currentPortfolioPropertyValue = useMemo(
+    () =>
+      properties.reduce((sum, property) => sum + Number(property?.current_value || 0), 0),
+    [properties]
+  )
+  const currentPortfolioLoanBalance = useMemo(
+    () => loans.reduce((sum, loan) => sum + Number(loan?.current_balance || 0), 0),
+    [loans]
+  )
+  const projectionStrokeRef = useRef(null)
+  const projectionFillRef = useRef(null)
+  const projectionEndDotRef = useRef(null)
+  const projectionRafRef = useRef([])
+  const projectionPulseTimeoutRef = useRef(null)
   const usableEquity = useMemo(() => {
-    const totalValue = properties.reduce((sum, property) => sum + Number(property?.current_value || 0), 0)
-    const totalDebt = loans.reduce((sum, loan) => sum + Number(loan?.current_balance || 0), 0)
-    return Math.max(Math.round(totalValue * 0.8 - totalDebt), 0)
-  }, [properties, loans])
+    return Math.max(
+      Math.round(currentPortfolioPropertyValue * 0.8 - currentPortfolioLoanBalance),
+      0
+    )
+  }, [currentPortfolioLoanBalance, currentPortfolioPropertyValue])
+  const projectionMilestoneYears = useMemo(
+    () =>
+      selectedProjectionYears === 30
+        ? [0, 10, 20, 30]
+        : [0, selectedProjectionYears / 2, selectedProjectionYears],
+    [selectedProjectionYears]
+  )
+  const baseBalanceSheetProjection = useMemo(() => {
+    const growthMultiplier = 1 + selectedGrowthRate / 100
+
+    return projectionMilestoneYears.map((year) => {
+      const propertyValue = Math.round(
+        currentPortfolioPropertyValue * Math.pow(growthMultiplier, year)
+      )
+      const loanBalance = loans.reduce(
+        (sum, loan) => sum + projectLoanBalanceAtYear(loan, year),
+        0
+      )
+
+      return {
+        year,
+        label: year === 0 ? 'TODAY' : `YR ${year}`,
+        propertyValue,
+        loanBalance,
+        netEquity: Math.round(propertyValue - loanBalance),
+      }
+    })
+  }, [currentPortfolioPropertyValue, loans, projectionMilestoneYears, selectedGrowthRate])
+
+  const projectionStudioModel = useMemo(() => {
+    if (currentPortfolioNetEquity <= 0) return null
+
+    const startValue = currentPortfolioNetEquity
+    const midpointYears = selectedProjectionYears / 2
+    const endYears = selectedProjectionYears
+    const growthMultiplier = 1 + selectedGrowthRate / 100
+    const midpointValue = Math.round(startValue * Math.pow(growthMultiplier, midpointYears))
+    const endValue = Math.round(startValue * Math.pow(growthMultiplier, endYears))
+    const growthDelta = endValue - startValue
+
+    return {
+      startValue,
+      midpointValue,
+      endValue,
+      midpointYears,
+      endYears,
+      growthDelta,
+    }
+  }, [currentPortfolioNetEquity, selectedGrowthRate, selectedProjectionYears])
+  // RECONCILIATION RULE:
+  // point.value === point.propertyValue - point.loanBalance at every milestone
+  // Both Projection Studio chart and Wealth tab must derive net equity this way
+  // Do not use projectionStudioModel lump-sum values for chart rendering
+  const baseTrajectoryData = useMemo(() => {
+    if (!projectionStudioModel) return []
+
+    const startingPoint = {
+      propertyValue:
+        baseBalanceSheetProjection[0]?.propertyValue ?? currentPortfolioPropertyValue,
+      loanBalance:
+        baseBalanceSheetProjection[0]?.loanBalance ?? currentPortfolioLoanBalance,
+    }
+    const midpointPoint = {
+      propertyValue:
+        baseBalanceSheetProjection.find(
+          (point) => point.year === projectionStudioModel.midpointYears
+        )?.propertyValue ?? currentPortfolioPropertyValue,
+      loanBalance:
+        baseBalanceSheetProjection.find(
+          (point) => point.year === projectionStudioModel.midpointYears
+        )?.loanBalance ?? currentPortfolioLoanBalance,
+    }
+    const endPoint = {
+      propertyValue:
+        baseBalanceSheetProjection.find(
+          (point) => point.year === projectionStudioModel.endYears
+        )?.propertyValue ?? currentPortfolioPropertyValue,
+      loanBalance:
+        baseBalanceSheetProjection.find(
+          (point) => point.year === projectionStudioModel.endYears
+        )?.loanBalance ?? currentPortfolioLoanBalance,
+    }
+
+    return [
+      {
+        year: 0,
+        label: 'TODAY',
+        value: Math.round(
+          Number(startingPoint.propertyValue || 0) - Number(startingPoint.loanBalance || 0)
+        ),
+        propertyValue: startingPoint.propertyValue,
+        loanBalance: startingPoint.loanBalance,
+      },
+      {
+        year: projectionStudioModel.midpointYears,
+        label: `YR ${projectionStudioModel.midpointYears}`,
+        value: Math.round(
+          Number(midpointPoint.propertyValue || 0) - Number(midpointPoint.loanBalance || 0)
+        ),
+        propertyValue: midpointPoint.propertyValue,
+        loanBalance: midpointPoint.loanBalance,
+      },
+      {
+        year: projectionStudioModel.endYears,
+        label: `YR ${projectionStudioModel.endYears}`,
+        value: Math.round(
+          Number(endPoint.propertyValue || 0) - Number(endPoint.loanBalance || 0)
+        ),
+        propertyValue: endPoint.propertyValue,
+        loanBalance: endPoint.loanBalance,
+      },
+    ]
+  }, [
+    baseBalanceSheetProjection,
+    currentPortfolioLoanBalance,
+    currentPortfolioPropertyValue,
+    projectionStudioModel,
+  ])
+
+  // ── Portfolio Wealth Trajectory ──────────────────────────────────────────
   const defaultInterestRate = useMemo(() => {
     const validRates = loans
       .map((loan) => Number(loan?.interest_rate))
@@ -1221,6 +1486,7 @@ export default function PortfolioGrowthScenariosRebuild() {
       ) || null,
     [normalizedScenarios, scenarioModel.recommendedStrategy?.id]
   )
+  const hasRecommendedScenario = Boolean(recommendedScenario)
   const secondaryScenarios = useMemo(
     () =>
       normalizedScenarios.filter(
@@ -1234,11 +1500,344 @@ export default function PortfolioGrowthScenariosRebuild() {
     () => normalizedScenarios.filter((scenario) => scenario.scenarioState === 'blocked'),
     [normalizedScenarios]
   )
+  const bestBlockedStrategy = useMemo(
+    () =>
+      blockedScenarios.length > 0
+        ? blockedScenarios.reduce((best, current) => {
+            const bestGap =
+              Number(best?.requiredCapitalGap ?? best?.additionalCapitalRequired ?? Infinity)
+            const currentGap = Number(
+              current?.requiredCapitalGap ?? current?.additionalCapitalRequired ?? Infinity
+            )
+            return currentGap < bestGap ? current : best
+          })
+        : null,
+    [blockedScenarios]
+  )
   const hasExecutableScenario = Boolean(recommendedScenario?.isExecutable)
   const topAlternativeScenario = blockedScenarios[0] || secondaryScenarios[0] || null
   const recommendedScenarioAnchorPrice = getSafeNumber(recommendedScenario?.scenarioPurchasePrice)
   const recommendedScenarioLoanAmount = getSafeNumber(recommendedScenario?.scenarioLoanAmount)
   const recommendedScenarioDepositPct = getSafeNumber(recommendedScenario?.scenarioDepositPct)
+
+  const acquisitionTrajectoryData = useMemo(() => {
+    if (!projectionStudioModel || !hasExecutableScenario || !recommendedScenario) return []
+
+    const scenarioPurchasePrice = Number(recommendedScenario?.scenarioPurchasePrice || 0)
+    const scenarioLoanAmount = Number(recommendedScenario?.scenarioLoanAmount || 0)
+    const normalizedProjectionData = Array.isArray(recommendedScenario?.projectionData)
+      ? recommendedScenario.projectionData
+          .map((point) => ({
+            year: Number(point?.year || 0),
+            propertyValue: Number(point?.propertyValue ?? 0),
+            loanBalance: Number(point?.loanBalance ?? 0),
+            netEquity: Number(point?.netEquity ?? point?.equity ?? 0),
+          }))
+          .filter((point) => Number.isFinite(point.year) && point.year > 0)
+          .sort((a, b) => a.year - b.year)
+      : []
+
+    const getProjectedScenarioBalanceSheet = (targetYear) => {
+      if (targetYear <= 0) {
+        return {
+          propertyValue: scenarioPurchasePrice,
+          loanBalance: scenarioLoanAmount,
+        }
+      }
+
+      const exactPoint = normalizedProjectionData.find((point) => point.year === targetYear)
+      if (exactPoint) {
+        return {
+          propertyValue: Math.max(0, Number(exactPoint.propertyValue || 0)),
+          loanBalance: Math.max(0, Number(exactPoint.loanBalance || 0)),
+        }
+      }
+
+      const nextPoint = normalizedProjectionData.find((point) => point.year > targetYear)
+      const previousCandidates = normalizedProjectionData.filter((point) => point.year < targetYear)
+      const previousPoint = previousCandidates[previousCandidates.length - 1] || null
+
+      if (previousPoint && nextPoint) {
+        const span = nextPoint.year - previousPoint.year || 1
+        const progress = (targetYear - previousPoint.year) / span
+        return {
+          propertyValue: Math.max(
+            0,
+            Math.round(
+              previousPoint.propertyValue +
+                (nextPoint.propertyValue - previousPoint.propertyValue) * progress
+            )
+          ),
+          loanBalance: Math.max(
+            0,
+            Math.round(
+              previousPoint.loanBalance +
+                (nextPoint.loanBalance - previousPoint.loanBalance) * progress
+            )
+          ),
+        }
+      }
+
+      const lastPoint = normalizedProjectionData[normalizedProjectionData.length - 1] || null
+      const priorPoint = normalizedProjectionData.length > 1
+        ? normalizedProjectionData[normalizedProjectionData.length - 2]
+        : null
+
+      if (lastPoint) {
+        const yearsBeyondLastPoint = Math.max(targetYear - lastPoint.year, 0)
+        const referencePropertyValue = Number.isFinite(lastPoint.propertyValue) && lastPoint.propertyValue > 0
+          ? lastPoint.propertyValue
+          : scenarioPurchasePrice * Math.pow(1 + selectedGrowthRate / 100, lastPoint.year)
+        const projectedPropertyValue = referencePropertyValue * Math.pow(1 + selectedGrowthRate / 100, yearsBeyondLastPoint)
+        const annualLoanReduction =
+          priorPoint && lastPoint.year !== priorPoint.year
+            ? Math.max(0, (priorPoint.loanBalance - lastPoint.loanBalance) / (lastPoint.year - priorPoint.year))
+            : 0
+        const projectedLoanBalance = Math.max(0, lastPoint.loanBalance - annualLoanReduction * yearsBeyondLastPoint)
+        return {
+          propertyValue: Math.max(0, Math.round(projectedPropertyValue)),
+          loanBalance: Math.max(0, Math.round(projectedLoanBalance)),
+        }
+      }
+
+      const fallbackPropertyValue = scenarioPurchasePrice * Math.pow(1 + selectedGrowthRate / 100, targetYear)
+      return {
+        propertyValue: Math.max(0, Math.round(fallbackPropertyValue)),
+        loanBalance: Math.max(0, Math.round(scenarioLoanAmount)),
+      }
+    }
+
+    return baseTrajectoryData.map((point) => {
+      const scenarioBalanceSheet = getProjectedScenarioBalanceSheet(point.year)
+      const totalPropertyValue =
+        Number(point.propertyValue || 0) + Number(scenarioBalanceSheet.propertyValue || 0)
+      const totalLoanBalance =
+        Number(point.loanBalance || 0) + Number(scenarioBalanceSheet.loanBalance || 0)
+      const baseNetEquity = Math.round(
+        Number(point.propertyValue || 0) - Number(point.loanBalance || 0)
+      )
+      const acquisitionNetEquityContribution = Math.max(
+        0,
+        Number(scenarioBalanceSheet.propertyValue || 0) - Number(scenarioBalanceSheet.loanBalance || 0)
+      )
+
+      return {
+        year: point.year,
+        label: point.label,
+        value: Math.round(baseNetEquity + acquisitionNetEquityContribution),
+        propertyValue: Math.round(totalPropertyValue),
+        loanBalance: Math.round(totalLoanBalance),
+      }
+    })
+  }, [baseTrajectoryData, hasExecutableScenario, projectionStudioModel, recommendedScenario, selectedGrowthRate])
+  const projectionStudioGapBreakdown = useMemo(() => {
+    if (!acquisitionTrajectoryData.length || !baseTrajectoryData.length) return null
+
+    const baseTerminalPoint = baseTrajectoryData[baseTrajectoryData.length - 1] || null
+    const acquisitionTerminalPoint =
+      acquisitionTrajectoryData[acquisitionTrajectoryData.length - 1] || null
+
+    if (!baseTerminalPoint || !acquisitionTerminalPoint) return null
+
+    const addedPropertyTerminalValue = Math.max(
+      0,
+      Number(acquisitionTerminalPoint.propertyValue || 0) -
+        Number(baseTerminalPoint.propertyValue || 0)
+    )
+    const acquisitionLoanBalance = Math.max(
+      0,
+      Number(acquisitionTerminalPoint.loanBalance || 0) -
+        Number(baseTerminalPoint.loanBalance || 0)
+    )
+    const addedNetEquity = Math.max(
+      0,
+      Number(acquisitionTerminalPoint.value || 0) - Number(baseTerminalPoint.value || 0)
+    )
+
+    return {
+      basePortfolioTerminalNetEquity: Number(baseTerminalPoint.value || 0),
+      addedPropertyTerminalValue,
+      acquisitionLoanBalance,
+      addedNetEquity,
+      totalPortfolioTerminalNetEquity: Number(acquisitionTerminalPoint.value || 0),
+    }
+  }, [acquisitionTrajectoryData, baseTrajectoryData])
+  const baseStartValue = baseTrajectoryData[0]?.value ?? 0
+  const baseEndValue = baseTrajectoryData[baseTrajectoryData.length - 1]?.value ?? 0
+  const baseGrowthDelta = baseEndValue - baseStartValue
+  const acquisitionStartValue = acquisitionTrajectoryData[0]?.value ?? 0
+  const acquisitionEndValue =
+    acquisitionTrajectoryData[acquisitionTrajectoryData.length - 1]?.value ?? 0
+  const acquisitionGrowthDelta = acquisitionEndValue - acquisitionStartValue
+  const projectionStudioChart = useMemo(() => {
+    if (!baseTrajectoryData.length) return null
+
+    const width = 720
+    const height = 344
+    const milestoneYears =
+      selectedProjectionYears === 30
+        ? [0, 10, 20, 30]
+        : [0, selectedProjectionYears / 2, selectedProjectionYears]
+    const xAnchors =
+      milestoneYears.length === 4 ? [72, 288, 504, 662] : [72, 360, 662]
+    const legend = acquisitionTrajectoryData.length
+      ? [
+          { label: 'With acquisition', tone: 'acquisition' },
+          { label: 'Base portfolio', tone: 'base' },
+        ]
+      : [{ label: 'Base portfolio', tone: 'base' }]
+
+    const interpolateSeriesValue = (series, targetYear) => {
+      if (!Array.isArray(series) || !series.length) return null
+      const exactPoint = series.find((point) => point.year === targetYear)
+      if (exactPoint) return Number(exactPoint.value || 0)
+
+      const previousPoints = series.filter((point) => point.year < targetYear)
+      const nextPoint = series.find((point) => point.year > targetYear)
+      const previousPoint = previousPoints[previousPoints.length - 1] || null
+
+      if (previousPoint && nextPoint) {
+        const span = nextPoint.year - previousPoint.year || 1
+        const progress = (targetYear - previousPoint.year) / span
+        return Math.round(previousPoint.value + (nextPoint.value - previousPoint.value) * progress)
+      }
+
+      const lastPoint = series[series.length - 1]
+      return Number(lastPoint?.value || 0)
+    }
+
+    const baseMilestones = milestoneYears.map((year, index) => ({
+      year,
+      label: year === 0 ? 'Today' : `Yr ${year}`,
+      value: interpolateSeriesValue(baseTrajectoryData, year),
+      x: xAnchors[index],
+    }))
+    const acquisitionMilestones = acquisitionTrajectoryData.length
+      ? milestoneYears.map((year, index) => ({
+          year,
+          label: year === 0 ? 'Today' : `Yr ${year}`,
+          value: interpolateSeriesValue(acquisitionTrajectoryData, year),
+          x: xAnchors[index],
+        }))
+      : []
+
+    const allValues = [
+      ...baseMilestones.map((point) => point.value),
+      ...acquisitionMilestones.map((point) => point.value),
+    ].filter((value) => Number.isFinite(value))
+    const rawMin = Math.min(...allValues)
+    const rawMax = Math.max(...allValues)
+    const valueRange = Math.max(rawMax - rawMin, rawMax * 0.08, 1)
+    const minVal = Math.max(0, rawMin - valueRange * 0.04)
+    const maxVal = rawMax + valueRange * 0.03
+    const topPad = 8
+    const bottomPad = 10
+    const plotHeight = height - topPad - bottomPad
+    const range = maxVal - minVal || 1
+    const scaleY = (value) => topPad + (1 - (value - minVal) / range) * plotHeight
+
+    const buildCurvePath = (points) => {
+      if (points.length < 2) return ''
+      let path = `M ${points[0].x} ${points[0].y}`
+      for (let index = 0; index < points.length - 1; index += 1) {
+        const next = points[index + 1]
+        path += ` L ${next.x} ${next.y}`
+      }
+      return path
+    }
+
+    const basePoints = baseMilestones.map((point) => ({
+      ...point,
+      y: scaleY(point.value),
+    }))
+    const acquisitionPoints = acquisitionMilestones.map((point) => ({
+      ...point,
+      y: scaleY(point.value),
+    }))
+    const baseLinePath = buildCurvePath(basePoints)
+    const acquisitionLinePath = acquisitionPoints.length ? buildCurvePath(acquisitionPoints) : null
+    const baselineY = height - 8
+    const acquisitionFillPath = acquisitionPoints.length
+      ? `${acquisitionLinePath} L ${acquisitionPoints[acquisitionPoints.length - 1].x} ${baselineY} L ${acquisitionPoints[0].x} ${baselineY} Z`
+      : null
+    const primaryPoints = acquisitionPoints.length ? acquisitionPoints : basePoints
+    const primaryLinePath = acquisitionPoints.length ? acquisitionLinePath : baseLinePath
+    const primaryFillPath = acquisitionPoints.length ? acquisitionFillPath : null
+
+    return {
+      width,
+      height,
+      legend,
+      baselineY,
+      milestoneCount: milestoneYears.length,
+      baseMilestones: basePoints,
+      baseLinePath,
+      acquisitionMilestones: acquisitionPoints,
+      acquisitionLinePath,
+      acquisitionFillPath,
+      primaryPoints,
+      primaryLinePath,
+      primaryFillPath,
+      comparisonActive: acquisitionPoints.length > 0,
+    }
+  }, [acquisitionTrajectoryData, baseTrajectoryData, selectedProjectionYears])
+  useEffect(() => {
+    const stroke = projectionStrokeRef.current
+    const fill = projectionFillRef.current
+    const endpoint = projectionEndDotRef.current
+
+    if (!projectionStudioChart || !stroke || !projectionStudioChart.primaryLinePath) return undefined
+
+    const length = stroke.getTotalLength()
+    stroke.style.strokeDasharray = `${length}`
+    stroke.style.strokeDashoffset = `${length}`
+    stroke.style.transition = 'none'
+
+    if (fill) {
+      fill.style.opacity = '0'
+      fill.style.transition = 'none'
+    }
+
+    if (endpoint) {
+      endpoint.style.animation = 'none'
+    }
+
+    const firstFrame = requestAnimationFrame(() => {
+      const secondFrame = requestAnimationFrame(() => {
+        stroke.style.transition = 'stroke-dashoffset 1500ms cubic-bezier(0.4,0,0.2,1)'
+        stroke.style.strokeDashoffset = '0'
+        if (fill) {
+          fill.style.transition = 'opacity 820ms ease-in 260ms'
+          fill.style.opacity = '1'
+        }
+      })
+      projectionRafRef.current.push(secondFrame)
+    })
+    projectionRafRef.current = [firstFrame]
+
+    projectionPulseTimeoutRef.current = window.setTimeout(() => {
+      if (endpoint) {
+        endpoint.style.animation = 'projectionStudioEndDotPulse 520ms ease-in-out'
+      }
+    }, 1180)
+
+    return () => {
+      projectionRafRef.current.forEach((frame) => cancelAnimationFrame(frame))
+      projectionRafRef.current = []
+      if (projectionPulseTimeoutRef.current != null) {
+        clearTimeout(projectionPulseTimeoutRef.current)
+      }
+      stroke.style.transition = 'none'
+      stroke.style.strokeDashoffset = `${length}`
+      if (fill) {
+        fill.style.transition = 'none'
+        fill.style.opacity = '0'
+      }
+      if (endpoint) {
+        endpoint.style.animation = 'none'
+      }
+    }
+  }, [projectionStudioChart])
   const baselineCapitalGap = Number(scenarioModel.recommendedStrategy?.requiredCapitalGap || 0)
   const recommendedTotalRequiredCapital =
     Number(recommendedScenario?.depositRequired || 0) +
@@ -1519,7 +2118,7 @@ export default function PortfolioGrowthScenariosRebuild() {
     hasExecutableScenario ? recommendedScenarioWithEconomicOutcome || recommendedScenario : null
   const suggestedPathTitle = hasExecutableScenario
     ? 'Buy 1 investment property now'
-    : 'No scenario appears viable under current settings'
+    : 'No acquisition scenario is currently executable'
   const suggestedPathDescription = hasExecutableScenario
     ? 'Optimised from your preferred settings to the strongest currently viable purchase path.'
     : null
@@ -1556,6 +2155,18 @@ export default function PortfolioGrowthScenariosRebuild() {
     }
   }, [recommendedScenario])
   const centralBorrowingCapacity = Number(borrowingAnalysis?.borrowing_power_estimate || 0)
+  const marketEntryFloor = Number(scenarioModel.viability?.realisticMarketEntryMin || 0)
+  const blockedBorrowingGap = Math.max(0, marketEntryFloor - Number(centralBorrowingCapacity || 0))
+  const bestBlockedPurchasePrice = getSafeNumber(
+    bestBlockedStrategy?.fallbackPrice ?? bestBlockedStrategy?.scenarioPurchasePrice
+  )
+  const bestBlockedRangeLabel =
+    bestBlockedPurchasePrice != null
+      ? bestBlockedStrategy?.recommendedPurchaseRange?.label ||
+        `${formatCurrency(Math.round(bestBlockedPurchasePrice * 0.95))} - ${formatCurrency(
+          Math.round(bestBlockedPurchasePrice * 1.1)
+        )}`
+      : null
   const recommendedPurchasePrice = Number(recommendedScenario?.scenarioPurchasePrice || 0)
   const recommendedDepositAmount = Number(recommendedScenario?.depositRequired || 0)
   const requiredLoan = Math.max(recommendedPurchasePrice - recommendedDepositAmount, 0)
@@ -1570,7 +2181,7 @@ export default function PortfolioGrowthScenariosRebuild() {
   const isCapitalConstraint = limitingFactor === 'capital'
   const isBorrowingConstraint = limitingFactor === 'borrowing'
   const limitingFactorHeading = !hasExecutableScenario
-    ? 'No scenario appears viable under current settings'
+    ? 'No acquisition scenario is currently executable'
     : isCapitalConstraint
     ? 'Capital, not borrowing power, is the current constraint'
     : isBorrowingConstraint
@@ -1600,7 +2211,6 @@ export default function PortfolioGrowthScenariosRebuild() {
   )
   const borrowingSensitivityData = useMemo(() => {
     if (!isDeferredAnalysisReady) return []
-    if (!scenarioModel.recommendedStrategy) return []
 
     return [-1.5, -1.0, -0.5, 0, 0.5, 1.0].map((offset) => {
       const rate = Number((assessmentRateValue + offset).toFixed(1))
@@ -1631,7 +2241,6 @@ export default function PortfolioGrowthScenariosRebuild() {
     isDeferredAnalysisReady,
     liabilities,
     loans,
-    scenarioModel.recommendedStrategy,
     transactions,
   ])
   const borrowingSensitivityInsight = useMemo(() => {
@@ -1660,7 +2269,6 @@ export default function PortfolioGrowthScenariosRebuild() {
   }, [borrowingSensitivityData])
   const stressTestData = useMemo(() => {
     if (!isDeferredAnalysisReady) return []
-    if (!scenarioModel.recommendedStrategy) return []
 
     return STRESS_TEST_RATES.map((rate) => {
       const stressResult = calculateBorrowingPower({
@@ -1691,7 +2299,6 @@ export default function PortfolioGrowthScenariosRebuild() {
     isDeferredAnalysisReady,
     liabilities,
     loans,
-    scenarioModel.recommendedStrategy,
     transactions,
   ])
   const stressTestInsight = useMemo(() => {
@@ -1716,14 +2323,17 @@ export default function PortfolioGrowthScenariosRebuild() {
   }, [stressTestData])
   const depositPurchasePowerData = useMemo(() => {
     if (!isDeferredAnalysisReady) return []
-    if (!scenarioModel.recommendedStrategy || !Number.isFinite(centralBorrowingCapacity)) return []
+    if (!Number.isFinite(centralBorrowingCapacity) || centralBorrowingCapacity <= 0) return []
 
     const totalDeployableCapital = Number(scenarioModel.inputs?.totalDeployableCapital || 0)
-    const acquisitionCostRate = Number(
-      scenarioModel.assumptions?.acquisitionCostRate ??
-        (Number(recommendedScenario?.estimatedAcquisitionCosts || 0) /
-          Math.max(Number(recommendedScenario?.scenarioPurchasePrice || 1), 1))
-    )
+    if (totalDeployableCapital <= 0) return []
+
+    const acquisitionCostRate =
+      Number(
+        scenarioModel.assumptions?.acquisitionCostRate ??
+          (Number(recommendedScenario?.estimatedAcquisitionCosts || 0) /
+            Math.max(Number(recommendedScenario?.scenarioPurchasePrice || 1), 1))
+      ) || 0.05
     const selectedDepositPct = Math.round(selectedDepositStrategy.depositRatio * 100)
 
     return DEPOSIT_PURCHASE_POWER_LEVELS.map((depositPct) => {
@@ -1749,21 +2359,250 @@ export default function PortfolioGrowthScenariosRebuild() {
     recommendedScenario?.scenarioPurchasePrice,
     scenarioModel.assumptions?.acquisitionCostRate,
     scenarioModel.inputs?.totalDeployableCapital,
-    scenarioModel.recommendedStrategy,
     selectedDepositStrategy.depositRatio,
   ])
-  const equityCashFlowTradeOffData = useMemo(() => {
-    if (!isDeferredAnalysisReady) return []
-    if (!recommendedScenario?.projectionData?.length) return []
+  // ── Portfolio-level fallback chart data (no acquisition scenario required) ──
 
-    return recommendedScenario.projectionData.map((point) => ({
-      year: Number(point?.year || 0),
-      label: `${Number(point?.year || 0)}`,
-      propertyValue: Number(point?.propertyValue ?? 0),
-      loanBalance: Number(point?.loanBalance ?? 0),
-      netEquity: Number(point?.netEquity ?? point?.equity ?? 0),
-    }))
-  }, [isDeferredAnalysisReady, recommendedScenario])
+  // Chart 1 fallback: borrowing capacity across fixed assessment rates 5.5–9.0%
+  const portfolioFallbackBorrowingData = useMemo(() => {
+    if (!isDeferredAnalysisReady) return []
+    const rates = [5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0]
+    return rates.map((rate) => {
+      const result = calculateBorrowingPower({
+        financialProfile,
+        liabilities,
+        loans,
+        transactions,
+        config: { assessmentRatePct: rate },
+      })
+      return {
+        rateLabel: `${rate.toFixed(1)}%`,
+        borrowingCapacity: Number(result?.borrowing_power_estimate || 0),
+        confidenceScore: Number(result?.confidence_score ?? 100),
+        currentAssessmentMarker:
+          Math.abs(rate - assessmentRateValue) < 0.001
+            ? Number(result?.borrowing_power_estimate || 0)
+            : null,
+      }
+    })
+  }, [assessmentRateValue, financialProfile, isDeferredAnalysisReady, liabilities, loans, transactions])
+
+  // Chart 2 fallback: serviceability surplus across fixed assessment rates 5.5–9.0%
+  const portfolioFallbackSurplusData = useMemo(() => {
+    if (!isDeferredAnalysisReady) return []
+    const rates = [5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0]
+    return rates.map((rate) => {
+      const result = calculateBorrowingPower({
+        financialProfile,
+        liabilities,
+        loans,
+        transactions,
+        config: { assessmentRatePct: rate },
+      })
+      const monthlySurplus = Number(result?.net_monthly_surplus || 0)
+      const confidenceScore = Number(result?.confidence_score ?? 100)
+      return {
+        rateLabel: `${rate.toFixed(1)}%`,
+        monthlySurplus,
+        confidenceScore,
+        currentAssessmentMarker:
+          Math.abs(rate - assessmentRateValue) < 0.001 ? monthlySurplus : null,
+      }
+    })
+  }, [assessmentRateValue, financialProfile, isDeferredAnalysisReady, liabilities, loans, transactions])
+
+  // Chart 3 fallback: purchase power across deposit % 10–30% in 2% steps
+  // Uses usableEquity (portfolio-derived) as deployable capital — no scenario needed
+  const portfolioFallbackDepositData = useMemo(() => {
+    if (!isDeferredAnalysisReady) return []
+    if (!Number.isFinite(centralBorrowingCapacity) || centralBorrowingCapacity <= 0) return []
+    const deployable = usableEquity
+    if (deployable <= 0) return []
+    const ACQ_COST_RATE = 0.05
+    const selectedDepositPct = Math.round(selectedDepositStrategy.depositRatio * 100)
+    const depositLevels = [10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]
+    return depositLevels.map((depositPct) => {
+      const depositRatio = depositPct / 100
+      const depositBasedPrice =
+        depositRatio + ACQ_COST_RATE > 0
+          ? deployable / (depositRatio + ACQ_COST_RATE)
+          : 0
+      const maxPurchasePrice = Math.max(0, Math.min(depositBasedPrice, centralBorrowingCapacity))
+      return {
+        depositLabel: `${depositPct}%`,
+        maxPurchasePrice: Math.round(maxPurchasePrice),
+        currentSelectionMarker: depositPct === selectedDepositPct ? Math.round(maxPurchasePrice) : null,
+      }
+    })
+  }, [centralBorrowingCapacity, isDeferredAnalysisReady, selectedDepositStrategy.depositRatio, usableEquity])
+
+  // ── End portfolio-level fallback chart data ──────────────────────────────
+
+  const activeBorrowingSensitivityData = hasRecommendedScenario
+    ? borrowingSensitivityData
+    : portfolioFallbackBorrowingData
+  const activeBorrowingSensitivityInsight = useMemo(() => {
+    if (activeBorrowingSensitivityData.length < 2) return null
+
+    const lowRateCapacity = Number(activeBorrowingSensitivityData[0]?.borrowingCapacity || 0)
+    const highRateCapacity = Number(
+      activeBorrowingSensitivityData[activeBorrowingSensitivityData.length - 1]?.borrowingCapacity || 0
+    )
+
+    return `Capacity drops by ~${formatCurrency(
+      Math.max(0, lowRateCapacity - highRateCapacity)
+    )} across typical rate ranges.`
+  }, [activeBorrowingSensitivityData])
+  const activeBorrowingSensitivityConfidence = useMemo(() => {
+    if (!activeBorrowingSensitivityData.length) return null
+
+    const score = Math.min(
+      ...activeBorrowingSensitivityData.map((point) => Number(point.confidenceScore ?? 100))
+    )
+
+    return {
+      score,
+      label: getConfidenceLabel(score),
+    }
+  }, [activeBorrowingSensitivityData])
+  const activeStressTestData = hasRecommendedScenario ? stressTestData : portfolioFallbackSurplusData
+  const activeStressTestInsight = useMemo(() => {
+    if (!activeStressTestData.length) return null
+
+    const firstNegativePoint = activeStressTestData.find((point) => Number(point.monthlySurplus) < 0)
+    return firstNegativePoint
+      ? `Portfolio turns negative above ${firstNegativePoint.rateLabel} rates.`
+      : 'Remains positive but borrowing is constrained by lender buffers.'
+  }, [activeStressTestData])
+  const activeStressTestConfidence = useMemo(() => {
+    if (!activeStressTestData.length) return null
+
+    const score = Math.min(
+      ...activeStressTestData.map((point) => Number(point.confidenceScore ?? 100))
+    )
+
+    return {
+      score,
+      label: getConfidenceLabel(score),
+    }
+  }, [activeStressTestData])
+  const activeDepositPurchasePowerData = hasRecommendedScenario
+    ? depositPurchasePowerData
+    : portfolioFallbackDepositData
+
+  const equityCashFlowTradeOffData = useMemo(() => {
+    if (!isDeferredAnalysisReady || !projectionStudioModel) return []
+
+    const growthMultiplier = 1 + selectedGrowthRate / 100
+    const wealthChartUsesAcquisitionScenario =
+      hasExecutableScenario && acquisitionTrajectoryData.length > 0 && recommendedScenario
+
+    const selectedYears = wealthChartUsesAcquisitionScenario
+      ? Array.from(
+          new Set(
+            [
+              0,
+              ...recommendedScenario.projectionData
+                .map((point) => Number(point?.year || 0))
+                .filter((year) => year >= 0 && year <= selectedProjectionYears),
+              selectedProjectionYears,
+            ].sort((a, b) => a - b)
+          )
+        )
+      : [0, projectionStudioModel.midpointYears, projectionStudioModel.endYears]
+
+    const buildBasePropertyValue = (year) =>
+      Math.round(currentPortfolioPropertyValue * Math.pow(growthMultiplier, year))
+    const buildBaseLoanBalance = (year) =>
+      loans.reduce((sum, loan) => sum + projectLoanBalanceAtYear(loan, year), 0)
+
+    if (!wealthChartUsesAcquisitionScenario) {
+      return selectedYears.map((year) => ({
+        year,
+        label: `${year}`,
+        propertyValue: buildBasePropertyValue(year),
+        loanBalance: buildBaseLoanBalance(year),
+        netEquity: buildBasePropertyValue(year) - buildBaseLoanBalance(year),
+      }))
+    }
+
+    const scenarioProjectionPoints = recommendedScenario.projectionData
+      .map((point) => ({
+        year: Number(point?.year || 0),
+        propertyValue: Number(point?.propertyValue ?? 0),
+        loanBalance: Number(point?.loanBalance ?? 0),
+        netEquity: Number(point?.netEquity ?? point?.equity ?? 0),
+      }))
+      .filter((point) => Number.isFinite(point.year))
+      .sort((a, b) => a.year - b.year)
+
+    const interpolateScenarioPoint = (targetYear) => {
+      if (!scenarioProjectionPoints.length) {
+        return { propertyValue: 0, loanBalance: 0, netEquity: 0 }
+      }
+
+      const exactPoint = scenarioProjectionPoints.find((point) => point.year === targetYear)
+      if (exactPoint) return exactPoint
+
+      const previousPoints = scenarioProjectionPoints.filter((point) => point.year < targetYear)
+      const nextPoint = scenarioProjectionPoints.find((point) => point.year > targetYear)
+      const previousPoint = previousPoints[previousPoints.length - 1] || null
+
+      if (previousPoint && nextPoint) {
+        const span = nextPoint.year - previousPoint.year || 1
+        const progress = (targetYear - previousPoint.year) / span
+        return {
+          year: targetYear,
+          propertyValue: Math.round(
+            previousPoint.propertyValue +
+              (nextPoint.propertyValue - previousPoint.propertyValue) * progress
+          ),
+          loanBalance: Math.round(
+            previousPoint.loanBalance +
+              (nextPoint.loanBalance - previousPoint.loanBalance) * progress
+          ),
+          netEquity: Math.round(
+            previousPoint.netEquity + (nextPoint.netEquity - previousPoint.netEquity) * progress
+          ),
+        }
+      }
+
+      const lastPoint = scenarioProjectionPoints[scenarioProjectionPoints.length - 1]
+      return {
+        year: targetYear,
+        propertyValue: Number(lastPoint?.propertyValue ?? 0),
+        loanBalance: Number(lastPoint?.loanBalance ?? 0),
+        netEquity: Number(lastPoint?.netEquity ?? 0),
+      }
+    }
+
+    return selectedYears.map((year) => {
+      const basePropertyValue = buildBasePropertyValue(year)
+      const baseLoanBalance = buildBaseLoanBalance(year)
+      const scenarioPoint = interpolateScenarioPoint(year)
+      const totalPropertyValue = basePropertyValue + Number(scenarioPoint.propertyValue || 0)
+      const totalLoanBalance = baseLoanBalance + Number(scenarioPoint.loanBalance || 0)
+
+      return {
+        year,
+        label: `${year}`,
+        propertyValue: Math.round(totalPropertyValue),
+        loanBalance: Math.round(totalLoanBalance),
+        netEquity: Math.round(totalPropertyValue - totalLoanBalance),
+      }
+    })
+  }, [
+    acquisitionTrajectoryData,
+    currentPortfolioLoanBalance,
+    currentPortfolioPropertyValue,
+    hasExecutableScenario,
+    isDeferredAnalysisReady,
+    loans,
+    projectionStudioModel,
+    recommendedScenario,
+    selectedGrowthRate,
+    selectedProjectionYears,
+  ])
   const hasLoanBalanceSeries = useMemo(
     () =>
       equityCashFlowTradeOffData.some(
@@ -1774,7 +2613,7 @@ export default function PortfolioGrowthScenariosRebuild() {
   const equityCashFlowTradeOffChart = equityCashFlowTradeOffData.length > 0 ? (
     <AnalysisChartCard
       title="How value, debt, and equity evolve over time"
-      subtitle="Property value trends upward, debt amortises lower, and net equity compounds as the spread between them widens."
+      subtitle="Property value trends upward, debt amortises lower, and net equity compounds as the spread between them widens. Loan balance reflects your recorded loan structures. Principal & Interest loans amortise over time, while Interest Only balances remain flat until principal repayments begin."
       xLabel="Years"
       yLabel="Portfolio value ($)"
       tooltipContextLabel="Projection year"
@@ -1814,10 +2653,14 @@ export default function PortfolioGrowthScenariosRebuild() {
   const borrowingSensitivityChart = (
     <GraphPanel
       preface="Use this to judge how quickly indicative purchase power compresses as lender assessment settings move higher."
-      insight={borrowingSensitivityInsight}
-      confidenceLabel={borrowingSensitivityConfidence?.label}
+      insight={activeBorrowingSensitivityInsight}
+      confidenceLabel={activeBorrowingSensitivityConfidence?.label}
       traceability="Inputs used: recorded income, liabilities, mortgages, and lender assessment rate · Assumptions: buffered serviceability at 8.5%"
-      note="Borrowing capacity estimates may differ from lender assessments."
+      note={
+        hasRecommendedScenario
+          ? 'Borrowing capacity estimates may differ from lender assessments.'
+          : 'Based on your current portfolio position without any new acquisition.'
+      }
     >
       <AnalysisChartCard
         title="Borrowing capacity across rate settings"
@@ -1829,7 +2672,7 @@ export default function PortfolioGrowthScenariosRebuild() {
         yAxisInlineLabel
         lineColor="#0F172A"
         accentColor="#C2410C"
-        points={borrowingSensitivityData.map((point) => ({
+        points={activeBorrowingSensitivityData.map((point) => ({
           label: point.rateLabel,
           value: point.borrowingCapacity,
           highlight: point.currentAssessmentMarker !== null,
@@ -1851,9 +2694,14 @@ export default function PortfolioGrowthScenariosRebuild() {
   const stressTestChart = (
     <GraphPanel
       preface="Use this panel to see when higher assessment rates begin to erode monthly resilience."
-      insight={stressTestInsight}
-      confidenceLabel={stressTestConfidence?.label}
+      insight={activeStressTestInsight}
+      confidenceLabel={activeStressTestConfidence?.label}
       traceability="Inputs used: recorded income, liabilities, mortgages, and serviceability surplus · Assumptions: lender assessment rates from 5.5% to 8.5%"
+      note={
+        hasRecommendedScenario
+          ? null
+          : 'Based on your current portfolio position without any new acquisition.'
+      }
     >
       <AnalysisChartCard
         title="Serviceability surplus under stress"
@@ -1865,7 +2713,7 @@ export default function PortfolioGrowthScenariosRebuild() {
         yAxisInlineLabel
         lineColor="#0F172A"
         accentColor="#C2410C"
-        points={stressTestData.map((point) => ({
+        points={activeStressTestData.map((point) => ({
           label: point.rateLabel,
           value: point.monthlySurplus,
           highlight: point.currentAssessmentMarker !== null,
@@ -1889,6 +2737,11 @@ export default function PortfolioGrowthScenariosRebuild() {
       preface="Use this view to test whether changing deposit structure genuinely expands your indicative price range."
       insight="Higher deposit settings lift achievable purchase power, but the curve flattens once borrowing becomes the binding constraint."
       traceability="Inputs used: deployable capital and central borrowing capacity · Assumptions: 20% selected deposit strategy and 5.0% acquisition costs"
+      note={
+        hasRecommendedScenario
+          ? null
+          : 'Based on your current portfolio position without any new acquisition.'
+      }
     >
       <AnalysisChartCard
         title="Deposit setting vs purchase power"
@@ -1901,7 +2754,7 @@ export default function PortfolioGrowthScenariosRebuild() {
         lineColor="#0F172A"
         accentColor="#2563EB"
         fill
-        points={depositPurchasePowerData.map((point) => ({
+        points={activeDepositPurchasePowerData.map((point) => ({
           label: point.depositLabel,
           value: point.maxPurchasePrice,
           highlight: point.currentSelectionMarker !== null,
@@ -1923,7 +2776,7 @@ export default function PortfolioGrowthScenariosRebuild() {
   return (
     <div className="min-h-screen bg-[var(--color-background-tertiary)]">
       <main className="mx-auto max-w-[1680px] px-6 py-6">
-        <section className="rounded-[18px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[26px] py-[22px] shadow-[0_6px_20px_rgba(15,23,42,0.03)] md:px-[26px] md:py-[22px]">
+        <section className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[26px] py-[22px] shadow-[0_6px_20px_rgba(15,23,42,0.03)] md:px-[26px] md:py-[22px]">
           <div className="max-w-[900px]">
             <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
               Growth Scenarios
@@ -1939,156 +2792,159 @@ export default function PortfolioGrowthScenariosRebuild() {
           </div>
         </section>
 
-        <section className="sticky top-3 z-30 mt-[22px]">
-          <div className="rounded-[18px] border border-[rgba(0,0,0,0.08)] bg-white/95 px-[26px] py-[22px] shadow-[0_18px_40px_-28px_rgba(15,23,42,0.12)] backdrop-blur md:px-[26px] md:py-[22px]">
-            <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-[1.25fr_1.2fr_0.95fr]">
-              <div className="min-w-0 h-full rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-slate-50/70 px-[22px] py-[18px]">
-                <div className="flex h-full flex-col justify-between">
-                  <div className="flex items-end justify-between gap-4">
-                    <div>
-                      <p className={microLabelClass}>Deposit %</p>
-                      <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">
-                        {Math.round(selectedDepositStrategy.depositRatio * 100)}%
-                      </p>
+        {hasExecutableScenario ? (
+          <section className="sticky top-3 z-30 mt-[22px]">
+            <div className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-white/95 px-[22px] py-[18px] shadow-[0_18px_40px_-28px_rgba(15,23,42,0.12)] backdrop-blur md:px-[22px] md:py-[18px]">
+              <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-[1.25fr_1.2fr_0.95fr]">
+                <div className="min-w-0 h-full rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-slate-50/70 px-[22px] py-[18px]">
+                  <div className="flex h-full flex-col justify-between">
+                    <div className="flex items-end justify-between gap-4">
+                      <div>
+                        <p className={microLabelClass}>Deposit %</p>
+                        <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">
+                          {Math.round(selectedDepositStrategy.depositRatio * 100)}%
+                        </p>
+                      </div>
+                      <p className="text-sm text-slate-500">Live capital structure</p>
                     </div>
-                    <p className="text-sm text-slate-500">Live capital structure</p>
+                    <input
+                      type="range"
+                      min="0"
+                      max={Math.max(DEPOSIT_STRATEGY_OPTIONS.length - 1, 0)}
+                      step="1"
+                      value={depositSliderIndex}
+                      onChange={(event) => {
+                        const nextIndex = Number(event.target.value || 0)
+                        const nextOption = DEPOSIT_STRATEGY_OPTIONS[nextIndex] || DEPOSIT_STRATEGY_OPTIONS[0]
+                        setDepositStrategy(nextOption.value)
+                      }}
+                      className="mt-4 h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-emerald-700"
+                    />
                   </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max={Math.max(DEPOSIT_STRATEGY_OPTIONS.length - 1, 0)}
-                    step="1"
-                    value={depositSliderIndex}
-                    onChange={(event) => {
-                      const nextIndex = Number(event.target.value || 0)
-                      const nextOption = DEPOSIT_STRATEGY_OPTIONS[nextIndex] || DEPOSIT_STRATEGY_OPTIONS[0]
-                      setDepositStrategy(nextOption.value)
-                    }}
-                    className="mt-4 h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-emerald-700"
-                  />
                 </div>
-              </div>
 
-              <div className="min-w-0 h-full rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-slate-50/70 px-[22px] py-[18px]">
-                <div className="flex h-full flex-col justify-between">
-                  <div className="flex items-end justify-between gap-4">
-                    <div>
-                      <p className={microLabelClass}>Interest Rate</p>
-                      <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">
-                        {effectiveInterestRate.toFixed(1)}%
-                      </p>
-                    </div>
-                    <label className="min-w-[96px]">
-                      <span className="sr-only">Interest rate assumption</span>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={
-                          interestRateInput === '' && selectedInterestRate === null
-                            ? defaultInterestRate.toFixed(1)
-                            : interestRateInput
-                        }
-                        onChange={(event) => {
-                          const nextValue = sanitizeDecimalInput(event.target.value)
-                          setInterestRateInput(nextValue)
-
-                          if (nextValue === '' || nextValue === '0.' || nextValue.endsWith('.')) return
-
-                          const parsedValue = Number(nextValue)
-                          if (!Number.isFinite(parsedValue)) return
-
-                          setSelectedInterestRate(
-                            normalizeInterestRateInput(parsedValue, defaultInterestRate)
-                          )
-                        }}
-                        onBlur={() => {
-                          const parsedValue = Number(interestRateInput)
-                          const fallbackRate = normalizeInterestRateInput(
-                            selectedInterestRate,
-                            defaultInterestRate
-                          )
-
-                          if (interestRateInput === '' || !Number.isFinite(parsedValue)) {
-                            setSelectedInterestRate(fallbackRate)
-                            setInterestRateInput(fallbackRate.toFixed(1))
-                            return
+                <div className="min-w-0 h-full rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-slate-50/70 px-[22px] py-[18px]">
+                  <div className="flex h-full flex-col justify-between">
+                    <div className="flex items-end justify-between gap-4">
+                      <div>
+                        <p className={microLabelClass}>Interest Rate</p>
+                        <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">
+                          {effectiveInterestRate.toFixed(1)}%
+                        </p>
+                      </div>
+                      <label className="min-w-[96px]">
+                        <span className="sr-only">Interest rate assumption</span>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={
+                            interestRateInput === '' && selectedInterestRate === null
+                              ? defaultInterestRate.toFixed(1)
+                              : interestRateInput
                           }
+                          onChange={(event) => {
+                            const nextValue = sanitizeDecimalInput(event.target.value)
+                            setInterestRateInput(nextValue)
 
-                          const normalizedValue = normalizeInterestRateInput(
-                            parsedValue,
-                            defaultInterestRate
-                          )
-                          setSelectedInterestRate(normalizedValue)
-                          setInterestRateInput(normalizedValue.toFixed(1))
-                        }}
-                        className="w-full rounded-[0.95rem] border border-slate-200 bg-white px-3 py-2 text-right text-[0.98rem] font-medium text-slate-950 outline-none transition-colors focus:border-emerald-300"
-                      />
-                    </label>
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {INTEREST_RATE_QUICK_PICKS.map((rate) => (
-                      <button
-                        key={rate}
-                        type="button"
-                        onClick={() => {
-                          setSelectedInterestRate(rate)
-                          setInterestRateInput(rate.toFixed(1))
-                        }}
-                        className={`inline-flex min-h-[36px] items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
-                          Math.abs(effectiveInterestRate - rate) < 0.001
-                            ? 'border-[#b8e8d8] bg-[#E1F5EE] text-[#085041]'
-                            : 'border-slate-200/75 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                        }`}
-                      >
-                        {rate.toFixed(1)}%
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
+                            if (nextValue === '' || nextValue === '0.' || nextValue.endsWith('.')) return
 
-              <div className="min-w-0 h-full rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-slate-50/70 px-[22px] py-[18px]">
-                <div className="flex h-full flex-col justify-between">
-                  <div>
-                    <p className={microLabelClass}>Ownership</p>
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleOwnershipStructureChange('individual')}
-                        className={`rounded-[0.95rem] border px-3 py-2 text-sm font-medium transition-colors ${
-                          ownershipStructure !== 'joint'
-                            ? 'border-[#b8e8d8] bg-[#E1F5EE] text-[#085041]'
-                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                        }`}
-                      >
-                        Individual
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleOwnershipStructureChange('joint')}
-                        className={`rounded-[0.95rem] border px-3 py-2 text-sm font-medium transition-colors ${
-                          ownershipStructure === 'joint'
-                            ? 'border-[#b8e8d8] bg-[#E1F5EE] text-[#085041]'
-                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                        }`}
-                      >
-                        Joint
-                      </button>
+                            const parsedValue = Number(nextValue)
+                            if (!Number.isFinite(parsedValue)) return
+
+                            setSelectedInterestRate(
+                              normalizeInterestRateInput(parsedValue, defaultInterestRate)
+                            )
+                          }}
+                          onBlur={() => {
+                            const parsedValue = Number(interestRateInput)
+                            const fallbackRate = normalizeInterestRateInput(
+                              selectedInterestRate,
+                              defaultInterestRate
+                            )
+
+                            if (interestRateInput === '' || !Number.isFinite(parsedValue)) {
+                              setSelectedInterestRate(fallbackRate)
+                              setInterestRateInput(fallbackRate.toFixed(1))
+                              return
+                            }
+
+                            const normalizedValue = normalizeInterestRateInput(
+                              parsedValue,
+                              defaultInterestRate
+                            )
+                            setSelectedInterestRate(normalizedValue)
+                            setInterestRateInput(normalizedValue.toFixed(1))
+                          }}
+                          className="w-full rounded-[0.95rem] border border-slate-200 bg-white px-3 py-2 text-right text-[0.98rem] font-medium text-slate-950 outline-none transition-colors focus:border-emerald-300"
+                        />
+                      </label>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {INTEREST_RATE_QUICK_PICKS.map((rate) => (
+                        <button
+                          key={rate}
+                          type="button"
+                          onClick={() => {
+                            setSelectedInterestRate(rate)
+                            setInterestRateInput(rate.toFixed(1))
+                          }}
+                          className={`inline-flex min-h-[36px] items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                            Math.abs(effectiveInterestRate - rate) < 0.001
+                              ? 'border-[#b8e8d8] bg-[#E1F5EE] text-[#085041]'
+                              : 'border-slate-200/75 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                          }`}
+                        >
+                          {rate.toFixed(1)}%
+                        </button>
+                      ))}
                     </div>
                   </div>
-                  <p className="mt-3 text-sm text-slate-500">
-                    {ownershipStructure === 'joint' ? 'Split ownership enabled' : 'User-only ownership'}
-                  </p>
+                </div>
+
+                <div className="min-w-0 h-full rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-slate-50/70 px-[22px] py-[18px]">
+                  <div className="flex h-full flex-col justify-between">
+                    <div>
+                      <p className={microLabelClass}>Ownership</p>
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleOwnershipStructureChange('individual')}
+                          className={`rounded-[0.95rem] border px-3 py-2 text-sm font-medium transition-colors ${
+                            ownershipStructure !== 'joint'
+                              ? 'border-[#b8e8d8] bg-[#E1F5EE] text-[#085041]'
+                              : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                          }`}
+                        >
+                          Individual
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOwnershipStructureChange('joint')}
+                          className={`rounded-[0.95rem] border px-3 py-2 text-sm font-medium transition-colors ${
+                            ownershipStructure === 'joint'
+                              ? 'border-[#b8e8d8] bg-[#E1F5EE] text-[#085041]'
+                              : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                          }`}
+                        >
+                          Joint
+                        </button>
+                      </div>
+                    </div>
+                    <p className="mt-3 text-sm text-slate-500">
+                      {ownershipStructure === 'joint' ? 'Split ownership enabled' : 'User-only ownership'}
+                    </p>
+                  </div>
                 </div>
               </div>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                Adjust assumptions to stress your acquisition strategy
+              </p>
             </div>
-            <p className="mt-3 text-sm leading-6 text-slate-600">
-              Adjust assumptions to stress your acquisition strategy
-            </p>
-          </div>
-        </section>
+          </section>
+        ) : null}
 
-        <section className="mt-4 rounded-[2rem] border border-slate-200/75 bg-white px-6 py-6 shadow-[0_20px_50px_-40px_rgba(15,23,42,0.12)] md:px-8 md:py-7">
+        {hasExecutableScenario ? (
+          <section className="mt-4 rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-white px-[22px] py-[18px] shadow-[0_20px_50px_-40px_rgba(15,23,42,0.12)] md:px-[22px] md:py-[18px]">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <p className={microLabelClass}>Advanced model settings</p>
@@ -2113,9 +2969,9 @@ export default function PortfolioGrowthScenariosRebuild() {
           </div>
 
           {isAdvancedAssumptionsOpen ? (
-            <div className="mt-6 rounded-[1.9rem] border border-slate-200/80 bg-slate-50/60 px-6 py-6 md:px-7 md:py-7">
+            <div className="mt-6 rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-slate-50/60 px-[22px] py-[18px] md:px-[22px] md:py-[18px]">
               <div className="grid grid-cols-1 gap-5 xl:grid-cols-[0.85fr_1.15fr]">
-                <article className="rounded-[1.7rem] border border-slate-200/80 bg-white px-5 py-6 shadow-[0_18px_45px_-40px_rgba(15,23,42,0.18)] md:px-6 md:py-6">
+                <article className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-white px-[22px] py-[18px] shadow-[0_18px_45px_-40px_rgba(15,23,42,0.18)] md:px-[22px] md:py-[18px]">
                   <p className={microLabelClass}>Deposit posture</p>
                   <p className="mt-4 text-[1.05rem] font-semibold text-slate-950">
                     {derivedDepositStrategyLabel}
@@ -2125,7 +2981,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                   </p>
                 </article>
 
-                <article className="rounded-[1.7rem] border border-slate-200/80 bg-white px-5 py-6 shadow-[0_18px_45px_-40px_rgba(15,23,42,0.18)] md:px-6 md:py-6">
+                <article className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-white px-[22px] py-[18px] shadow-[0_18px_45px_-40px_rgba(15,23,42,0.18)] md:px-[22px] md:py-[18px]">
                   <p className={microLabelClass}>Tax settings</p>
                   <div className="mt-4 space-y-4">
                     <div className="flex items-center justify-between gap-4">
@@ -2192,7 +3048,393 @@ export default function PortfolioGrowthScenariosRebuild() {
             </div>
           ) : null}
         </section>
+        ) : null}
 
+        {/* ── Portfolio Wealth Trajectory ─────────────────────────────── */}
+        <section className="mt-[22px] rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[26px] py-[22px] shadow-[0_10px_24px_rgba(15,23,42,0.04)] md:px-[26px] md:py-[22px]">
+          {currentPortfolioNetEquity <= 0 ? (
+            <div className="rounded-[14px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-secondary)] px-[18px] py-[16px]">
+              <p className="text-[15px] font-medium text-[var(--color-text-primary)]">
+                Projection Studio becomes available once your portfolio returns to positive net equity.
+              </p>
+              <p className="mt-2 text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
+                This view will unlock when your current portfolio position moves back above zero, so the projection starts from a real positive balance-sheet base.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div>
+                <p className={microLabelClass}>PROJECTION STUDIO</p>
+                <h2 className="mt-2 text-[15px] font-medium text-[var(--color-text-primary)]">
+                  Model your portfolio wealth trajectory
+                </h2>
+                <p className="mt-2 max-w-[64ch] text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
+                  Test how your portfolio may grow over time under different growth assumptions and time horizons.
+                </p>
+              </div>
+
+              <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
+                <div className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-secondary)] px-[22px] py-[18px]">
+                  <p className={microLabelClass}>Growth assumptions</p>
+                  <div className="mt-4 flex flex-wrap gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedGrowthRate(6)}
+                      className={`inline-flex items-center rounded-full border px-4 py-2 text-[13px] font-medium ${
+                        selectedGrowthRate === 6
+                          ? 'border-[#b8e8d8] bg-[#E1F5EE] text-[#085041]'
+                          : 'border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] text-[var(--color-text-primary)]'
+                      }`}
+                    >
+                      Base case &middot; 6%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedGrowthRate(8)}
+                      className={`inline-flex items-center rounded-full border px-4 py-2 text-[13px] font-medium ${
+                        selectedGrowthRate === 8
+                          ? 'border-[#b8e8d8] bg-[#E1F5EE] text-[#085041]'
+                          : 'border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] text-[var(--color-text-primary)]'
+                      }`}
+                    >
+                      Medium growth &middot; 8%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedGrowthRate(10)}
+                      className={`inline-flex items-center rounded-full border px-4 py-2 text-[13px] font-medium ${
+                        selectedGrowthRate === 10
+                          ? 'border-[#b8e8d8] bg-[#E1F5EE] text-[#085041]'
+                          : 'border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] text-[var(--color-text-primary)]'
+                      }`}
+                    >
+                      Aggressive &middot; 10%
+                    </button>
+                  </div>
+                </div>
+
+                <div className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-secondary)] px-[22px] py-[18px]">
+                  <p className={microLabelClass}>Projection horizon</p>
+                  <div className="mt-4 flex flex-wrap gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedProjectionYears(10)}
+                      className={`inline-flex items-center rounded-full border px-4 py-2 text-[13px] font-medium ${
+                        selectedProjectionYears === 10
+                          ? 'border-[#b8e8d8] bg-[#E1F5EE] text-[#085041]'
+                          : 'border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] text-[var(--color-text-primary)]'
+                      }`}
+                    >
+                      10Y
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedProjectionYears(20)}
+                      className={`inline-flex items-center rounded-full border px-4 py-2 text-[13px] font-medium ${
+                        selectedProjectionYears === 20
+                          ? 'border-[#b8e8d8] bg-[#E1F5EE] text-[#085041]'
+                          : 'border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] text-[var(--color-text-primary)]'
+                      }`}
+                    >
+                      20Y
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedProjectionYears(30)}
+                      className={`inline-flex items-center rounded-full border px-4 py-2 text-[13px] font-medium ${
+                        selectedProjectionYears === 30
+                          ? 'border-[#b8e8d8] bg-[#E1F5EE] text-[#085041]'
+                          : 'border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] text-[var(--color-text-primary)]'
+                      }`}
+                    >
+                      30Y
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <style>{`
+                @keyframes projectionStudioEndDotPulse {
+                  0% { transform: scale(1); }
+                  50% { transform: scale(1.22); }
+                  100% { transform: scale(1); }
+                }
+              `}</style>
+              <div className="mt-5">
+                <div className="mb-4 flex flex-wrap items-center gap-3">
+                  <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50/90 px-3.5 py-1.5 text-sm font-medium text-emerald-800">
+                    +{formatCompactAmount(
+                      projectionStudioChart.comparisonActive
+                        ? acquisitionGrowthDelta
+                        : baseGrowthDelta
+                    )}{' '}
+                    {projectionStudioChart.comparisonActive ? 'projected wealth with acquisition' : 'projected portfolio growth'} over {selectedProjectionYears} years
+                  </span>
+                  {projectionStudioChart.comparisonActive ? (
+                    <span className="inline-flex rounded-full border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-3.5 py-1.5 text-sm font-medium text-[var(--color-text-secondary)]">
+                      +{formatCompactAmount(baseGrowthDelta)} without acquisition
+                    </span>
+                  ) : null}
+                </div>
+
+                <div className="overflow-hidden rounded-[14px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-secondary)] px-[12px] py-[12px]">
+                  <div className="w-full">
+                    <div className="mb-2 flex flex-wrap items-center gap-4 text-[12px] text-[var(--color-text-secondary)]">
+                      {projectionStudioChart.legend.map((item) => (
+                        <span key={item.label} className="inline-flex items-center gap-2.5">
+                          <span
+                            className={`inline-block w-10 rounded-full ${
+                              item.tone === 'acquisition' ? 'bg-[#0F6E56]' : ''
+                            }`}
+                            style={
+                              item.tone === 'acquisition'
+                                ? { height: 4 }
+                                : {
+                                    height: 0,
+                                    borderTop: '1.5px dashed #c4cbc7',
+                                    width: 40,
+                                  }
+                            }
+                          />
+                          <span>{item.label}</span>
+                        </span>
+                      ))}
+                    </div>
+
+                    <svg
+                      viewBox={`0 0 ${projectionStudioChart.width} ${projectionStudioChart.height}`}
+                      className="w-full"
+                      style={{ height: 362 }}
+                      role="img"
+                      aria-label="Portfolio projection chart"
+                      preserveAspectRatio="none"
+                    >
+                      <defs>
+                        <linearGradient id="projectionStudioStroke" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <stop offset="0%" stopColor="#0f766e" />
+                          <stop offset="55%" stopColor="#10b981" />
+                          <stop offset="100%" stopColor="#34d399" />
+                        </linearGradient>
+                        <linearGradient id="projectionStudioFill" x1="0%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" stopColor="rgba(16,185,129,0.1)" />
+                          <stop offset="100%" stopColor="rgba(16,185,129,0.015)" />
+                        </linearGradient>
+                      </defs>
+
+                      {[0.2, 0.55, 0.9].map((guide) => {
+                        const y = 10 + (projectionStudioChart.height - 20) * guide
+                        return (
+                          <line
+                            key={`guide-${guide}`}
+                            x1="72"
+                            x2="662"
+                            y1={y}
+                            y2={y}
+                            stroke="rgba(15, 23, 42, 0.05)"
+                            strokeWidth="1"
+                            strokeDasharray="3 8"
+                          />
+                        )
+                      })}
+
+                      {projectionStudioChart.comparisonActive ? (
+                        <path
+                          d={projectionStudioChart.baseLinePath}
+                          fill="none"
+                          stroke="#cdd4d0"
+                          strokeWidth="1.2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeDasharray="5 7"
+                        />
+                      ) : null}
+                      {projectionStudioChart.primaryFillPath ? (
+                        <path
+                          ref={projectionFillRef}
+                          d={projectionStudioChart.primaryFillPath}
+                          fill="url(#projectionStudioFill)"
+                          style={{ opacity: 0 }}
+                        />
+                      ) : null}
+                      <path
+                        ref={projectionStrokeRef}
+                        d={projectionStudioChart.primaryLinePath}
+                        fill="none"
+                        stroke="url(#projectionStudioStroke)"
+                        strokeWidth="4.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{ strokeDasharray: 1, strokeDashoffset: 1 }}
+                      />
+
+                      {projectionStudioChart.comparisonActive
+                        ? projectionStudioChart.baseMilestones.map((point, index) => (
+                            <circle
+                              key={`base-${point.label}-${index}`}
+                              cx={point.x}
+                              cy={point.y}
+                              r={index === projectionStudioChart.baseMilestones.length - 1 ? 4 : 3}
+                              fill="var(--color-background-primary)"
+                              stroke="#bcc4bf"
+                              strokeWidth="1.5"
+                            />
+                          ))
+                        : null}
+
+                      {projectionStudioChart.primaryPoints.map((point, index) => {
+                        const isLast = index === projectionStudioChart.primaryPoints.length - 1
+                        const radius = isLast ? 7.5 : 4.5
+                        return (
+                          <g key={`${point.label || 'primary'}-${index}`}>
+                            {isLast ? (
+                              <circle cx={point.x} cy={point.y} r="10" fill="rgba(16,185,129,0.12)" />
+                            ) : null}
+                            <circle
+                              ref={isLast ? projectionEndDotRef : null}
+                              cx={point.x}
+                              cy={point.y}
+                              r={radius}
+                              fill={isLast ? '#059669' : '#10b981'}
+                              stroke="rgba(255,255,255,0.92)"
+                              strokeWidth={isLast ? '2.5' : '2'}
+                              style={isLast ? { transformOrigin: `${point.x}px ${point.y}px`, animation: 'none' } : undefined}
+                            />
+                          </g>
+                        )
+                      })}
+                    </svg>
+
+                    <div className="relative mt-3 h-[62px]">
+                      {projectionStudioChart.baseMilestones.map((item, index) => {
+                        const acquisitionValue = projectionStudioChart.acquisitionMilestones[index]?.value ?? null
+                        const primaryValue = acquisitionValue ?? item.value
+                        return (
+                          <div
+                            key={item.label}
+                            className="absolute top-0 w-[96px] -translate-x-1/2 text-center"
+                            style={{ left: `${(item.x / projectionStudioChart.width) * 100}%` }}
+                          >
+                            <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--color-text-tertiary)]">
+                              {item.label}
+                            </p>
+                            <p className="mt-1 text-[13px] font-semibold tracking-tight text-[var(--color-text-primary)]">
+                              {formatCompactAmount(primaryValue)}
+                            </p>
+                            {acquisitionValue !== null ? (
+                              <p className="mt-1 text-[11px] leading-[1.35] text-[var(--color-text-tertiary)]">
+                                Base {formatCompactAmount(item.value)}
+                              </p>
+                            ) : null}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {projectionStudioGapBreakdown ? (
+                  <div className="mt-3 rounded-[14px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[16px] py-[14px]">
+                    <p className="text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]">
+                      The gap between the two paths reflects the acquired property's net equity contribution at the selected horizon, not its full gross value.
+                    </p>
+                    <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+                      {[
+                        {
+                          label: 'Base portfolio terminal net equity',
+                          value: formatCompactAmount(
+                            projectionStudioGapBreakdown.basePortfolioTerminalNetEquity
+                          ),
+                        },
+                        {
+                          label: 'Added property terminal value',
+                          value: formatCompactAmount(
+                            projectionStudioGapBreakdown.addedPropertyTerminalValue
+                          ),
+                        },
+                        {
+                          label: 'Acquisition loan balance',
+                          value: formatCompactAmount(
+                            projectionStudioGapBreakdown.acquisitionLoanBalance
+                          ),
+                        },
+                        {
+                          label: 'Net additional equity from acquisition',
+                          value: formatCompactAmount(
+                            projectionStudioGapBreakdown.addedNetEquity
+                          ),
+                        },
+                        {
+                          label: 'Total portfolio net equity with acquisition',
+                          value: formatCompactAmount(
+                            projectionStudioGapBreakdown.totalPortfolioTerminalNetEquity
+                          ),
+                        },
+                      ].map((item) => (
+                        <div
+                          key={item.label}
+                          className="rounded-[12px] border-[0.5px] border-[rgba(0,0,0,0.06)] bg-[var(--color-background-secondary)] px-[14px] py-[12px]"
+                        >
+                          <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
+                            {item.label}
+                          </p>
+                          <p className="mt-2 text-[15px] font-medium tracking-tight text-[var(--color-text-primary)]">
+                            {item.value}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="mt-5">
+                  <p className="text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]">
+                    Illustrative outputs based on your selected assumptions.
+                  </p>
+                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    {[
+                      {
+                        label: 'Projected portfolio value',
+                        value: formatCompactAmount(
+                          projectionStudioChart?.comparisonActive
+                            ? acquisitionEndValue
+                            : baseEndValue
+                        ),
+                      },
+                      {
+                        label: 'Total growth',
+                        value: formatCompactAmount(
+                          projectionStudioChart?.comparisonActive
+                            ? acquisitionGrowthDelta
+                            : baseGrowthDelta
+                        ),
+                      },
+                      {
+                        label: 'CAGR',
+                        value: `${selectedGrowthRate}%`,
+                      },
+                      {
+                        label: 'Projection horizon',
+                        value: `${selectedProjectionYears} years`,
+                      },
+                    ].map((item) => (
+                      <div
+                        key={item.label}
+                        className="rounded-[14px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[18px] py-[16px]"
+                      >
+                        <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
+                          {item.label}
+                        </p>
+                        <p className="mt-2 text-[20px] font-medium tracking-[-0.02em] text-[var(--color-text-primary)]">
+                          {item.value}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </section>
         <section className="mt-[22px] rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[22px] py-[22px] shadow-[0_10px_24px_rgba(15,23,42,0.04)] md:px-[26px] md:py-[22px]">
           <div className="mb-5 md:mb-6">
             <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
@@ -2207,12 +3449,108 @@ export default function PortfolioGrowthScenariosRebuild() {
             </p>
           </div>
 
+          {!hasExecutableScenario ? (
+            <div
+              className={`mt-0 transition-opacity duration-200 ${
+                isScenarioRefreshing ? 'opacity-60' : 'opacity-100'
+              }`}
+            >
+              <div className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-6 py-6 shadow-[0_10px_24px_rgba(15,23,42,0.04)] md:px-7">
+                <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
+                  ACQUISITION READINESS
+                </p>
+                <h3 className="mt-2 text-[15px] font-medium text-[var(--color-text-primary)]">
+                  Building toward your next move
+                </h3>
+                <p className="mt-2.5 text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
+                  Here is exactly what changes when you take the top actions.
+                </p>
+
+                <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <ScenarioMetric
+                    label="Borrowing Power"
+                    value={formatCurrency(Number(centralBorrowingCapacity || 0))}
+                  />
+                  <ScenarioMetric
+                    label="Deployable Capital"
+                    value={formatCurrency(Number(scenarioModel.inputs?.totalDeployableCapital || 0))}
+                  />
+                  <ScenarioMetric
+                    label="Market Entry Floor"
+                    value={formatCurrency(marketEntryFloor)}
+                  />
+                </div>
+
+                <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+                  <div className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-5 py-5 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+                    <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
+                      Primary constraint
+                    </p>
+                    <h4 className="mt-3 text-[15px] font-medium text-[var(--color-text-primary)]">
+                      Primary constraint: Borrowing capacity
+                    </h4>
+                    <div className="mt-4 space-y-0">
+                      <BreakdownRow
+                        label="Current"
+                        value={formatCurrency(Number(centralBorrowingCapacity || 0))}
+                      />
+                      <BreakdownRow
+                        label="Market floor"
+                        value={formatCurrency(marketEntryFloor)}
+                      />
+                      <BreakdownRow
+                        label="Gap to close"
+                        value={formatCurrency(blockedBorrowingGap)}
+                        strong
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    {dashboardTopActionSummaries.map((action, index) => (
+                      <div
+                        key={action.id}
+                        className="rounded-[12px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-secondary)] px-4 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]"
+                        style={{
+                          borderLeftWidth: 3,
+                          borderLeftColor: index === 0 ? '#1D9E75' : '#EF9F27',
+                        }}
+                      >
+                        <p className="text-[15px] font-medium text-[var(--color-text-primary)]">
+                          {action.title}
+                        </p>
+                        <p className="mt-2 text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
+                          Benefit: {action.impact}
+                        </p>
+                      </div>
+                    ))}
+                    {dashboardTopActionSummaries.length === 0 ? (
+                      <div className="rounded-[12px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-secondary)] px-4 py-4">
+                        <p className="text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
+                          Action guidance will appear here once optimisation actions are available.
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
+                {bestBlockedRangeLabel ? (
+                  <div className="mt-5 rounded-[12px] bg-[#E1F5EE] px-4 py-3">
+                    <p className="text-[13px] leading-[1.6] text-[var(--color-text-primary)]">
+                      After taking these actions, your executable range opens to approximately{' '}
+                      <span className="font-medium">{bestBlockedRangeLabel}</span>.
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : (
           <div
             className={`mt-0 grid grid-cols-1 items-stretch gap-6 transition-opacity duration-200 xl:grid-cols-2 xl:gap-6 ${
               isScenarioRefreshing ? 'opacity-60' : 'opacity-100'
             }`}
           >
-            <article className="flex h-full min-h-[520px] flex-col rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] shadow-[0_10px_24px_rgba(15,23,42,0.04)] transition-[transform,box-shadow] duration-150 ease-out hover:-translate-y-[2px] hover:shadow-[0_4px_16px_rgba(0,0,0,0.07)]" style={{ borderTopWidth: 3, borderTopColor: '#1D9E75' }}>
+            <article className="flex h-full min-h-[520px] flex-col rounded-b-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] shadow-[0_10px_24px_rgba(15,23,42,0.04)] transition-[transform,box-shadow] duration-150 ease-out hover:-translate-y-[2px] hover:shadow-[0_4px_16px_rgba(0,0,0,0.07)]" style={{ borderTopWidth: 3, borderTopColor: '#1D9E75' }}>
               <div className="flex h-full min-h-[520px] w-full flex-col bg-white p-6 md:p-7">
                 <div>
                   <div className="flex items-center justify-between gap-6">
@@ -2404,20 +3742,21 @@ export default function PortfolioGrowthScenariosRebuild() {
               </div>
             </article>
           </div>
+          )}
         </section>
         {hasExecutableScenario ? (
           <>
         <section className="mt-[22px]">
           <article
-            className={`rounded-r-[16px] border-[0.5px] px-6 pt-6 pb-6 shadow-[0_10px_24px_rgba(15,23,42,0.04)] md:px-8 ${
-              isCapitalConstraint || isBorrowingConstraint
-                ? 'border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)]'
+            className={`rounded-r-[16px] border-[0.5px] px-[18px] pt-[14px] pb-[18px] shadow-[0_10px_24px_rgba(15,23,42,0.04)] md:px-[18px] ${
+              isCapitalConstraint || isBorrowingConstraint || !hasExecutableScenario
+                ? 'border-[rgba(0,0,0,0.08)] bg-[#E1F5EE]'
                 : 'border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)]'
             }`}
             style={{
               borderLeftWidth: 4,
               borderLeftColor:
-                isCapitalConstraint || isBorrowingConstraint ? '#A32D2D' : '#1D9E75',
+                !hasExecutableScenario ? '#1D9E75' : isCapitalConstraint || isBorrowingConstraint ? '#A32D2D' : '#1D9E75',
             }}
           >
             <p className={microLabelClass}>Limiting Factor</p>
@@ -2957,11 +4296,11 @@ export default function PortfolioGrowthScenariosRebuild() {
         <section className="mt-[22px] rounded-[2rem] border border-[#FAEEDA] bg-[#FAEEDA] px-6 py-6 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:px-8">
             <p className={microLabelClass}>Execution Status</p>
             <h3 className="mt-4 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
-              No scenario appears viable under current settings
+              No acquisition scenario is currently executable
             </h3>
             <p className="mt-4 max-w-[48rem] text-[1.03rem] leading-8 text-slate-600">
-              Scenario ranking now excludes blocked paths. The next step is to improve the binding
-              constraint before treating any acquisition as a live option.
+              Your borrowing capacity is the primary constraint right now. The actions below
+              directly address this.
             </p>
 
             <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -3026,7 +4365,7 @@ export default function PortfolioGrowthScenariosRebuild() {
 
           {isAdvancedAnalysisOpen ? (
             <div className="mt-9 space-y-10">
-              <article className="rounded-[2.1rem] border border-slate-200/80 bg-white px-6 pt-6 pb-6 shadow-[0_24px_70px_-54px_rgba(15,23,42,0.16)] md:px-8">
+              <article className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[18px] pt-[16px] pb-[16px] shadow-[0_24px_70px_-54px_rgba(15,23,42,0.16)] md:px-[18px]">
                 <p className={microLabelClass}>Rate Sensitivity</p>
                 <h4 className="mt-4 text-[1.7rem] font-semibold tracking-tight text-slate-950">
                   How much borrowing headroom is rate-sensitive?
@@ -3038,7 +4377,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                 <div className="mt-6">{borrowingSensitivityChart}</div>
               </article>
 
-              <article className="rounded-[2.1rem] border border-slate-200/80 bg-white px-6 pt-6 pb-6 shadow-[0_24px_70px_-54px_rgba(15,23,42,0.16)] md:px-8">
+              <article className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[18px] pt-[16px] pb-[16px] shadow-[0_24px_70px_-54px_rgba(15,23,42,0.16)] md:px-[18px]">
                 <p className={microLabelClass}>Stress Test</p>
                 <h4 className="mt-4 text-[1.7rem] font-semibold tracking-tight text-slate-950">
                   When does serviceability start to tighten?
@@ -3050,7 +4389,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                 <div className="mt-6">{stressTestChart}</div>
               </article>
 
-              <article className="rounded-[2.1rem] border border-slate-200/80 bg-white px-6 py-7 shadow-[0_24px_70px_-54px_rgba(15,23,42,0.16)] md:px-8 md:py-8">
+              <article className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[18px] py-[16px] shadow-[0_24px_70px_-54px_rgba(15,23,42,0.16)] md:px-[18px] md:py-[16px]">
                 <p className={microLabelClass}>Purchase Power</p>
                 <h4 className="mt-4 text-[1.7rem] font-semibold tracking-tight text-slate-950">
                   Does deposit structure materially improve range?
