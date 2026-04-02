@@ -23,14 +23,59 @@ function formatCompactCurrency(value) {
   return `${value < 0 ? '-' : ''}${formatCurrency(numeric)}`
 }
 
-function buildLinePath(points) {
+function buildSubtleMonotonicPath(points) {
   if (!points.length) return ''
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`
 
+  const n = points.length
+  const handleFactor = 0.28
+  const curveTension = 0.58
+
+  // Secant slopes between consecutive points
+  const delta = []
+  for (let i = 0; i < n - 1; i++) {
+    delta.push((points[i + 1].y - points[i].y) / (points[i + 1].x - points[i].x))
+  }
+
+  // Initial tangent estimates (three-point average for interior nodes)
+  const m = new Array(n)
+  m[0] = delta[0]
+  for (let i = 1; i < n - 1; i++) {
+    m[i] = (delta[i - 1] + delta[i]) / 2
+  }
+  m[n - 1] = delta[n - 2]
+
+  // Fritsch-Carlson monotonicity constraint
+  for (let i = 0; i < n - 1; i++) {
+    if (Math.abs(delta[i]) < 1e-10) {
+      m[i] = 0
+      m[i + 1] = 0
+    } else {
+      const alpha = m[i] / delta[i]
+      const beta = m[i + 1] / delta[i]
+      const mag = alpha * alpha + beta * beta
+      if (mag > 9) {
+        const tau = 3 / Math.sqrt(mag)
+        m[i] = tau * alpha * delta[i]
+        m[i + 1] = tau * beta * delta[i]
+      }
+    }
+  }
+
+  // Dampen the tangents so the curve stays elegant and only slightly rounded.
+  for (let i = 0; i < n; i++) {
+    m[i] *= curveTension
+  }
+
+  // Build cubic bezier path from monotonic tangents with shorter handles.
   let path = `M ${points[0].x} ${points[0].y}`
-
-  for (let index = 1; index < points.length; index += 1) {
-    const current = points[index]
-    path += ` L ${current.x} ${current.y}`
+  for (let i = 0; i < n - 1; i++) {
+    const dx = (points[i + 1].x - points[i].x) * handleFactor
+    const cp1x = points[i].x + dx
+    const cp1y = points[i].y + m[i] * dx
+    const cp2x = points[i + 1].x - dx
+    const cp2y = points[i + 1].y - m[i + 1] * dx
+    path += ` C ${cp1x.toFixed(3)} ${cp1y.toFixed(3)} ${cp2x.toFixed(3)} ${cp2y.toFixed(3)} ${points[i + 1].x} ${points[i + 1].y}`
   }
 
   return path
@@ -39,7 +84,7 @@ function buildLinePath(points) {
 function buildAreaPath(points, baselineY) {
   if (!points.length) return ''
 
-  const linePath = buildLinePath(points)
+  const linePath = buildSubtleMonotonicPath(points)
   const lastPoint = points[points.length - 1]
   const firstPoint = points[0]
 
@@ -269,8 +314,8 @@ export default function HeroDecisionCard({
         { x: chartXPositions[2], y: toChartY(acquisitionYear5), label: 'Year 5' },
       ]
   const primaryChartPoints = hasScenarioData ? acquisitionPoints : baselinePoints
-  const baselinePath = buildLinePath(baselinePoints)
-  const primaryPath = buildLinePath(primaryChartPoints)
+  const baselinePath = buildSubtleMonotonicPath(baselinePoints)
+  const primaryPath = buildSubtleMonotonicPath(primaryChartPoints)
   const areaPath = buildAreaPath(primaryChartPoints, chartFloorY)
   const chartYear3Display =
     hasScenarioData && acquisitionYear3 > 0
@@ -308,7 +353,7 @@ export default function HeroDecisionCard({
 
     if (fillElement) {
       fillElement.style.opacity = '0'
-      fillElement.style.transition = 'opacity 600ms ease-in 200ms'
+      fillElement.style.transition = 'opacity 900ms ease-in 500ms'
     }
 
     if (endpointElement) {
@@ -319,7 +364,7 @@ export default function HeroDecisionCard({
 
     const firstFrame = requestAnimationFrame(() => {
       const secondFrame = requestAnimationFrame(() => {
-        strokeElement.style.transition = 'stroke-dashoffset 900ms ease-in-out'
+        strokeElement.style.transition = 'stroke-dashoffset 1500ms cubic-bezier(0.4, 0, 0.2, 1)'
         strokeElement.style.strokeDashoffset = '0'
         if (fillElement && hasScenarioData) {
           fillElement.style.opacity = '1'
@@ -334,7 +379,7 @@ export default function HeroDecisionCard({
       if (endpointElement) {
         endpointElement.style.animation = 'heroDecisionEndDotPulse 400ms ease-in-out'
       }
-    }, 950)
+    }, 1560)
 
     return () => {
       rafRef.current.forEach((frame) => cancelAnimationFrame(frame))
@@ -402,13 +447,13 @@ export default function HeroDecisionCard({
                 </>
               ) : isDataRichBlockedScenario ? (
                 <>
-                  Based on current inputs, no currently viable acquisition scenario appears available based on current inputs.
-                  Focus on the top actions below to strengthen your position.
+                  Your existing portfolio is compounding. Focus on the top actions below to unlock
+                  your next acquisition move.
                 </>
               ) : (
                 <>
-                  Based on current inputs, no currently viable acquisition scenario appears available based on current inputs.
-                  Focus on the top actions below to strengthen your position.
+                  Your existing portfolio is compounding. Focus on the top actions below to unlock
+                  your next acquisition move.
                 </>
               )}
             </p>
@@ -647,7 +692,7 @@ export default function HeroDecisionCard({
             onClick={() => navigate('/growth-scenarios')}
             className="rounded-[1.6rem] border border-slate-200 bg-white px-5 py-4 text-left text-sm font-semibold text-slate-800 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.16)] transition-colors duration-150 ease-out hover:bg-[#eef5f2]"
           >
-            View 30-year projection
+            {isExecutableScenario ? 'View 30-year projection' : 'View your wealth trajectory'}
           </button>
 
           <div className="rounded-[2rem] border border-emerald-200/80 bg-white p-5 shadow-[0_22px_54px_-42px_rgba(16,185,129,0.34)]">
