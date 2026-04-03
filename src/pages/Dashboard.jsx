@@ -23,6 +23,8 @@ import buildDashboardCompleteness from '../lib/dashboardCompleteness'
 import buildDashboardStateResolver from '../lib/dashboardStateResolver'
 import { calculateAcquisitionReadiness } from '../lib/acquisitionReadinessScore'
 import { calculateYieldFirstScenario } from '../lib/yieldFirstStrategy'
+import { calculateStressThreshold } from '../lib/stressThreshold.js'
+import { CURRENT_CASH_RATE } from '../config/marketRates.js'
 
 const PLAN_LIMITS = { starter: 3, investor: 10, premium: Infinity }
 
@@ -80,6 +82,18 @@ export default function Dashboard({ session, subscription }) {
         confidenceLabel: 'Low',
       }
     }
+  }, [financialProfile, liabilities, loans, transactions])
+
+  const stressThreshold = useMemo(() => {
+    if (!financialProfile || !loans?.length) return null
+    return calculateStressThreshold({
+      financialProfile,
+      liabilities: liabilities || [],
+      loans,
+      transactions: transactions || [],
+      currentCashRate: CURRENT_CASH_RATE,
+      additionalMonthlyObligation: 0,
+    })
   }, [financialProfile, liabilities, loans, transactions])
 
   const dashboardCompleteness = useMemo(
@@ -357,6 +371,7 @@ export default function Dashboard({ session, subscription }) {
       unlockValue: dashboardState.canShowBorrowing
         ? commandCenter?.hero?.borrowingPower?.unlockPotential ?? null
         : null,
+      stressThreshold,
       acquisitionReadiness,
       acquisitionReadinessScore: acquisitionReadiness?.finalScore ?? null,
       acquisitionReadinessLabel: acquisitionReadiness?.label ?? null,
@@ -371,6 +386,7 @@ export default function Dashboard({ session, subscription }) {
     commandCenter?.hero?.borrowingPower?.unlockPotential,
     commandCenter?.totalValue,
     dashboardState.canShowBorrowing,
+    stressThreshold,
     acquisitionReadiness?.finalScore,
     acquisitionReadiness?.label,
     capacityUseCaseCount,

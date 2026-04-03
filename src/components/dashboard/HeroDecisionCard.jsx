@@ -1,6 +1,6 @@
 ﻿import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, ChevronRight } from 'lucide-react'
+import { ArrowRight, ChevronRight, Info } from 'lucide-react'
 
 function formatCurrency(value) {
   return new Intl.NumberFormat('en-AU', {
@@ -138,6 +138,7 @@ export default function HeroDecisionCard({
   acquisitionReadinessLabel = 'Getting close',
   acquisitionReadiness = null,
   unlockValue = 39016,
+  stressThreshold = null,
   isExecutable = true,
 }) {
   const navigate = useNavigate()
@@ -148,6 +149,7 @@ export default function HeroDecisionCard({
   const pulseTimeoutRef = useRef(null)
   const [hasAnimated, setHasAnimated] = useState(false)
   const [isReadinessExpanded, setIsReadinessExpanded] = useState(false)
+  const [showStressInfo, setShowStressInfo] = useState(false)
 
   const purchaseRangeLowNumber = toFiniteNumber(purchaseRangeLow)
   const purchaseRangeHighNumber = toFiniteNumber(purchaseRangeHigh)
@@ -658,6 +660,73 @@ export default function HeroDecisionCard({
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-[1.4rem] border border-slate-200/80 bg-white/88 px-4 py-3 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.12)]">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                  Rate resilience
+                </p>
+                <div className="mt-1 flex items-center gap-1">
+                  <p className="text-sm text-slate-600">
+                    {stressThreshold?.status === 'safe'
+                      ? 'No stress break point within tested range'
+                      : stressThreshold?.status === 'warning'
+                      ? 'Limited headroom — monitor closely'
+                      : stressThreshold?.status === 'critical'
+                      ? 'Portfolio under rate stress'
+                      : 'Data unavailable'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowStressInfo((prev) => !prev)}
+                    className="ml-1 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-slate-300 hover:text-slate-600"
+                    aria-label="Explain rate resilience"
+                    aria-expanded={showStressInfo}
+                  >
+                    <Info size={12} />
+                  </button>
+                </div>
+                <div className="mt-2">
+                  {stressThreshold?.status === 'safe' ? (
+                    <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                      Safe headroom
+                    </span>
+                  ) : stressThreshold?.status === 'warning' ? (
+                    <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+                      Monitor closely
+                    </span>
+                  ) : stressThreshold?.status === 'critical' ? (
+                    <span className="inline-flex items-center rounded-full bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700">
+                      Under stress
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                      Unavailable
+                    </span>
+                  )}
+                </div>
+                {showStressInfo && (
+                  <div className="mt-3 rounded-2xl border border-slate-200/80 bg-slate-50 px-3 py-3 text-sm leading-6 text-slate-600">
+                    <p className="font-medium text-slate-900">What this means</p>
+                    <p className="mt-1">
+                      Rate resilience estimates the interest rate at which your
+                      lender-view monthly surplus turns negative under your current
+                      portfolio settings.
+                    </p>
+                    <p className="mt-1">
+                      A result of &gt;10.00% means no break point was found within
+                      the tested range — your portfolio remains serviceable even
+                      under extreme rate stress.
+                    </p>
+                  </div>
+                )}
+              </div>
+              <p className="text-[clamp(16px,1.6vw,22px)] font-semibold tracking-tight text-slate-950">
+                {stressThreshold?.stressThresholdLabel ?? '—'}
+              </p>
             </div>
           </div>
 
