@@ -105,14 +105,7 @@ function pointToPercentX(pointX, viewBoxWidth = 520) {
   return `${(pointX / viewBoxWidth) * 100}%`
 }
 
-function StatTile({
-  eyebrow,
-  value,
-  detail,
-  tone = 'default',
-  valueClassName = '',
-  detailClassName = '',
-}) {
+function StatTile({ eyebrow, value, detail, tone = 'default' }) {
   const toneClasses =
     tone === 'highlight'
       ? 'border-emerald-200/80 bg-emerald-50/80 shadow-[0_20px_45px_-34px_rgba(16,185,129,0.35)] hover:border-[rgba(0,0,0,0.12)]'
@@ -120,17 +113,13 @@ function StatTile({
 
   return (
     <div
-      className={`rounded-[1.6rem] border px-3 py-2.5 transition-[transform,box-shadow,border-color] duration-[120ms] ease-out will-change-transform hover:-translate-y-px hover:shadow-[0_2px_10px_rgba(0,0,0,0.04)] md:px-3 md:py-2.5 ${toneClasses}`}
+      className={`rounded-[1.6rem] border p-4 transition-[transform,box-shadow,border-color] duration-[120ms] ease-out will-change-transform hover:-translate-y-px hover:shadow-[0_2px_10px_rgba(0,0,0,0.04)] md:p-5 ${toneClasses}`}
     >
       <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
         {eyebrow}
       </p>
-      <p
-        className={`mt-3 text-[clamp(14px,1.4vw,20px)] font-semibold tracking-tight text-slate-950 ${valueClassName}`}
-      >
-        {value}
-      </p>
-      <div className={`mt-2 text-sm leading-6 text-slate-600 ${detailClassName}`}>{detail}</div>
+      <p className="mt-3 text-[1.8rem] font-semibold tracking-tight text-slate-950">{value}</p>
+      <p className="mt-2 text-sm leading-6 text-slate-600">{detail}</p>
     </div>
   )
 }
@@ -150,7 +139,6 @@ export default function HeroDecisionCard({
   acquisitionReadiness = null,
   unlockValue = 39016,
   stressThreshold = null,
-  acquisitionStressThreshold = null,
   isExecutable = true,
 }) {
   const navigate = useNavigate()
@@ -161,8 +149,7 @@ export default function HeroDecisionCard({
   const pulseTimeoutRef = useRef(null)
   const [hasAnimated, setHasAnimated] = useState(false)
   const [isReadinessExpanded, setIsReadinessExpanded] = useState(false)
-  const [isStressThresholdInfoOpen, setIsStressThresholdInfoOpen] = useState(false)
-  const stressThresholdInfoRef = useRef(null)
+  const [showStressInfo, setShowStressInfo] = useState(false)
 
   const purchaseRangeLowNumber = toFiniteNumber(purchaseRangeLow)
   const purchaseRangeHighNumber = toFiniteNumber(purchaseRangeHigh)
@@ -183,7 +170,6 @@ export default function HeroDecisionCard({
     acquisitionReadinessData?.finalScore ?? acquisitionReadinessScore
   )
   const unlockValueNumber = toFiniteNumber(unlockValue)
-  const stressThresholdRateNumber = toFiniteNumber(stressThreshold?.stressThresholdRate)
   const acquisitionReadinessLabelValue =
     typeof acquisitionReadinessLabel === 'string' && acquisitionReadinessLabel
       ? acquisitionReadinessLabel
@@ -220,21 +206,6 @@ export default function HeroDecisionCard({
     unlockValueNumber != null
       ? `Reduce card limits → +${unlockValueDisplay} borrowing capacity`
       : 'Unavailable until setup complete'
-  const acquisitionStressThresholdRateNumber = toFiniteNumber(
-    acquisitionStressThreshold?.stressThresholdRate
-  )
-  const hasBaseStressData =
-    stressThreshold != null && stressThresholdRateNumber != null
-  const hasAcquisitionStressData =
-    acquisitionStressThreshold != null && acquisitionStressThresholdRateNumber != null
-  const formatStressThresholdDisplay = (rate) =>
-    rate != null ? `${rate.toFixed(2)}%` : '—'
-  const stressThresholdDisplay = hasBaseStressData
-    ? formatStressThresholdDisplay(stressThresholdRateNumber)
-    : '—'
-  const acquisitionStressThresholdDisplay = hasAcquisitionStressData
-    ? formatStressThresholdDisplay(acquisitionStressThresholdRateNumber)
-    : null
   const hasScenarioData =
     purchaseRangeLowNumber != null &&
     purchaseRangeHighNumber != null &&
@@ -247,61 +218,6 @@ export default function HeroDecisionCard({
     purchaseRangeHighNumber != null
   const isDataRichBlockedScenario = hasScenarioData === true && isExecutableScenario === false
   const hasNoScenarioData = hasScenarioData === false
-  const hasAcquisitionStressThreshold = hasAcquisitionStressData
-  const showsAcquisitionStressDelta =
-    isExecutableScenario === true &&
-    hasAcquisitionStressData &&
-    hasBaseStressData &&
-    acquisitionStressThresholdRateNumber < stressThresholdRateNumber
-  const statusSeverityRank = {
-    safe: 0,
-    warning: 1,
-    critical: 2,
-  }
-  const baseStressStatus = hasBaseStressData ? stressThreshold?.status ?? 'safe' : null
-  const acquisitionStressStatus =
-    hasAcquisitionStressData ? acquisitionStressThreshold?.status ?? 'safe' : null
-  const stressThresholdStatus =
-    !hasBaseStressData
-      ? null
-      : hasAcquisitionStressThreshold
-      ? (statusSeverityRank[acquisitionStressStatus] >
-          statusSeverityRank[baseStressStatus]
-          ? acquisitionStressStatus
-          : baseStressStatus)
-      : baseStressStatus
-  const stressThresholdStatusNode =
-    stressThresholdStatus == null ? (
-      <span className="text-slate-500">Unavailable</span>
-    ) : stressThresholdStatus === 'safe' ? (
-      <>
-        <span className="inline-block h-2 w-2 rounded-full bg-emerald-500/90" />
-        Safe headroom
-      </>
-    ) : stressThresholdStatus === 'warning' ? (
-      <>
-        <span className="inline-block h-2 w-2 rounded-full bg-amber-500/90" />
-        Approaching limit
-      </>
-    ) : (
-      <>
-      <span className="inline-block h-2 w-2 rounded-full bg-rose-500/90" />
-        At risk
-      </>
-    )
-  const stressThresholdValueNode = showsAcquisitionStressDelta ? (
-    <span className="inline-flex max-w-full items-center gap-2 whitespace-nowrap">
-      <span>{stressThresholdDisplay}</span>
-      <span className="text-slate-400">→</span>
-      <span>{acquisitionStressThresholdDisplay}</span>
-    </span>
-  ) : (
-    stressThresholdDisplay
-  )
-  console.log('[RATE RESILIENCE TILE] isExecutableScenario:', isExecutableScenario)
-  console.log('[RATE RESILIENCE TILE] stressThreshold:', stressThreshold)
-  console.log('[RATE RESILIENCE TILE] acquisitionStressThreshold:', acquisitionStressThreshold)
-  console.log('[RATE RESILIENCE TILE] hasAcquisitionStressThreshold:', hasAcquisitionStressThreshold)
   const readinessPillars = acquisitionReadinessData?.pillars ?? null
   const toPillarScoreDisplay = (value) => {
     const numeric = toFiniteNumber(value)
@@ -484,32 +400,6 @@ export default function HeroDecisionCard({
     }
   }, [hasScenarioData, primaryPath])
 
-  useEffect(() => {
-    if (!isStressThresholdInfoOpen) return undefined
-
-    const handlePointerDown = (event) => {
-      if (!stressThresholdInfoRef.current?.contains(event.target)) {
-        setIsStressThresholdInfoOpen(false)
-      }
-    }
-
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        setIsStressThresholdInfoOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handlePointerDown)
-    document.addEventListener('touchstart', handlePointerDown)
-    document.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      document.removeEventListener('mousedown', handlePointerDown)
-      document.removeEventListener('touchstart', handlePointerDown)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [isStressThresholdInfoOpen])
-
   return (
     <section className="relative overflow-hidden rounded-[2.4rem] border border-emerald-200/80 bg-white px-7 py-7 pb-4 shadow-[0_40px_120px_-72px_rgba(15,23,42,0.22)] md:px-9 md:py-9 md:pb-6">
       <div className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-emerald-500 via-emerald-400 to-emerald-300" />
@@ -572,14 +462,11 @@ export default function HeroDecisionCard({
           </div>
 
           {hasScenarioData ? (
-            <div
-              className="mt-8 grid gap-3 min-[481px]:grid-cols-1 md:grid-cols-2 xl:grid-cols-5 max-[480px]:grid-cols-1"
-              style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }}
-            >
+            <div className="mt-8 grid gap-3 min-[481px]:grid-cols-1 md:grid-cols-2 xl:grid-cols-4 max-[480px]:grid-cols-1">
               <StatTile
                 eyebrow="Executable range"
                 value={executableRangeDisplay}
-                detail="20% deposit · funded"
+                detail="20% deposit - funded"
                 tone="highlight"
               />
               <StatTile
@@ -596,68 +483,6 @@ export default function HeroDecisionCard({
                 eyebrow="Gross yield est."
                 value={grossYieldDisplay}
                 detail="Regional market"
-              />
-              <StatTile
-                eyebrow="Rate resilience"
-                value={stressThresholdValueNode}
-                valueClassName={showsAcquisitionStressDelta ? 'mt-2.5 text-[clamp(13px,1.2vw,18px)]' : 'mt-2.5'}
-                detailClassName="mt-1.5 space-y-2 leading-5"
-                detail={
-                  <div className="relative" ref={stressThresholdInfoRef}>
-                    <div className="flex items-center gap-1.5">
-                      <span className="block text-[13px] leading-5 text-slate-600">
-                        {hasBaseStressData
-                          ? showsAcquisitionStressDelta
-                          ? 'Headroom reduces with acquisition'
-                          : 'Current portfolio resilience'
-                          : 'Stress data unavailable'}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setIsStressThresholdInfoOpen((open) => !open)}
-                        className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 transition-colors hover:border-slate-300 hover:text-slate-600"
-                        aria-label="Open stress threshold explainer"
-                        aria-expanded={isStressThresholdInfoOpen}
-                      >
-                        <Info size={12} />
-                      </button>
-                    </div>
-                    {isStressThresholdInfoOpen ? (
-                      <div className="absolute left-0 top-[calc(100%+8px)] z-20 w-[17.5rem] rounded-[1rem] border border-slate-200/90 bg-white px-3.5 py-3 text-left shadow-[0_14px_36px_-24px_rgba(15,23,42,0.22)]">
-                        <p className="text-[13px] font-medium text-slate-950">Stress Threshold</p>
-                        <div className="mt-2 space-y-2 text-[11px] leading-[1.55] text-slate-600">
-                          <p>
-                            <span className="font-medium text-slate-700">What it is:</span>{' '}
-                            The highest interest rate your portfolio can sustain before monthly cash flow turns negative.
-                          </p>
-                          <p>
-                            <span className="font-medium text-slate-700">What your result means:</span>{' '}
-                            A result of &gt;8.50% means your portfolio remained cash-flow positive across the full stress range tested.
-                          </p>
-                          <p>
-                            <span className="font-medium text-slate-700">Why it matters:</span>{' '}
-                            This indicates how resilient your portfolio is to higher rates and how much headroom you have before repayments and holding costs become uncomfortable.
-                          </p>
-                          <p>
-                            <span className="font-medium text-slate-700">Status guide:</span>{' '}
-                            Safe headroom = strong buffer above current rates · Approaching limit = closer to cash flow pressure · At risk = portfolio is already near or beyond stress point
-                          </p>
-                        </div>
-                      </div>
-                    ) : null}
-                    <span
-                      className={`inline-flex max-w-full items-center gap-2 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium leading-none ${
-                        stressThresholdStatus === 'safe'
-                          ? 'bg-emerald-50 text-emerald-700'
-                          : stressThresholdStatus === 'warning'
-                            ? 'bg-amber-50 text-amber-700'
-                            : 'bg-rose-50 text-rose-700'
-                      }`}
-                    >
-                      {stressThresholdStatusNode}
-                    </span>
-                  </div>
-                }
               />
             </div>
           ) : null}
@@ -835,6 +660,73 @@ export default function HeroDecisionCard({
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-[1.4rem] border border-slate-200/80 bg-white/88 px-4 py-3 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.12)]">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                  Rate resilience
+                </p>
+                <div className="mt-1 flex items-center gap-1">
+                  <p className="text-sm text-slate-600">
+                    {stressThreshold?.status === 'safe'
+                      ? 'No stress break point within tested range'
+                      : stressThreshold?.status === 'warning'
+                      ? 'Limited headroom — monitor closely'
+                      : stressThreshold?.status === 'critical'
+                      ? 'Portfolio under rate stress'
+                      : 'Data unavailable'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowStressInfo((prev) => !prev)}
+                    className="ml-1 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-slate-300 hover:text-slate-600"
+                    aria-label="Explain rate resilience"
+                    aria-expanded={showStressInfo}
+                  >
+                    <Info size={12} />
+                  </button>
+                </div>
+                <div className="mt-2">
+                  {stressThreshold?.status === 'safe' ? (
+                    <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                      Safe headroom
+                    </span>
+                  ) : stressThreshold?.status === 'warning' ? (
+                    <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+                      Monitor closely
+                    </span>
+                  ) : stressThreshold?.status === 'critical' ? (
+                    <span className="inline-flex items-center rounded-full bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700">
+                      Under stress
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                      Unavailable
+                    </span>
+                  )}
+                </div>
+                {showStressInfo && (
+                  <div className="mt-3 rounded-2xl border border-slate-200/80 bg-slate-50 px-3 py-3 text-sm leading-6 text-slate-600">
+                    <p className="font-medium text-slate-900">What this means</p>
+                    <p className="mt-1">
+                      Rate resilience estimates the interest rate at which your
+                      lender-view monthly surplus turns negative under your current
+                      portfolio settings.
+                    </p>
+                    <p className="mt-1">
+                      A result of &gt;10.00% means no break point was found within
+                      the tested range — your portfolio remains serviceable even
+                      under extreme rate stress.
+                    </p>
+                  </div>
+                )}
+              </div>
+              <p className="text-[clamp(16px,1.6vw,22px)] font-semibold tracking-tight text-slate-950">
+                {stressThreshold?.stressThresholdLabel ?? '—'}
+              </p>
             </div>
           </div>
 
