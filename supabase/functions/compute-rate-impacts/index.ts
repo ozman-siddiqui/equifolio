@@ -6,6 +6,7 @@ Deno.serve(async () => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
+    const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? ''
 
     // Get latest active rate event
     const { data: rateEvent, error: rateEventError } = await supabase
@@ -58,6 +59,8 @@ Deno.serve(async () => {
           })
           continue
         }
+
+        const userEmail = user.email ?? null
 
         // Get user loans
         const { data: loans } = await supabase
@@ -135,6 +138,76 @@ Deno.serve(async () => {
           })
 
         if (insertError) throw insertError
+
+        if (RESEND_API_KEY && userEmail && monthlyRepaymentDelta !== 0) {
+          const isCut = monthlyRepaymentDelta < 0
+          const absDelta = Math.abs(monthlyRepaymentDelta)
+
+          const subject = isCut
+            ? `RBA update: your repayments may reduce by $${absDelta}/month`
+            : `RBA update: your repayments may increase by $${absDelta}/month`
+
+          const html = `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;">
+        <div style="background:#1D9E75;padding:24px 28px;border-radius:8px 8px 0 0;">
+          <p style="margin:0;font-size:11px;color:#ffffff;
+                    letter-spacing:0.12em;text-transform:uppercase;">
+            Market Update — Vaulta
+          </p>
+          <p style="margin:8px 0 0;font-size:20px;font-weight:700;
+                    color:#ffffff;">
+            RBA decision: portfolio impact calculated
+          </p>
+        </div>
+        <div style="background:#ffffff;padding:28px;
+                    border:1px solid #e2e8f0;border-radius:0 0 8px 8px;">
+          <p style="font-size:28px;font-weight:700;
+                    color:${isCut ? '#15803d' : '#be123c'};margin:0 0 16px;">
+            ${isCut ? '−' : '+'}$${absDelta}/month
+          </p>
+          <p style="font-size:15px;color:#374151;margin:0 0 8px;">
+            Cash rate moved from ${rateEvent.previous_rate}% to
+            ${rateEvent.new_rate}%.
+            This is the estimated impact on your variable loan repayments.
+          </p>
+          <p style="font-size:14px;color:#6b7280;margin:0 0 24px;">
+            Fixed-rate loans are excluded and unaffected until expiry.
+          </p>
+          <a href="https://vaulta.com.au/dashboard"
+             style="display:inline-block;background:#1D9E75;color:#ffffff;
+                    padding:12px 24px;border-radius:8px;font-size:15px;
+                    font-weight:600;text-decoration:none;">
+            View portfolio impact →
+          </a>
+          <p style="font-size:12px;color:#9ca3af;margin:24px 0 0;">
+            Indicative only. Based on current variable loan balances
+            at the new cash rate. Not financial advice.
+          </p>
+        </div>
+      </div>`
+
+          try {
+            const response = await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${RESEND_API_KEY}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                from: 'Vaulta <onboarding@resend.dev>',
+                to: userEmail,
+                subject,
+                html,
+              }),
+            })
+
+            if (!response.ok) {
+              // Email failure must never crash the compute loop
+            }
+          } catch {
+            // Email failure must never crash the compute loop
+          }
+        }
 
         results.push({
           user_id: userId,
