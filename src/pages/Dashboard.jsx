@@ -26,8 +26,6 @@ import { CURRENT_CASH_RATE } from '../config/marketRates.js'
 import { getDaysUntil } from '../lib/dateUtils.js'
 import { calculateAcquisitionReadiness } from '../lib/acquisitionReadinessScore'
 import { calculateYieldFirstScenario } from '../lib/yieldFirstStrategy'
-import { calculateStressThreshold } from '../lib/stressThreshold.js'
-import { CURRENT_CASH_RATE } from '../config/marketRates.js'
 
 const PLAN_LIMITS = { starter: 3, investor: 10, premium: Infinity }
 
@@ -99,8 +97,6 @@ export default function Dashboard({ session, subscription }) {
     })
   }, [financialProfile, liabilities, loans, transactions])
 
-<<<<<<< HEAD
-=======
   const fixedRateExpiry = useMemo(() => {
     if (!loans?.length) return null
 
@@ -143,7 +139,6 @@ export default function Dashboard({ session, subscription }) {
     }
   }, [loans, properties])
 
->>>>>>> dev-ui-experiments
   const dashboardCompleteness = useMemo(
     () =>
       buildDashboardCompleteness({
@@ -420,10 +415,7 @@ export default function Dashboard({ session, subscription }) {
         ? commandCenter?.hero?.borrowingPower?.unlockPotential ?? null
         : null,
       stressThreshold,
-<<<<<<< HEAD
-=======
       fixedRateExpiry,
->>>>>>> dev-ui-experiments
       acquisitionReadiness,
       acquisitionReadinessScore: acquisitionReadiness?.finalScore ?? null,
       acquisitionReadinessLabel: acquisitionReadiness?.label ?? null,
@@ -439,10 +431,7 @@ export default function Dashboard({ session, subscription }) {
     commandCenter?.totalValue,
     dashboardState.canShowBorrowing,
     stressThreshold,
-<<<<<<< HEAD
-=======
     fixedRateExpiry,
->>>>>>> dev-ui-experiments
     acquisitionReadiness?.finalScore,
     acquisitionReadiness?.label,
     capacityUseCaseCount,
