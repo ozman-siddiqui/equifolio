@@ -17,6 +17,7 @@ import {
   getScenarioXAxisLayout,
 } from '../components/charts/scenarioChartAxisConfig'
 import ScenarioChartTooltip from '../components/charts/ScenarioChartTooltip'
+import { supabase } from '../supabase'
 
 const DEPOSIT_STRATEGY_OPTIONS = [
   { value: '20', label: '20% deposit (default)', depositRatio: 0.2 },
@@ -226,7 +227,8 @@ function ConstraintBanner({
 }
 
 export default function PortfolioGrowthScenarios() {
-  const { properties, loans, transactions, loading } = usePortfolioData()
+  const [session, setSession] = useState(null)
+  const { properties, loans, transactions, loading } = usePortfolioData(session)
   const { financialProfile, liabilities } = useFinancialData()
   const rawAvailableCashForInvestment =
     financialProfile?.cash_available_for_investment ?? 0
@@ -259,6 +261,30 @@ export default function PortfolioGrowthScenarios() {
   const setActivePremiumTab = useGrowthScenariosUiStore(
     (state) => state.setActivePremiumTab
   )
+
+  useEffect(() => {
+    let active = true
+
+    supabase.auth
+      .getSession()
+      .then(({ data: { session: currentSession } }) => {
+        if (active) setSession(currentSession || null)
+      })
+      .catch(() => {
+        if (active) setSession(null)
+      })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (active) setSession(nextSession || null)
+    })
+
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
+  }, [])
   const effectiveCashToDeploy = clampCashToDeploy(
     Number.isFinite(Number(cashToDeploy)) ? Number(cashToDeploy) : 0,
     maxCashAvailableForInvestment

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { Shield, SlidersHorizontal } from 'lucide-react'
+import { Shield, SlidersHorizontal, TrendingDown, TrendingUp, Minus, Zap } from 'lucide-react'
 
 import { supabase } from '../supabase'
 
@@ -66,6 +66,12 @@ export default function AdminBenchmarks({ session = null }) {
   const [saving, setSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
   const [loadError, setLoadError] = useState('')
+  const [rbaNewRate, setRbaNewRate] = useState('')
+  const [rbaDecisionType, setRbaDecisionType] = useState('cut')
+  const [rbaSaving, setRbaSaving] = useState(false)
+  const [rbaSuccess, setRbaSuccess] = useState(false)
+  const [rbaError, setRbaError] = useState(null)
+  const [lastRateEvent, setLastRateEvent] = useState(null)
 
   const orderedRows = useMemo(() => BENCHMARK_ROWS, [])
 
@@ -113,6 +119,19 @@ export default function AdminBenchmarks({ session = null }) {
       isMounted = false
     }
   }, [isAdmin])
+
+  useEffect(() => {
+    async function loadLastRateEvent() {
+      const { data } = await supabase
+        .from('rate_events')
+        .select('*')
+        .order('announced_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (data) setLastRateEvent(data)
+    }
+    loadLastRateEvent()
+  }, [])
 
   if (!isAdmin) {
     return <Navigate to="/dashboard" replace />
@@ -183,8 +202,133 @@ export default function AdminBenchmarks({ session = null }) {
     setSaving(false)
   }
 
+  async function handleRbaSubmit(e) {
+    e.preventDefault()
+    setRbaError(null)
+    setRbaSuccess(false)
+
+    const newRate = parseFloat(rbaNewRate)
+    if (!rbaNewRate || isNaN(newRate) || newRate <= 0 || newRate > 20) {
+      setRbaError('Enter a valid cash rate between 0 and 20%')
+      return
+    }
+
+    const previousRate = lastRateEvent?.new_rate ?? 4.10
+
+    setRbaSaving(true)
+    try {
+      await supabase
+        .from('rate_events')
+        .update({ is_active: false })
+        .eq('is_active', true)
+
+      const { data, error } = await supabase
+        .from('rate_events')
+        .insert({
+          previous_rate: previousRate,
+          new_rate: newRate,
+          decision_type: rbaDecisionType,
+          is_active: true,
+          created_by: session?.user?.email,
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      setRbaSuccess(true)
+      setRbaNewRate('')
+      setLastRateEvent(data)
+    } catch (err) {
+      setRbaError(err.message || 'Failed to record rate event')
+    } finally {
+      setRbaSaving(false)
+    }
+  }
+
   return (
     <div className="mx-auto max-w-4xl space-y-6">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50">
+            <Zap size={18} className="text-emerald-600" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-slate-900">
+              RBA Rate Decision
+            </h2>
+            <p className="text-sm text-slate-500">
+              Record a new RBA cash rate decision to trigger
+              portfolio impact calculations for all users.
+            </p>
+          </div>
+        </div>
+
+        {lastRateEvent && (
+          <div className="mb-4 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+            Last event: {lastRateEvent.decision_type} to{' '}
+            <strong>{lastRateEvent.new_rate}%</strong> on{' '}
+            {new Date(lastRateEvent.announced_at).toLocaleDateString('en-AU', {
+              day: 'numeric', month: 'short', year: 'numeric'
+            })}
+          </div>
+        )}
+
+        <form onSubmit={handleRbaSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                New cash rate (%)
+              </label>
+              <input
+                type="number"
+                step="0.25"
+                min="0"
+                max="20"
+                value={rbaNewRate}
+                onChange={e => setRbaNewRate(e.target.value)}
+                placeholder="e.g. 3.85"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Decision type
+              </label>
+              <select
+                value={rbaDecisionType}
+                onChange={e => setRbaDecisionType(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+              >
+                <option value="cut">Cut</option>
+                <option value="hike">Hike</option>
+                <option value="hold">Hold</option>
+              </select>
+            </div>
+          </div>
+
+          {rbaError && (
+            <p className="text-sm text-rose-600">{rbaError}</p>
+          )}
+
+          {rbaSuccess && (
+            <p className="text-sm text-emerald-600 font-medium">
+              Rate event recorded successfully. Portfolio impacts
+              will be computed shortly.
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={rbaSaving || !rbaNewRate}
+            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Zap size={15} />
+            {rbaSaving ? 'Recording...' : 'Record RBA Decision'}
+          </button>
+        </form>
+      </div>
+
       <section className="rounded-2xl border border-gray-100 bg-white overflow-hidden">
         <div className="border-b border-gray-100 p-6">
           <div className="flex items-center gap-2">

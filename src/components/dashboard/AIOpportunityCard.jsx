@@ -123,7 +123,11 @@ async function refreshTrackerForUser(userId, actedIncrement = 0) {
 
 export default function AIOpportunityCard({ currentUserId, loans = [] }) {
   const navigate = useNavigate()
-  const { refreshData } = usePortfolioData()
+  const portfolioSession = useMemo(
+    () => (currentUserId ? { user: { id: currentUserId } } : null),
+    [currentUserId]
+  )
+  const { refreshData } = usePortfolioData(portfolioSession)
   const [loading, setLoading] = useState(true)
   const [opportunities, setOpportunities] = useState([])
   const [tracker, setTracker] = useState(null)

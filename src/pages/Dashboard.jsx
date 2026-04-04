@@ -38,7 +38,7 @@ const formatCurrency = (amount) =>
 
 export default function Dashboard({ session, subscription }) {
   const navigate = useNavigate()
-  const { properties, loans, transactions, loading, fetchData } = usePortfolioData()
+  const { properties, loans, transactions, loading, fetchData } = usePortfolioData(session)
   const { financialProfile, liabilities } = useFinancialData()
 
   const [showAddProperty, setShowAddProperty] = useState(false)

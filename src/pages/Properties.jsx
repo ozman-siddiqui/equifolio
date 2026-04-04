@@ -18,7 +18,7 @@ export default function Properties() {
   const [session, setSession] = useState(null)
   const [subscription, setSubscription] = useState(null)
 
-  const { properties, loans, transactions, loading, fetchData } = usePortfolioData()
+  const { properties, loans, transactions, loading, fetchData } = usePortfolioData(session)
 
   const [showAddProperty, setShowAddProperty] = useState(false)
   const [editingProperty, setEditingProperty] = useState(null)
@@ -28,7 +28,12 @@ export default function Properties() {
   const [propertyUseFilter, setPropertyUseFilter] = useState('all')
   const [sortBy, setSortBy] = useState('value_desc')
 
-  const handlePortfolioSave = (options) => fetchData(options)
+  const handlePortfolioSave = (options = {}) =>
+    fetchData({
+      ...options,
+      force: true,
+      userId: session?.user?.id ?? null,
+    })
 
   useEffect(() => {
     initialisePage()

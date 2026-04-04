@@ -86,10 +86,14 @@ function getConfidenceBadgeClass(label) {
 
 export default function Mortgages({ session = null }) {
   const navigate = useNavigate()
-  const { properties, loans, loading, fetchData } = usePortfolioData()
+  const { properties, loans, loading, fetchData } = usePortfolioData(session)
   const handlePortfolioSave = async (options) => fetchData(options)
-  const handleLoanSave = async (options) => {
-    await fetchData(options)
+  const handleLoanSave = async (options = {}) => {
+    await fetchData({
+      ...options,
+      force: true,
+      userId: session?.user?.id ?? null,
+    })
     await rerunOpportunityDetection()
     await refreshOpportunities()
   }

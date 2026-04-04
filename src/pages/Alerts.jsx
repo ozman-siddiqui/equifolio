@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
   Bell,
@@ -15,6 +15,7 @@ import {
 
 import { buildAlerts } from '../components/AlertsDropdown'
 import usePortfolioData from '../hooks/usePortfolioData'
+import { supabase } from '../supabase'
 
 const formatCurrency = (amount) =>
   new Intl.NumberFormat('en-AU', {
@@ -42,7 +43,32 @@ const getDaysUntil = (dateStr) => {
 }
 
 export default function Alerts() {
-  const { properties, loans, transactions, loading } = usePortfolioData()
+  const [session, setSession] = useState(null)
+  const { properties, loans, transactions, loading } = usePortfolioData(session)
+
+  useEffect(() => {
+    let active = true
+
+    supabase.auth
+      .getSession()
+      .then(({ data: { session: currentSession } }) => {
+        if (active) setSession(currentSession || null)
+      })
+      .catch(() => {
+        if (active) setSession(null)
+      })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (active) setSession(nextSession || null)
+    })
+
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
+  }, [])
 
   const alerts = useMemo(() => buildAlerts(properties, loans), [properties, loans])
 
