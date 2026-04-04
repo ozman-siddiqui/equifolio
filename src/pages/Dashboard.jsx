@@ -848,10 +848,12 @@ export default function Dashboard({ session, subscription }) {
                   Trade-offs
                 </p>
                 <h2 className="mt-2 text-[15px] font-medium text-[var(--color-text-primary)]">
-                  Compare your options
+                  {commandCenter?.compareSectionTitle ?? 'Compare your options'}
                 </h2>
                 <p className="mt-2 text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
-                  Compare the annual cash-flow outcome of staying on your current path, applying the top action, or adding the modeled acquisition.
+                  {commandCenter?.compareMetric === 'borrowing'
+                    ? 'Compare borrowing capacity outcomes while keeping annual portfolio cash flow visible as a secondary metric.'
+                    : 'Compare the annual cash-flow outcome of staying on your current path, applying the top action, or adding the modeled acquisition.'}
                 </p>
 
                 <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -1148,8 +1150,14 @@ function EmptyState({ title, description, actionLabel = null, onAction = null })
 }
 
 function CompareOptionCard({ option }) {
+  const headlineValue =
+    option.headlineValue ?? option.annualImpact
+  const headlineLabel =
+    option.headlineLabel ?? 'Annual cash flow'
+  const isHeadlineCashFlow =
+    String(headlineLabel || '').toLowerCase().includes('cash flow')
   const annualTone =
-    Number(option.annualImpact) >= 0 ? 'text-[#0F6E56]' : 'text-[#A32D2D]'
+    Number(headlineValue) >= 0 ? 'text-[#0F6E56]' : 'text-[#A32D2D]'
   const accentColor =
     option.id === 'do-nothing'
       ? '#F09595'
@@ -1164,14 +1172,6 @@ function CompareOptionCard({ option }) {
         : option.id === 'buy-now'
           ? 'Remaining headroom after purchase'
           : 'Borrowing headroom'
-  const outcomeHelper =
-    option.id === 'do-nothing'
-      ? 'Current annual portfolio cash-flow outcome'
-      : option.id === 'apply-top-action'
-        ? 'Annual outcome after applying the top action'
-        : option.id === 'buy-now'
-          ? 'Annual outcome after adding the acquisition'
-          : null
 
   return (
     <article
@@ -1182,12 +1182,36 @@ function CompareOptionCard({ option }) {
         {option.scenario}
       </p>
       <p className={`mt-3 text-[26px] font-medium tracking-[-0.5px] ${annualTone}`}>
-        {`${Number(option.annualImpact) >= 0 ? '+' : '-'}${formatCurrency(
-          Math.abs(Number(option.annualImpact || 0))
-        )}/year`}
+        {typeof headlineValue === 'number'
+          ? isHeadlineCashFlow
+            ? `${headlineValue < 0 ? '-' : '+'}${formatCurrency(Math.abs(headlineValue))}/year`
+            : formatCurrency(headlineValue)
+          : '—'}
       </p>
-      {outcomeHelper ? (
-        <p className="mt-[6px] text-[12px] leading-[1.5] text-[var(--color-text-secondary)]">{outcomeHelper}</p>
+      <p className="mt-[6px] text-[12px] leading-[1.5] text-[var(--color-text-secondary)]">
+        {headlineLabel}
+      </p>
+      {option.secondaryValue !== undefined && option.secondaryLabel ? (
+        <div className="mt-2 flex items-center justify-between">
+          <span className="text-sm text-slate-500">
+            {option.secondaryLabel}
+          </span>
+          <span className="text-sm font-medium text-slate-700">
+            {typeof option.secondaryValue === 'number' &&
+            option.secondaryLabel?.toLowerCase().includes('cash flow')
+              ? `${option.secondaryValue < 0 ? '-' : '+'}${formatCurrency(Math.abs(option.secondaryValue))}/year`
+              : typeof option.secondaryValue === 'number'
+                ? formatCurrency(option.secondaryValue)
+                : '—'}
+          </span>
+        </div>
+      ) : null}
+      {typeof option.delta === 'number' && option.delta !== 0 ? (
+        <div className="mt-2">
+          <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+            +{formatCurrency(option.delta)} {option.deltaLabel ?? 'improvement'}
+          </span>
+        </div>
       ) : null}
       <div className="mt-4 space-y-2 text-[13px] text-[var(--color-text-secondary)]">
         <div className="flex items-center justify-between gap-4">

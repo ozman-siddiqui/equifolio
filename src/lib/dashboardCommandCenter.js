@@ -781,11 +781,37 @@ export default function buildDashboardCommandCenter({
 
   const currentAnnualCashImpact = Math.round(monthlyPropertyCashFlow * 12)
   const topRankedAction = topActions[0] || null
+  const compareSectionTitle =
+    topRankedAction?.kind === 'borrowing'
+      ? 'Compare borrowing outcomes'
+      : 'Compare cash-flow outcomes'
+  const compareMetric =
+    topRankedAction?.kind === 'borrowing'
+      ? 'borrowing'
+      : 'cashflow'
+  const compareHeadlineLabel =
+    topRankedAction?.kind === 'borrowing'
+      ? 'Borrowing capacity'
+      : 'Annual cash flow'
   const compareOptions = [
     {
       id: 'do-nothing',
       scenario: 'Do nothing',
       annualImpact: currentAnnualCashImpact,
+      headlineValue:
+        topRankedAction?.kind === 'borrowing'
+          ? currentBorrowingCapacity
+          : currentAnnualCashImpact,
+      headlineLabel: compareHeadlineLabel,
+      secondaryValue:
+        topRankedAction?.kind === 'borrowing'
+          ? currentAnnualCashImpact
+          : currentBorrowingCapacity,
+      secondaryLabel:
+        topRankedAction?.kind === 'borrowing'
+          ? 'Annual cash flow'
+          : 'Borrowing capacity',
+      delta: null,
       borrowing: currentBorrowingCapacity,
       risk: 'low',
       description:
@@ -796,20 +822,55 @@ export default function buildDashboardCommandCenter({
   ]
 
   if (topRankedAction) {
+    const isRealCashFlowAction =
+      topRankedAction?.kind === 'cashflow' ||
+      topRankedAction?.kind === 'refinance'
+
     const improvedAnnualImpact = Math.round(
-      currentAnnualCashImpact + Number(topRankedAction.yearlyImpact || 0)
+      currentAnnualCashImpact +
+        (isRealCashFlowAction
+          ? Number(topRankedAction?.yearlyImpact || 0)
+          : 0)
     )
+    const applyTopActionDescription =
+      topRankedAction?.kind === 'borrowing'
+        ? `Improves borrowing capacity by ${formatCurrency(
+            Number(topRankedAction?.borrowingLift || 0)
+          )} without changing current portfolio cash flow.`
+        : `Improves your position by ${formatCurrency(
+            Number(topRankedAction.yearlyImpact || 0)
+          )}/year${topRankedAction.borrowingLift ? ` and strengthens borrowing capacity by ${formatCurrency(Number(topRankedAction.borrowingLift || 0))}` : ''}.`
+
     compareOptions.push({
       id: 'apply-top-action',
       scenario: 'Apply top recommendation',
       annualImpact: improvedAnnualImpact,
+      headlineValue:
+        topRankedAction?.kind === 'borrowing'
+          ? Math.round(currentBorrowingCapacity + Number(topRankedAction?.borrowingLift || 0))
+          : improvedAnnualImpact,
+      headlineLabel: compareHeadlineLabel,
+      secondaryValue:
+        topRankedAction?.kind === 'borrowing'
+          ? currentAnnualCashImpact
+          : Math.round(currentBorrowingCapacity + Number(topRankedAction?.borrowingLift || 0)),
+      secondaryLabel:
+        topRankedAction?.kind === 'borrowing'
+          ? 'Annual cash flow (unchanged)'
+          : 'Borrowing capacity',
+      delta:
+        topRankedAction?.kind === 'borrowing'
+          ? Math.round(Number(topRankedAction?.borrowingLift || 0))
+          : Math.round(Number(topRankedAction?.yearlyImpact || 0)),
+      deltaLabel:
+        topRankedAction?.kind === 'borrowing'
+          ? 'borrowing uplift'
+          : 'annual improvement',
       borrowing: Math.round(
         currentBorrowingCapacity + Number(topRankedAction.borrowingLift || 0)
       ),
       risk: 'low',
-      description: `Improves your position by ${formatCurrency(
-        Number(topRankedAction.yearlyImpact || 0)
-      )}/year${topRankedAction.borrowingLift ? ` and strengthens borrowing capacity by ${formatCurrency(Number(topRankedAction.borrowingLift || 0))}` : ''}.`,
+      description: applyTopActionDescription,
     })
   }
 
@@ -890,6 +951,9 @@ export default function buildDashboardCommandCenter({
     })),
     growthScenarios,
     compareOptions,
+    compareSectionTitle,
+    compareMetric,
+    compareHeadlineLabel,
     dataCoveragePct,
     decisionConfidence:
       borrowingAnalysis?.confidenceLabel ||
