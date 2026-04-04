@@ -239,6 +239,11 @@ export default function AdminBenchmarks({ session = null }) {
       setRbaSuccess(true)
       setRbaNewRate('')
       setLastRateEvent(data)
+
+      // Trigger portfolio impact computation for all users
+      supabase.functions.invoke('compute-rate-impacts').catch((err) => {
+        console.warn('compute-rate-impacts invocation failed:', err)
+      })
     } catch (err) {
       setRbaError(err.message || 'Failed to record rate event')
     } finally {
@@ -282,7 +287,7 @@ export default function AdminBenchmarks({ session = null }) {
               </label>
               <input
                 type="number"
-                step="0.25"
+                step="0.05"
                 min="0"
                 max="20"
                 value={rbaNewRate}
