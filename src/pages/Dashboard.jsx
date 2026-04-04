@@ -18,9 +18,12 @@ import { utilityPrimaryButtonClass, utilitySecondaryButtonClass } from '../compo
 import useFinancialData from '../hooks/useFinancialData'
 import usePortfolioData from '../hooks/usePortfolioData'
 import calculateBorrowingPower from '../lib/borrowingPowerEngine'
+import { calculateStressThreshold } from '../lib/stressThreshold.js'
 import buildDashboardCommandCenter from '../lib/dashboardCommandCenter'
 import buildDashboardCompleteness from '../lib/dashboardCompleteness'
 import buildDashboardStateResolver from '../lib/dashboardStateResolver'
+import { CURRENT_CASH_RATE } from '../config/marketRates.js'
+import { getDaysUntil } from '../lib/dateUtils.js'
 import { calculateAcquisitionReadiness } from '../lib/acquisitionReadinessScore'
 import { calculateYieldFirstScenario } from '../lib/yieldFirstStrategy'
 
@@ -81,6 +84,60 @@ export default function Dashboard({ session, subscription }) {
       }
     }
   }, [financialProfile, liabilities, loans, transactions])
+
+  const stressThreshold = useMemo(() => {
+    if (!financialProfile || !loans?.length) return null
+    return calculateStressThreshold({
+      financialProfile,
+      liabilities: liabilities || [],
+      loans,
+      transactions: transactions || [],
+      currentCashRate: CURRENT_CASH_RATE,
+      additionalMonthlyObligation: 0,
+    })
+  }, [financialProfile, liabilities, loans, transactions])
+
+  const fixedRateExpiry = useMemo(() => {
+    if (!loans?.length) return null
+
+    const fixedLoans = loans
+      .filter(loan =>
+        loan.loan_type === 'Fixed' &&
+        loan.fixed_rate_expiry
+      )
+      .map(loan => ({
+        loanId: loan.id,
+        lender: loan.lender,
+        propertyId: loan.property_id,
+        propertyAddress: properties?.find(p => p.id === loan.property_id)?.address ?? null,
+        expiryDate: loan.fixed_rate_expiry,
+        daysUntil: getDaysUntil(loan.fixed_rate_expiry),
+        currentRate: loan.interest_rate,
+        balance: loan.current_balance,
+      }))
+      .filter(loan =>
+        loan.daysUntil !== null &&
+        loan.daysUntil >= 0 &&
+        loan.daysUntil <= 47
+      )
+      .sort((a, b) => a.daysUntil - b.daysUntil)
+
+    if (!fixedLoans.length) return null
+
+    const soonest = fixedLoans[0]
+
+    const touchpoint =
+      soonest.daysUntil <= 14 ? 'urgent' :
+      soonest.daysUntil <= 30 ? 'decision' :
+      'education'
+
+    return {
+      soonest,
+      allExpiring: fixedLoans,
+      touchpoint,
+      count: fixedLoans.length,
+    }
+  }, [loans, properties])
 
   const dashboardCompleteness = useMemo(
     () =>
@@ -357,6 +414,8 @@ export default function Dashboard({ session, subscription }) {
       unlockValue: dashboardState.canShowBorrowing
         ? commandCenter?.hero?.borrowingPower?.unlockPotential ?? null
         : null,
+      stressThreshold,
+      fixedRateExpiry,
       acquisitionReadiness,
       acquisitionReadinessScore: acquisitionReadiness?.finalScore ?? null,
       acquisitionReadinessLabel: acquisitionReadiness?.label ?? null,
@@ -371,6 +430,8 @@ export default function Dashboard({ session, subscription }) {
     commandCenter?.hero?.borrowingPower?.unlockPotential,
     commandCenter?.totalValue,
     dashboardState.canShowBorrowing,
+    stressThreshold,
+    fixedRateExpiry,
     acquisitionReadiness?.finalScore,
     acquisitionReadiness?.label,
     capacityUseCaseCount,
