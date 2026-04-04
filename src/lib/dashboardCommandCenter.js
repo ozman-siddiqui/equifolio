@@ -796,9 +796,25 @@ export default function buildDashboardCommandCenter({
   ]
 
   if (topRankedAction) {
+    const isRealCashFlowAction =
+      topRankedAction?.kind === 'cashflow' ||
+      topRankedAction?.kind === 'refinance'
+
     const improvedAnnualImpact = Math.round(
-      currentAnnualCashImpact + Number(topRankedAction.yearlyImpact || 0)
+      currentAnnualCashImpact +
+        (isRealCashFlowAction
+          ? Number(topRankedAction?.yearlyImpact || 0)
+          : 0)
     )
+    const applyTopActionDescription =
+      topRankedAction?.kind === 'borrowing'
+        ? `Improves borrowing capacity by ${formatCurrency(
+            Number(topRankedAction?.borrowingLift || 0)
+          )} without changing current portfolio cash flow.`
+        : `Improves your position by ${formatCurrency(
+            Number(topRankedAction.yearlyImpact || 0)
+          )}/year${topRankedAction.borrowingLift ? ` and strengthens borrowing capacity by ${formatCurrency(Number(topRankedAction.borrowingLift || 0))}` : ''}.`
+
     compareOptions.push({
       id: 'apply-top-action',
       scenario: 'Apply top recommendation',
@@ -807,9 +823,7 @@ export default function buildDashboardCommandCenter({
         currentBorrowingCapacity + Number(topRankedAction.borrowingLift || 0)
       ),
       risk: 'low',
-      description: `Improves your position by ${formatCurrency(
-        Number(topRankedAction.yearlyImpact || 0)
-      )}/year${topRankedAction.borrowingLift ? ` and strengthens borrowing capacity by ${formatCurrency(Number(topRankedAction.borrowingLift || 0))}` : ''}.`,
+      description: applyTopActionDescription,
     })
   }
 
