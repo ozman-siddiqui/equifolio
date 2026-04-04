@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 
@@ -8,6 +8,7 @@ import SectionCard from '../components/dashboard/SectionCard'
 import useFinancialData from '../hooks/useFinancialData'
 import usePortfolioData from '../hooks/usePortfolioData'
 import calculateBorrowingPower from '../lib/borrowingPowerEngine'
+import { supabase } from '../supabase'
 
 const formatCurrency = (amount) =>
   new Intl.NumberFormat('en-AU', {
@@ -46,8 +47,33 @@ function getActionRoute(action) {
 
 export default function BorrowingPowerExplained() {
   const navigate = useNavigate()
-  const { loans, transactions } = usePortfolioData()
+  const [session, setSession] = useState(null)
+  const { loans, transactions } = usePortfolioData(session)
   const { financialProfile, liabilities } = useFinancialData()
+
+  useEffect(() => {
+    let active = true
+
+    supabase.auth
+      .getSession()
+      .then(({ data: { session: currentSession } }) => {
+        if (active) setSession(currentSession || null)
+      })
+      .catch(() => {
+        if (active) setSession(null)
+      })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (active) setSession(nextSession || null)
+    })
+
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
+  }, [])
 
   const analysis = useMemo(
     () =>

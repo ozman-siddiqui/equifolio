@@ -15,6 +15,7 @@ import { calculateAfterTaxHoldingCost } from '../lib/afterTaxHoldingCost'
 import { estimateRepayment, getRemainingTermMonths } from '../lib/mortgageMath'
 import { normalizeTaxOwnership } from '../lib/taxOwnership'
 import { useGrowthScenariosUiStore } from '../stores/growthScenariosUiStore'
+import { supabase } from '../supabase'
 
 const MAX_ANNUAL_DEPRECIATION = 20000
 const HIGH_DEPRECIATION_WARNING_THRESHOLD = 15000
@@ -1116,8 +1117,33 @@ function ScenarioMetric({ label, value, className = '', valueClassName = '' }) {
 }
 
 export default function PortfolioGrowthScenariosRebuild() {
-  const { properties, loans, transactions, loading: portfolioLoading } = usePortfolioData()
+  const [session, setSession] = useState(null)
+  const { properties, loans, transactions, loading: portfolioLoading } = usePortfolioData(session)
   const { financialProfile, liabilities, loading: financialLoading } = useFinancialData()
+
+  useEffect(() => {
+    let active = true
+
+    supabase.auth
+      .getSession()
+      .then(({ data: { session: currentSession } }) => {
+        if (active) setSession(currentSession || null)
+      })
+      .catch(() => {
+        if (active) setSession(null)
+      })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (active) setSession(nextSession || null)
+    })
+
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
+  }, [])
   const [isScenarioRefreshing, setIsScenarioRefreshing] = useState(false)
   const [isDeferredAnalysisReady, setIsDeferredAnalysisReady] = useState(false)
   const [selectedGrowthRate, setSelectedGrowthRate] = useState(6)

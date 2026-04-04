@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Activity,
   ArrowDownRight,
@@ -63,14 +63,44 @@ const formatMonthLabel = (monthKey) => {
 }
 
 export default function CashFlow() {
-  const { properties, transactions, loading, fetchData } = usePortfolioData()
-  const handlePortfolioSave = (options) => fetchData(options)
+  const [session, setSession] = useState(null)
+  const { properties, transactions, loading, fetchData } = usePortfolioData(session)
+  const handlePortfolioSave = (options = {}) =>
+    fetchData({
+      ...options,
+      force: true,
+      userId: session?.user?.id ?? null,
+    })
 
   const [cashFlowPropertyId, setCashFlowPropertyId] = useState(null)
   const [editingTransaction, setEditingTransaction] = useState(null)
   const [selectedDetailPropertyId, setSelectedDetailPropertyId] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+
+  useEffect(() => {
+    let active = true
+
+    supabase.auth
+      .getSession()
+      .then(({ data: { session: currentSession } }) => {
+        if (active) setSession(currentSession || null)
+      })
+      .catch(() => {
+        if (active) setSession(null)
+      })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (active) setSession(nextSession || null)
+    })
+
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
+  }, [])
 
   const effectiveDetailPropertyId =
     selectedDetailPropertyId || String(properties[0]?.id || 'portfolio')
@@ -214,7 +244,10 @@ export default function CashFlow() {
       return
     }
 
-    await fetchData({ force: true })
+    await fetchData({
+      force: true,
+      userId: session?.user?.id ?? null,
+    })
   }
 
   if (loading) {

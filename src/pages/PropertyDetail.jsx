@@ -68,7 +68,8 @@ const formatCurrency = (amount) =>
 export default function PropertyDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { properties, loans, transactions, loading, fetchData } = usePortfolioData()
+  const [session, setSession] = useState(null)
+  const { properties, loans, transactions, loading, fetchData } = usePortfolioData(session)
   const { financialProfile, liabilities, loading: financialsLoading } = useFinancialData()
 
   const [showAddLoan, setShowAddLoan] = useState(false)
@@ -78,6 +79,30 @@ export default function PropertyDetail() {
   const [editingTransaction, setEditingTransaction] = useState(null)
   const [refinancingLoan, setRefinancingLoan] = useState(null)
   const [showOptimisationModal, setShowOptimisationModal] = useState(false)
+
+  useEffect(() => {
+    let active = true
+
+    supabase.auth
+      .getSession()
+      .then(({ data: { session: currentSession } }) => {
+        if (active) setSession(currentSession || null)
+      })
+      .catch(() => {
+        if (active) setSession(null)
+      })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (active) setSession(nextSession || null)
+    })
+
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
+  }, [])
 
   const handlePortfolioSave = (options) => fetchData(options)
   const handleLoanSave = async (options) => {

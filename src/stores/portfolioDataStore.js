@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { supabase } from '../supabase'
 
 let portfolioFetchPromise = null
+let portfolioFetchUserId = null
 
 export const usePortfolioDataStore = create((set, get) => ({
   properties: [],
@@ -10,13 +11,35 @@ export const usePortfolioDataStore = create((set, get) => ({
   loading: false,
   error: '',
   hasLoaded: false,
-  async fetchData({ force = false } = {}) {
-    if (portfolioFetchPromise) {
+  currentUserId: null,
+  async fetchData({ force = false, userId = null } = {}) {
+    if (!userId) {
+      portfolioFetchPromise = null
+      portfolioFetchUserId = null
+      set((state) => ({
+        ...state,
+        properties: [],
+        loans: [],
+        transactions: [],
+        loading: false,
+        error: '',
+        hasLoaded: false,
+        currentUserId: null,
+      }))
+
+      return {
+        properties: [],
+        loans: [],
+        transactions: [],
+      }
+    }
+
+    if (portfolioFetchPromise && portfolioFetchUserId === userId) {
       return portfolioFetchPromise
     }
 
-    const { hasLoaded } = get()
-    if (hasLoaded && !force) {
+    const { hasLoaded, currentUserId } = get()
+    if (hasLoaded && !force && currentUserId === userId) {
       return {
         properties: get().properties,
         loans: get().loans,
@@ -28,18 +51,39 @@ export const usePortfolioDataStore = create((set, get) => ({
       ...state,
       loading: true,
       error: '',
+      currentUserId: userId,
     }))
 
+    portfolioFetchUserId = userId
     portfolioFetchPromise = Promise.all([
-      supabase.from('properties').select('*').order('created_at', { ascending: false }),
-      supabase.from('loans').select('*'),
-      supabase.from('transactions').select('*').order('date', { ascending: false }),
+      supabase
+        .from('properties')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('loans')
+        .select('*')
+        .eq('user_id', userId),
+      supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('date', { ascending: false }),
     ])
       .then(([{ data: props, error: propertiesError }, { data: lns, error: loansError }, { data: txns, error: transactionsError }]) => {
         const fetchError = propertiesError || loansError || transactionsError
 
         if (fetchError) {
           throw fetchError
+        }
+
+        if (get().currentUserId !== userId) {
+          return {
+            properties: get().properties,
+            loans: get().loans,
+            transactions: get().transactions,
+          }
         }
 
         const nextState = {
@@ -54,11 +98,16 @@ export const usePortfolioDataStore = create((set, get) => ({
           loading: false,
           error: '',
           hasLoaded: true,
+          currentUserId: userId,
         }))
 
         return nextState
       })
       .catch((fetchError) => {
+        if (get().currentUserId !== userId) {
+          throw fetchError
+        }
+
         set((state) => ({
           ...state,
           loading: false,
@@ -67,12 +116,15 @@ export const usePortfolioDataStore = create((set, get) => ({
         throw fetchError
       })
       .finally(() => {
-        portfolioFetchPromise = null
+        if (portfolioFetchUserId === userId) {
+          portfolioFetchPromise = null
+          portfolioFetchUserId = null
+        }
       })
 
     return portfolioFetchPromise
   },
-  async refreshData() {
-    return get().fetchData({ force: true })
+  async refreshData({ userId = null } = {}) {
+    return get().fetchData({ force: true, userId: userId ?? get().currentUserId })
   },
 }))
