@@ -26,6 +26,7 @@ export function calculateStressThreshold({
       liabilities,
       loans,
       transactions,
+<<<<<<< HEAD
       config: {
         assessmentRatePct: rate,
       },
@@ -39,11 +40,19 @@ export function calculateStressThreshold({
 
     const adjustedSurplus =
       rawSurplus - additionalMonthlyObligation
+=======
+      config: { assessmentRatePct: rate },
+    })
+
+    const rawSurplus = Number(result?.net_monthly_surplus ?? 0)
+    const adjustedSurplus = rawSurplus - additionalMonthlyObligation
+>>>>>>> dev-ui-experiments
 
     if (Math.abs(rate - currentCashRate) < 0.001) {
       surplusAtCurrentRate = adjustedSurplus
     }
 
+<<<<<<< HEAD
     return {
       rate,
       rawSurplus,
@@ -55,6 +64,12 @@ export function calculateStressThreshold({
     (p) => p.adjustedSurplus < 0
   )
 
+=======
+    return { rate, rawSurplus, adjustedSurplus }
+  })
+
+  const firstNegativePoint = series.find((p) => p.adjustedSurplus < 0)
+>>>>>>> dev-ui-experiments
   const maxTestedRate = rateMax
 
   let stressThresholdRate
@@ -72,6 +87,7 @@ export function calculateStressThreshold({
 
   if (!firstNegativePoint) {
     status = 'safe'
+<<<<<<< HEAD
   } else if (
     stressThresholdRate >
     currentCashRate + STRESS_HEADROOM_BUFFER
@@ -80,6 +96,11 @@ export function calculateStressThreshold({
   } else if (
     stressThresholdRate > currentCashRate
   ) {
+=======
+  } else if (stressThresholdRate > currentCashRate + STRESS_HEADROOM_BUFFER) {
+    status = 'safe'
+  } else if (stressThresholdRate > currentCashRate) {
+>>>>>>> dev-ui-experiments
     status = 'warning'
   } else {
     status = 'critical'
@@ -89,7 +110,11 @@ export function calculateStressThreshold({
     stressThresholdRate,
     stressThresholdLabel,
     status,
+<<<<<<< HEAD
     surplusAtCurrentRate:
       surplusAtCurrentRate ?? 0,
+=======
+    surplusAtCurrentRate: surplusAtCurrentRate ?? 0,
+>>>>>>> dev-ui-experiments
   }
 }

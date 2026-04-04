@@ -139,6 +139,10 @@ export default function HeroDecisionCard({
   acquisitionReadiness = null,
   unlockValue = 39016,
   stressThreshold = null,
+<<<<<<< HEAD
+=======
+  fixedRateExpiry = null,
+>>>>>>> dev-ui-experiments
   isExecutable = true,
 }) {
   const navigate = useNavigate()
@@ -486,6 +490,126 @@ export default function HeroDecisionCard({
               />
             </div>
           ) : null}
+
+          {fixedRateExpiry ? (
+            <div className={`mt-4 rounded-[1.4rem] border px-4 py-3 ${
+              fixedRateExpiry.touchpoint === 'urgent'
+                ? 'border-rose-200/80 bg-rose-50/60'
+                : fixedRateExpiry.touchpoint === 'decision'
+                ? 'border-amber-200/80 bg-amber-50/60'
+                : 'border-blue-200/80 bg-blue-50/40'
+            }`}>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <p className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${
+                    fixedRateExpiry.touchpoint === 'urgent'
+                      ? 'text-rose-600'
+                      : fixedRateExpiry.touchpoint === 'decision'
+                      ? 'text-amber-600'
+                      : 'text-blue-600'
+                  }`}>
+                    Fixed rate expiring
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-slate-900">
+                    {fixedRateExpiry.soonest.lender} loan
+                    {fixedRateExpiry.soonest.propertyAddress
+                      ? ` — ${fixedRateExpiry.soonest.propertyAddress}`
+                      : ''
+                    } expires in{' '}
+                    <span className="font-semibold">
+                      {fixedRateExpiry.soonest.daysUntil} days
+                    </span>
+                  </p>
+                  <p className="mt-0.5 text-sm text-slate-600">
+                    {fixedRateExpiry.touchpoint === 'urgent'
+                      ? 'Action required — your rate is about to revert. Review your options now.'
+                      : fixedRateExpiry.touchpoint === 'decision'
+                      ? 'Time to decide — compare refinancing vs reverting to variable.'
+                      : 'Your fixed rate is approaching expiry. Start reviewing your options.'}
+                  </p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <p className={`text-[clamp(14px,1.4vw,18px)] font-semibold ${
+                    fixedRateExpiry.touchpoint === 'urgent'
+                      ? 'text-rose-700'
+                      : fixedRateExpiry.touchpoint === 'decision'
+                      ? 'text-amber-700'
+                      : 'text-blue-700'
+                  }`}>
+                    {fixedRateExpiry.soonest.daysUntil}d
+                  </p>
+                  <p className="text-xs text-slate-500">days left</p>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="mt-4 rounded-[1.4rem] border border-slate-200/80 bg-white/88 px-4 py-3 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.12)]">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                  Rate resilience
+                </p>
+                <div className="mt-1 flex items-center gap-1">
+                  <p className="text-sm text-slate-600">
+                    {stressThreshold?.status === 'safe'
+                      ? 'No stress break point within tested range'
+                      : stressThreshold?.status === 'warning'
+                      ? 'Limited headroom — monitor closely'
+                      : stressThreshold?.status === 'critical'
+                      ? 'Portfolio under rate stress'
+                      : 'Data unavailable'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowStressInfo((prev) => !prev)}
+                    className="ml-1 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-slate-300 hover:text-slate-600"
+                    aria-label="Explain rate resilience"
+                    aria-expanded={showStressInfo}
+                  >
+                    <Info size={12} />
+                  </button>
+                </div>
+                <div className="mt-2">
+                  {stressThreshold?.status === 'safe' ? (
+                    <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                      Safe headroom
+                    </span>
+                  ) : stressThreshold?.status === 'warning' ? (
+                    <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+                      Monitor closely
+                    </span>
+                  ) : stressThreshold?.status === 'critical' ? (
+                    <span className="inline-flex items-center rounded-full bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700">
+                      Under stress
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                      Unavailable
+                    </span>
+                  )}
+                </div>
+                {showStressInfo && (
+                  <div className="mt-3 rounded-2xl border border-slate-200/80 bg-slate-50 px-3 py-3 text-sm leading-6 text-slate-600">
+                    <p className="font-medium text-slate-900">What this means</p>
+                    <p className="mt-1">
+                      Rate resilience estimates the interest rate at which your
+                      lender-view monthly surplus turns negative under your current
+                      portfolio settings.
+                    </p>
+                    <p className="mt-1">
+                      A result of &gt;10.00% means no break point was found within
+                      the tested range — your portfolio remains serviceable even
+                      under extreme rate stress.
+                    </p>
+                  </div>
+                )}
+              </div>
+              <p className="text-[clamp(16px,1.6vw,22px)] font-semibold tracking-tight text-slate-950">
+                {stressThreshold?.stressThresholdLabel ?? '—'}
+              </p>
+            </div>
+          </div>
 
           <div className="mt-8 rounded-[2rem] border border-emerald-200/80 bg-[radial-gradient(circle_at_top,rgba(209,250,229,0.45),rgba(255,255,255,0.96)_62%)] p-4 shadow-[0_28px_70px_-50px_rgba(16,185,129,0.42)] md:px-5 md:py-5">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
