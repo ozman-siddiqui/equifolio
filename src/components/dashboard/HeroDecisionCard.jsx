@@ -140,6 +140,8 @@ export default function HeroDecisionCard({
   unlockValue = 39016,
   stressThreshold = null,
   fixedRateExpiry = null,
+  rateImpact = null,
+  onDismissRateImpact = () => {},
   isExecutable = true,
 }) {
   const navigate = useNavigate()
@@ -201,6 +203,26 @@ export default function HeroDecisionCard({
       : '0%'
   const unlockValueDisplay =
     unlockValueNumber != null ? formatCurrency(unlockValueNumber) : '--'
+  const rateImpactMonthlyDeltaNumber = toFiniteNumber(rateImpact?.monthly_repayment_delta)
+  const rateImpactBorrowingDeltaNumber = toFiniteNumber(rateImpact?.borrowing_power_delta)
+  const rateImpactPreviousRateNumber = toFiniteNumber(rateImpact?.previous_rate)
+  const rateImpactNewRateNumber = toFiniteNumber(rateImpact?.new_rate)
+  const rateImpactHeadline =
+    rateImpactMonthlyDeltaNumber == null || rateImpactMonthlyDeltaNumber === 0
+      ? 'RBA move has limited repayment impact on your current portfolio'
+      : rateImpactMonthlyDeltaNumber < 0
+        ? `RBA move may reduce repayments by ${formatCurrency(Math.abs(rateImpactMonthlyDeltaNumber))}/month`
+        : `RBA move may increase repayments by ${formatCurrency(Math.abs(rateImpactMonthlyDeltaNumber))}/month`
+  const rateImpactSupportingLine =
+    rateImpactPreviousRateNumber != null && rateImpactNewRateNumber != null
+      ? `Cash rate moved from ${rateImpactPreviousRateNumber}% to ${rateImpactNewRateNumber}%.`
+      : null
+  const rateImpactBorrowingLine =
+    rateImpactBorrowingDeltaNumber == null
+      ? null
+      : `Indicative borrowing capacity impact: ${
+          rateImpactBorrowingDeltaNumber > 0 ? '+' : ''
+        }${formatCurrency(rateImpactBorrowingDeltaNumber)}`
   const unlockSummaryDisplay =
     unlockValueNumber != null ? `expands purchase range by +${unlockValueDisplay}` : 'Complete setup to unlock'
   const unlockStripDisplay =
@@ -537,6 +559,38 @@ export default function HeroDecisionCard({
                   </p>
                   <p className="text-xs text-slate-500">days left</p>
                 </div>
+              </div>
+            </div>
+          ) : null}
+
+          {rateImpact && !rateImpact.dismissed_at ? (
+            <div className="mt-4 rounded-[1.4rem] border border-emerald-200/80 bg-[linear-gradient(180deg,rgba(236,253,245,0.9)_0%,rgba(255,255,255,0.96)_100%)] px-4 py-3 shadow-[0_18px_40px_-34px_rgba(16,185,129,0.26)]">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-700">
+                    Market update
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-slate-900">
+                    {rateImpactHeadline}
+                  </p>
+                  {rateImpactSupportingLine ? (
+                    <p className="mt-0.5 text-sm text-slate-600">
+                      {rateImpactSupportingLine}
+                    </p>
+                  ) : null}
+                  {rateImpactBorrowingLine ? (
+                    <p className="mt-1 text-xs font-medium text-emerald-700">
+                      {rateImpactBorrowingLine}
+                    </p>
+                  ) : null}
+                </div>
+                <button
+                  type="button"
+                  onClick={onDismissRateImpact}
+                  className="inline-flex flex-shrink-0 items-center rounded-full border border-emerald-200 bg-white/90 px-3 py-1.5 text-xs font-medium text-emerald-700 transition hover:border-emerald-300 hover:text-emerald-800"
+                >
+                  Dismiss
+                </button>
               </div>
             </div>
           ) : null}

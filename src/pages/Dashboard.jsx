@@ -22,10 +22,11 @@ import { calculateStressThreshold } from '../lib/stressThreshold.js'
 import buildDashboardCommandCenter from '../lib/dashboardCommandCenter'
 import buildDashboardCompleteness from '../lib/dashboardCompleteness'
 import buildDashboardStateResolver from '../lib/dashboardStateResolver'
-import { CURRENT_CASH_RATE } from '../config/marketRates.js'
+import { CURRENT_CASH_RATE, fetchCurrentCashRate } from '../config/marketRates.js'
 import { getDaysUntil } from '../lib/dateUtils.js'
 import { calculateAcquisitionReadiness } from '../lib/acquisitionReadinessScore'
 import { calculateYieldFirstScenario } from '../lib/yieldFirstStrategy'
+import { supabase } from '../supabase'
 
 const PLAN_LIMITS = { starter: 3, investor: 10, premium: Infinity }
 
@@ -44,6 +45,8 @@ export default function Dashboard({ session, subscription }) {
   const [showAddProperty, setShowAddProperty] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [isDashboardMounted, setIsDashboardMounted] = useState(false)
+  const [liveCashRate, setLiveCashRate] = useState(CURRENT_CASH_RATE)
+  const [latestRateImpact, setLatestRateImpact] = useState(null)
 
   const handleOpenAddProperty = () => {
     const plan = (subscription?.plan || 'starter').toLowerCase()
@@ -60,6 +63,53 @@ export default function Dashboard({ session, subscription }) {
   useEffect(() => {
     setIsDashboardMounted(true)
   }, [])
+
+  useEffect(() => {
+    let active = true
+
+    fetchCurrentCashRate().then((rate) => {
+      if (active) setLiveCashRate(Number(rate ?? CURRENT_CASH_RATE))
+    })
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let active = true
+
+    async function loadLatestRateImpact() {
+      if (!session?.user?.id) {
+        setLatestRateImpact(null)
+        return
+      }
+
+      const { data, error } = await supabase
+        .from('portfolio_rate_impacts')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .is('dismissed_at', null)
+        .order('computed_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (!active) return
+
+      if (error) {
+        setLatestRateImpact(null)
+        return
+      }
+
+      setLatestRateImpact(data ?? null)
+    }
+
+    loadLatestRateImpact()
+
+    return () => {
+      active = false
+    }
+  }, [session?.user?.id])
 
   const alerts = useMemo(() => buildAlerts(properties, loans), [properties, loans])
 
@@ -92,10 +142,10 @@ export default function Dashboard({ session, subscription }) {
       liabilities: liabilities || [],
       loans,
       transactions: transactions || [],
-      currentCashRate: CURRENT_CASH_RATE,
+      currentCashRate: liveCashRate,
       additionalMonthlyObligation: 0,
     })
-  }, [financialProfile, liabilities, loans, transactions])
+  }, [financialProfile, liabilities, loans, transactions, liveCashRate])
 
   const fixedRateExpiry = useMemo(() => {
     if (!loans?.length) return null
@@ -384,6 +434,24 @@ export default function Dashboard({ session, subscription }) {
     [commandCenter?.growthScenarios]
   )
 
+  async function handleDismissRateImpact() {
+    if (!latestRateImpact?.id) return
+
+    const dismissedAt = new Date().toISOString()
+
+    const { error } = await supabase
+      .from('portfolio_rate_impacts')
+      .update({ dismissed_at: dismissedAt })
+      .eq('id', latestRateImpact.id)
+
+    if (!error) {
+      setLatestRateImpact((prev) =>
+        prev ? { ...prev, dismissed_at: dismissedAt } : null
+      )
+      setLatestRateImpact(null)
+    }
+  }
+
   const heroDecisionProps = useMemo(() => {
     const purchasePrice =
       leadScenario?.fallbackPrice ??
@@ -416,6 +484,8 @@ export default function Dashboard({ session, subscription }) {
         : null,
       stressThreshold,
       fixedRateExpiry,
+      rateImpact: latestRateImpact,
+      onDismissRateImpact: handleDismissRateImpact,
       acquisitionReadiness,
       acquisitionReadinessScore: acquisitionReadiness?.finalScore ?? null,
       acquisitionReadinessLabel: acquisitionReadiness?.label ?? null,
@@ -432,6 +502,7 @@ export default function Dashboard({ session, subscription }) {
     dashboardState.canShowBorrowing,
     stressThreshold,
     fixedRateExpiry,
+    latestRateImpact,
     acquisitionReadiness?.finalScore,
     acquisitionReadiness?.label,
     capacityUseCaseCount,
