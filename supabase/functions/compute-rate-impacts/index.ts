@@ -4,7 +4,7 @@ Deno.serve(async (req) => {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-trigger-secret',
   }
 
   if (req.method === 'OPTIONS') {
@@ -19,6 +19,16 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
+
+    const TRIGGER_SECRET = Deno.env.get('TRIGGER_SECRET') ?? ''
+    const requestSecret = req.headers.get('x-trigger-secret') ?? ''
+
+    if (!TRIGGER_SECRET || requestSecret !== TRIGGER_SECRET) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? ''
 

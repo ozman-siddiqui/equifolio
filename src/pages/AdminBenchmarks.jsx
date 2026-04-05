@@ -241,9 +241,6 @@ export default function AdminBenchmarks({ session = null }) {
       setLastRateEvent(data)
 
       // Trigger portfolio impact computation for all users
-      supabase.functions.invoke('compute-rate-impacts').catch((err) => {
-        console.warn('compute-rate-impacts invocation failed:', err)
-      })
     } catch (err) {
       setRbaError(err.message || 'Failed to record rate event')
     } finally {
