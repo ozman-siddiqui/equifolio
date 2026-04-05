@@ -14,6 +14,7 @@ import CashFlow from './pages/CashFlow'
 import Mortgages from './pages/Mortgages'
 import Alerts from './pages/Alerts'
 import Settings from './pages/Settings'
+import Welcome from './pages/Welcome'
 import Layout from './components/Layout'
 
 const Financials = lazy(() => import('./pages/Financials'))
@@ -222,6 +223,7 @@ export default function App() {
 
   return (
     <Routes>
+      <Route path="/welcome" element={<Welcome />} />
       <Route
         path="/"
         element={
