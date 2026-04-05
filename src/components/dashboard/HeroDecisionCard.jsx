@@ -578,6 +578,11 @@ export default function HeroDecisionCard({
                       {rateImpactSupportingLine}
                     </p>
                   ) : null}
+                  {rateImpact.narrative && (
+                    <p className="mt-2 text-sm text-slate-600 italic leading-relaxed">
+                      {rateImpact.narrative}
+                    </p>
+                  )}
                   {rateImpactBorrowingLine ? (
                     <p className="mt-1 text-xs font-medium text-emerald-700">
                       {rateImpactBorrowingLine}

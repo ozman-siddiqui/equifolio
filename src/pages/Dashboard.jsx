@@ -111,6 +111,30 @@ export default function Dashboard({ session, subscription }) {
     }
   }, [session?.user?.id])
 
+  useEffect(() => {
+    if (!latestRateImpact?.id) return
+    if (latestRateImpact.narrative) return
+    if (!session?.user?.id) return
+
+    async function generateNarrative() {
+      try {
+        const { data, error } = await supabase.functions.invoke(
+          'generate-rba-narrative',
+          { body: { rate_impact_id: latestRateImpact.id } }
+        )
+        if (!error && data?.narrative) {
+          setLatestRateImpact(prev =>
+            prev ? { ...prev, narrative: data.narrative } : null
+          )
+        }
+      } catch {
+        // Narrative generation failure must never break the banner
+      }
+    }
+
+    generateNarrative()
+  }, [latestRateImpact?.id, latestRateImpact?.narrative, session?.user?.id])
+
   const alerts = useMemo(() => buildAlerts(properties, loans), [properties, loans])
 
   const borrowingPowerAnalysis = useMemo(() => {
