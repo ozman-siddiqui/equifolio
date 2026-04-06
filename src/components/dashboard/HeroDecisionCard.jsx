@@ -142,6 +142,7 @@ export default function HeroDecisionCard({
   fixedRateExpiry = null,
   rateImpact = null,
   onDismissRateImpact = () => {},
+  confidenceChipLabel = 'High confidence',
   isExecutable = true,
 }) {
   const navigate = useNavigate()
@@ -449,7 +450,7 @@ export default function HeroDecisionCard({
                   {isExecutableScenario ? 'Indicatively viable' : 'Building toward'}
                 </span>
                 <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600">
-                  High confidence
+                  {confidenceChipLabel}
                 </span>
               </div>
             </div>

@@ -581,6 +581,9 @@ export default function Dashboard({ session, subscription }) {
         : commandCenter?.hero?.acquisitionReadiness?.label ??
           acquisitionReadiness?.label ??
           null,
+      confidenceChipLabel: usingOnboardingSnapshot
+        ? 'Indicative'
+        : 'High confidence',
       isExecutable: Boolean(
         capacityUseCaseCount > 0 ||
         (yieldFirstScenario?.isExecutable ?? false)
@@ -608,8 +611,8 @@ export default function Dashboard({ session, subscription }) {
     acquisitionReadiness?.finalScore,
     acquisitionReadiness?.label,
     capacityUseCaseCount,
-    yieldFirstScenario?.isExecutable,
     usingOnboardingSnapshot,
+    yieldFirstScenario?.isExecutable,
   ])
 
   if (loading) {
@@ -648,39 +651,13 @@ export default function Dashboard({ session, subscription }) {
         {usingOnboardingSnapshot && (
           <div style={{
             background: '#f0fdf7',
-            border: '1px solid #1D9E75',
-            borderRadius: 8,
-            padding: '10px 16px',
+            borderBottom: '1px solid #1D9E75',
+            padding: '6px 20px',
             marginBottom: 16,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            fontSize: 13,
+            fontSize: 12,
             color: '#065F46'
           }}>
-            <span>
-              <strong>Onboarding snapshot loaded</strong>
-              &nbsp;· Property, income, and capital have been
-              captured. Complete your full profile for
-              lender-grade accuracy.
-            </span>
-            <button
-              type="button"
-              onClick={() => navigate('/properties')}
-              style={{
-                color: '#1D9E75',
-                fontWeight: 500,
-                textDecoration: 'none',
-                marginLeft: 16,
-                whiteSpace: 'nowrap',
-                background: 'transparent',
-                border: 'none',
-                padding: 0,
-                cursor: 'pointer'
-              }}
-            >
-              Complete setup →
-            </button>
+            <span>Snapshot loaded · 1 property, income, and capital captured</span>
           </div>
         )}
         {usingOnboardingSnapshot && (
@@ -713,7 +690,7 @@ export default function Dashboard({ session, subscription }) {
                   marginLeft: 10,
                 }}>
                   {commandCenter?.hero?.acquisitionReadiness?.finalScore || 61}%
-                  confidence · 5 steps remaining
+                  confidence · 5 steps to unlock full insights
                 </span>
               </div>
               <Link
