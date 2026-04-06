@@ -259,6 +259,35 @@ export default function Dashboard({ session, subscription }) {
     [onboardingSnapshot, dashboardState?.setupComplete]
   )
 
+  const incompleteSteps = useMemo(() => {
+    const sectionMap = {
+      properties: {
+        label: 'Add remaining properties',
+        to: '/properties',
+      },
+      mortgages: {
+        label: 'Complete mortgage details',
+        to: '/mortgages',
+      },
+      cashflow: {
+        label: 'Add cash flow & expenses',
+        to: '/cashflow',
+      },
+      financials: {
+        label: 'Add household financials',
+        to: '/financials',
+      },
+      liabilities: {
+        label: 'Add liabilities',
+        to: '/financials',
+      },
+    }
+
+    return (dashboardState?.missingSections || [])
+      .map((section) => sectionMap[section?.id])
+      .filter(Boolean)
+  }, [dashboardState?.missingSections])
+
   const effectiveDashboardState = useMemo(() => {
     if (!usingOnboardingSnapshot) return dashboardState
 
@@ -660,7 +689,7 @@ export default function Dashboard({ session, subscription }) {
             <span>Snapshot loaded · 1 property, income, and capital captured</span>
           </div>
         )}
-        {usingOnboardingSnapshot && (
+        {usingOnboardingSnapshot && incompleteSteps.length > 0 && (
           <div style={{
             background: '#fffbeb',
             border: '1.5px solid #f59e0b',
@@ -690,7 +719,7 @@ export default function Dashboard({ session, subscription }) {
                   marginLeft: 10,
                 }}>
                   {commandCenter?.hero?.acquisitionReadiness?.finalScore || 61}%
-                  confidence · 5 steps to unlock full insights
+                  confidence · {incompleteSteps.length} step{incompleteSteps.length === 1 ? '' : 's'} to unlock full insights
                 </span>
               </div>
               <Link
@@ -711,13 +740,7 @@ export default function Dashboard({ session, subscription }) {
               gap: 10,
               flexWrap: 'wrap',
             }}>
-              {[
-                { label: 'Add remaining properties', to: '/properties' },
-                { label: 'Complete mortgage details', to: '/mortgages' },
-                { label: 'Add cash flow & expenses', to: '/cashflow' },
-                { label: 'Add household financials', to: '/financials' },
-                { label: 'Add liabilities', to: '/financials' },
-              ].map(item => (
+              {incompleteSteps.map(item => (
                 <Link
                   key={item.label}
                   to={item.to}
