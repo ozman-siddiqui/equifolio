@@ -259,6 +259,13 @@ export default function Dashboard({ session, subscription }) {
     [onboardingSnapshot, dashboardState?.setupComplete]
   )
 
+  const hasLiveHeroInputs = useMemo(() => {
+    const missing = dashboardState?.missingSections || []
+    return !['properties', 'mortgages', 'financials'].some((id) =>
+      missing.some((section) => section?.id === id)
+    )
+  }, [dashboardState?.missingSections])
+
   const incompleteSteps = useMemo(() => {
     const sectionMap = {
       properties: {
@@ -338,7 +345,10 @@ export default function Dashboard({ session, subscription }) {
     [usingOnboardingSnapshot, onboardingSnapshot]
   )
 
-  const commandCenter = onboardingCommandCenter ?? baseCommandCenter
+  const commandCenter =
+    usingOnboardingSnapshot && !hasLiveHeroInputs
+      ? (onboardingCommandCenter ?? baseCommandCenter)
+      : baseCommandCenter
 
   const growthScenarios = commandCenter?.growthScenarios
 
@@ -556,24 +566,31 @@ export default function Dashboard({ session, subscription }) {
   }
 
   const heroDecisionProps = useMemo(() => {
+    const liveEquityBase =
+      commandCenter?.hero?.netPosition?.value ??
+      commandCenter?.totalValue ??
+      0
     const purchasePrice =
       commandCenter?.hero?.purchaseRangeLow ??
       leadScenario?.fallbackPrice ??
       leadScenario?.scenarioPurchasePrice ??
-      475000
+      (liveEquityBase > 0 ? Math.round(liveEquityBase * 0.8) : 475000)
     const baseAcquisitionReadiness =
       commandCenter?.hero?.acquisitionReadiness ?? acquisitionReadiness
 
     return {
       purchaseRangeLow:
         commandCenter?.hero?.purchaseRangeLow ??
-        (leadScenario ? Math.round(purchasePrice * 0.95) : null),
+        (leadScenario ? Math.round(purchasePrice * 0.95) : null) ??
+        (liveEquityBase > 0 ? Math.round(liveEquityBase * 0.8) : null),
       purchaseRangeHigh:
         commandCenter?.hero?.purchaseRangeHigh ??
-        (leadScenario ? Math.round(purchasePrice * 1.1) : null),
+        (leadScenario ? Math.round(purchasePrice * 1.1) : null) ??
+        (liveEquityBase > 0 ? Math.round(liveEquityBase * 1.2) : null),
       fiveYearEquityUplift: leadScenario?.fiveYearEquityProjection ?? null,
-      monthlyHoldingCost: commandCenter?.hero?.monthlyPosition?.propertyCashFlow ??
+      monthlyHoldingCost: borrowingPowerAnalysis?.actual_monthly_surplus ??
         commandCenter?.hero?.monthlyPosition?.householdSurplus ??
+        commandCenter?.hero?.monthlyPosition?.propertyCashFlow ??
         leadScenario?.estimatedMonthlyCashFlow ??
         leadScenario?.estimatedPostPurchaseSurplus ??
         null,
@@ -581,13 +598,14 @@ export default function Dashboard({ session, subscription }) {
         leadScenario?.estimatedGrossYield ??
         leadScenario?.expectedRentalYield ??
         null,
-      currentEquity: commandCenter?.hero?.netPosition?.value ?? commandCenter?.totalValue ?? 0,
+      currentEquity: liveEquityBase,
       year3Equity: commandCenter?.hero?.year3Equity ??
-        leadScenario?.projectionData?.find((point) => point.year === 3)?.netEquity ?? null,
+        leadScenario?.projectionData?.find((point) => point.year === 3)?.netEquity ??
+        Math.round(liveEquityBase * 1.05 ** 3),
       year5Equity: commandCenter?.hero?.year5Equity ??
         leadScenario?.projectionData?.find((point) => point.year === 5)?.netEquity ??
         leadScenario?.fiveYearEquityProjection ??
-        null,
+        Math.round(liveEquityBase * 1.05 ** 5),
       year10Equity: commandCenter?.hero?.year10Equity ??
         leadScenario?.projectionData?.find((point) => point.year === 10)?.netEquity ?? null,
       unlockValue: usingOnboardingSnapshot || effectiveDashboardState.canShowBorrowing
@@ -623,6 +641,7 @@ export default function Dashboard({ session, subscription }) {
     commandCenter?.hero?.netPosition?.value,
     commandCenter?.hero?.purchaseRangeLow,
     commandCenter?.hero?.purchaseRangeHigh,
+    borrowingPowerAnalysis?.actual_monthly_surplus,
     commandCenter?.hero?.monthlyPosition?.propertyCashFlow,
     commandCenter?.hero?.monthlyPosition?.householdSurplus,
     commandCenter?.hero?.grossYield,
@@ -677,7 +696,7 @@ export default function Dashboard({ session, subscription }) {
         }
       `}</style>
       <main className="mx-auto max-w-7xl px-4 py-8">
-        {usingOnboardingSnapshot && (
+        {usingOnboardingSnapshot && !hasLiveHeroInputs && (
           <div style={{
             background: '#f0fdf7',
             borderBottom: '1px solid #1D9E75',
