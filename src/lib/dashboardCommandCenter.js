@@ -37,6 +37,11 @@ function formatRange(min, max) {
   return `${formatCurrency(min)} - ${formatCurrency(max)}`
 }
 
+function toSafeNumber(value) {
+  const numeric = Number(String(value ?? '').replace(/,/g, '').trim())
+  return Number.isFinite(numeric) ? numeric : 0
+}
+
 function getPropertyStatus({ hasLoanCoverage, netCashFlow, refinanceCandidate, alerts }) {
   if (!hasLoanCoverage || netCashFlow < 0 || alerts.some((alert) => alert.urgent)) {
     return 'Risk'
@@ -47,6 +52,229 @@ function getPropertyStatus({ hasLoanCoverage, netCashFlow, refinanceCandidate, a
   }
 
   return 'Healthy'
+}
+
+export function buildOnboardingSnapshotCommandCenter(snapshot = null) {
+  if (!snapshot || typeof snapshot !== 'object') return null
+
+  const currentValue = toSafeNumber(snapshot.currentValue)
+  const loanBalance = toSafeNumber(snapshot.loanBalance)
+  const interestRate = toSafeNumber(snapshot.interestRate) || 6
+  const annualIncome = toSafeNumber(snapshot.annualIncome)
+  const partnerIncome = toSafeNumber(snapshot.partnerIncome)
+  const cashSavings = toSafeNumber(snapshot.cashSavings)
+  const offsetBalance = toSafeNumber(snapshot.offsetBalance)
+  const creditCardLimits = toSafeNumber(snapshot.creditCardLimits)
+  const rentPerMonth = toSafeNumber(snapshot.monthlyRentalIncome)
+  const annualRent = rentPerMonth * 12
+  const netEquity = Math.max(0, currentValue - loanBalance)
+  const monthlyRate = interestRate / 100 / 12
+  const monthlyRepayment =
+    String(snapshot.repaymentType) === 'io'
+      ? (loanBalance * interestRate) / 100 / 12
+      : loanBalance > 0
+        ? monthlyRate === 0
+          ? loanBalance / 300
+          : (loanBalance * (monthlyRate * Math.pow(1 + monthlyRate, 300))) /
+            (Math.pow(1 + monthlyRate, 300) - 1)
+        : 0
+  const householdMonthlyIncome = (annualIncome + partnerIncome + annualRent) / 12
+  const householdSurplus = householdMonthlyIncome - monthlyRepayment
+  const borrowingCapacityBase =
+    annualIncome > 0
+      ? annualIncome * 6 + partnerIncome * 6 - creditCardLimits * 3.8
+      : 0
+  const currentBorrowingCapacity = Math.max(0, Math.round(borrowingCapacityBase))
+  const unlockPotential = creditCardLimits > 0 ? Math.round(creditCardLimits * 3.8) : null
+
+  let acquisitionReadiness = 0
+  if (currentValue > 0 && loanBalance >= 0) acquisitionReadiness += 20
+  if (annualIncome > 0) acquisitionReadiness += 15
+  if (cashSavings > 0) acquisitionReadiness += 12
+  if (interestRate > 0) acquisitionReadiness += 6
+  if (rentPerMonth > 0) acquisitionReadiness += 5
+  if (partnerIncome > 0) acquisitionReadiness += 5
+  if (offsetBalance > 0) acquisitionReadiness += 4
+  if (creditCardLimits > 0) acquisitionReadiness += 3
+  acquisitionReadiness = Math.min(65, acquisitionReadiness)
+
+  const indicativePurchaseRangeLow = cashSavings > 0 ? Math.round(cashSavings * 4.5) : null
+  const indicativePurchaseRangeHigh = cashSavings > 0 ? Math.round(cashSavings * 5.5) : null
+  const fieldsPresent = [
+    snapshot.propertyAddress,
+    snapshot.currentValue,
+    snapshot.loanBalance,
+    snapshot.interestRate,
+    snapshot.monthlyRentalIncome,
+    snapshot.annualIncome,
+    snapshot.partnerIncome,
+    snapshot.cashSavings,
+    snapshot.offsetBalance,
+    snapshot.creditCardLimits,
+  ].filter((value) => String(value ?? '').trim() !== '').length
+
+  const decisionConfidence =
+    fieldsPresent >= 6 ? 'High' : fieldsPresent >= 3 ? 'Medium' : 'Low'
+  const confidenceLabel =
+    fieldsPresent >= 6
+      ? 'Indicative based on onboarding snapshot'
+      : fieldsPresent >= 3
+        ? 'Indicative onboarding estimate'
+        : 'Early onboarding estimate'
+
+  const stressThresholdRate = Math.max(
+    interestRate + 2.25,
+    8.5 + (partnerIncome > 0 ? 0.35 : 0) + (rentPerMonth > 0 ? 0.15 : 0) + (offsetBalance > 0 ? 0.1 : 0)
+  )
+  const stressThreshold = {
+    status:
+      annualIncome > 0 && stressThresholdRate - interestRate >= 3
+        ? 'safe'
+        : annualIncome > 0
+          ? 'warning'
+          : 'warning',
+    stressThresholdLabel: `>${stressThresholdRate.toFixed(2)}%`,
+  }
+
+  const topActions = [
+    unlockPotential
+      ? createAction({
+          id: 'snapshot-reduce-credit-limits',
+          title: `Reduce credit card limits to unlock ${formatCurrency(unlockPotential)}`,
+          route: '/financials',
+          priority: 88,
+          category: 'Borrowing',
+          effort: 'Low',
+          confidence: decisionConfidence,
+          problem: 'Card limits reduce serviceability even when balances are low.',
+          whyItMatters: 'Lowering limits can free up borrowing capacity immediately.',
+          borrowingLift: unlockPotential,
+          kind: 'borrowing',
+          actionClass: 'DIRECT_FINANCIAL',
+        })
+      : createAction({
+          id: 'snapshot-complete-financials',
+          title: 'Complete full financial details to raise confidence',
+          route: '/financials',
+          priority: 70,
+          category: 'Setup',
+          effort: 'Low',
+          confidence: 'High',
+          problem: 'You are seeing an indicative view based on onboarding inputs only.',
+          whyItMatters: 'Deeper detail sharpens serviceability, borrowing, and ranking outputs.',
+          impactLabel: 'Higher confidence decisions',
+          kind: 'setup',
+          actionClass: 'INDIRECT',
+        }),
+    createAction({
+      id: 'snapshot-complete-cashflow',
+      title: 'Add recurring income and expenses for stronger accuracy',
+      route: '/cashflow',
+      priority: 68,
+      category: 'Cash Flow',
+      effort: 'Low',
+      confidence: 'High',
+      problem: 'The current view does not yet include full recurring portfolio cash flow.',
+      whyItMatters: 'Cash flow detail sharpens resilience, surplus, and property-level decisions.',
+      impactLabel: 'Improves confidence',
+      kind: 'cashflow',
+      actionClass: 'INDIRECT',
+    }),
+  ].filter(Boolean)
+
+  return {
+    snapshotMode: true,
+    snapshotMessage:
+      'Indicative based on onboarding snapshot. Complete more portfolio detail for higher confidence.',
+    totalValue: currentValue,
+    hero: {
+      netPosition: {
+        value: netEquity,
+        subtitle: 'Estimated from your onboarding property value and current debt.',
+        helper: 'Indicative equity estimate',
+        cta: { label: 'Complete details', route: '/properties' },
+      },
+      monthlyPosition: {
+        propertyCashFlow: Math.round(rentPerMonth - monthlyRepayment),
+        householdSurplus: Math.round(householdSurplus),
+        subtitle: 'Indicative monthly position using onboarding inputs.',
+        cta: { label: 'Complete cash flow', route: '/cashflow' },
+      },
+      borrowingPower: {
+        currentCapacity: currentBorrowingCapacity,
+        unlockPotential,
+        potentialImprovement: unlockPotential
+          ? `Indicatively +${formatCurrency(unlockPotential)} from reducing card limits`
+          : 'More upside appears as you complete the full financial profile.',
+        subtitle: confidenceLabel,
+        cta: { label: 'Complete financials', route: '/financials' },
+        unlockPotentialLabel:
+          unlockPotential != null ? `+${formatCurrency(unlockPotential)}` : null,
+      },
+      usableEquity: Math.round(Math.max(currentValue * 0.8 - loanBalance, 0)),
+      acquisitionReadiness: {
+        finalScore: acquisitionReadiness,
+        label: 'Indicative',
+      },
+      stressThreshold,
+      purchaseRangeLow: indicativePurchaseRangeLow,
+      purchaseRangeHigh: indicativePurchaseRangeHigh,
+      grossYield: currentValue > 0 && annualRent > 0 ? (annualRent / currentValue) * 100 : null,
+      year3Equity: Math.round(netEquity * Math.pow(1.05, 3)),
+      year5Equity: Math.round(netEquity * Math.pow(1.05, 5)),
+      year10Equity: Math.round(netEquity * Math.pow(1.05, 10)),
+    },
+    growthScenarios: {
+      feasibleStrategies: [],
+      nearViableStrategies: [],
+      blockedStrategies: [],
+      bestBlockedStrategy: null,
+    },
+    topActions,
+    opportunities: topActions,
+    urgentAlerts: [],
+    portfolioProperties: currentValue > 0 ? [
+      {
+        id: 'onboarding-snapshot-property',
+        address: snapshot.propertyAddress || 'My Property',
+        location: '',
+        equity: netEquity,
+        cashFlow: Math.round(rentPerMonth - monthlyRepayment),
+        status: 'Opportunity',
+        hasLoanCoverage: true,
+        route: '/properties',
+      },
+    ] : [],
+    capacityUseCases: [],
+    unlockActions: topActions.map((action) => ({
+      id: action.id,
+      title: action.title,
+      route: action.route,
+      whyItMatters: action.whyItMatters,
+      ctaLabel: 'Explore',
+      impact: action.borrowingLift != null
+        ? `+${formatCurrency(action.borrowingLift)}`
+        : action.impactLabel || action.impact,
+    })),
+    topActionSummaries: topActions.map((action, index) => ({
+      id: action.id,
+      rank: index + 1,
+      sequenceLabel: index === 0 ? 'Start here' : 'Next priority',
+      reason: action.whyItMatters,
+      title: action.title,
+      priority: action.priorityLabel,
+      impact: action.borrowingLift != null
+        ? `+${formatCurrency(action.borrowingLift)}`
+        : action.impactLabel || action.impact,
+      route: action.route,
+    })),
+    compareOptions: [],
+    compareSectionTitle: 'Compare your options',
+    compareMetric: 'borrowing',
+    compareHeadlineLabel: 'Borrowing capacity',
+    dataCoveragePct: Math.max(22, Math.min(68, Math.round((fieldsPresent / 10) * 100))),
+    decisionConfidence: 'Indicative',
+  }
 }
 
 function getConfidenceBadge({ dashboardCompleteness, borrowingAnalysis, type }) {

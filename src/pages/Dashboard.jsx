@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ChevronRight, Plus, Siren, Sparkles } from 'lucide-react'
 
 import AddPropertyModal from '../components/AddPropertyModal'
@@ -19,7 +19,7 @@ import useFinancialData from '../hooks/useFinancialData'
 import usePortfolioData from '../hooks/usePortfolioData'
 import calculateBorrowingPower from '../lib/borrowingPowerEngine'
 import { calculateStressThreshold } from '../lib/stressThreshold.js'
-import buildDashboardCommandCenter from '../lib/dashboardCommandCenter'
+import buildDashboardCommandCenter, { buildOnboardingSnapshotCommandCenter } from '../lib/dashboardCommandCenter'
 import buildDashboardCompleteness from '../lib/dashboardCompleteness'
 import buildDashboardStateResolver from '../lib/dashboardStateResolver'
 import { CURRENT_CASH_RATE, fetchCurrentCashRate } from '../config/marketRates.js'
@@ -47,6 +47,14 @@ export default function Dashboard({ session, subscription }) {
   const [isDashboardMounted, setIsDashboardMounted] = useState(false)
   const [liveCashRate, setLiveCashRate] = useState(CURRENT_CASH_RATE)
   const [latestRateImpact, setLatestRateImpact] = useState(null)
+  const [onboardingSnapshot, setOnboardingSnapshot] = useState(() => {
+    try {
+      const raw = sessionStorage.getItem('onboardingSnapshot')
+      return raw ? JSON.parse(raw) : null
+    } catch {
+      return null
+    }
+  })
 
   const handleOpenAddProperty = () => {
     const plan = (subscription?.plan || 'starter').toLowerCase()
@@ -246,7 +254,28 @@ export default function Dashboard({ session, subscription }) {
     ]
   )
 
-  const commandCenter = useMemo(
+  const usingOnboardingSnapshot = useMemo(
+    () => Boolean(onboardingSnapshot) && !dashboardState?.setupComplete,
+    [onboardingSnapshot, dashboardState?.setupComplete]
+  )
+
+  const effectiveDashboardState = useMemo(() => {
+    if (!usingOnboardingSnapshot) return dashboardState
+
+    return {
+      ...dashboardState,
+      hasProperties: true,
+      canShowNetPosition: true,
+      showNetPositionPartial: false,
+      canShowMonthlyPosition: true,
+      canShowActualMonthlySurplus: true,
+      canShowPropertyCashFlow: true,
+      canShowHouseholdSurplus: true,
+      canShowTopActions: true,
+    }
+  }, [dashboardState, usingOnboardingSnapshot])
+
+  const baseCommandCenter = useMemo(
     () =>
       buildDashboardCommandCenter({
         properties,
@@ -272,13 +301,32 @@ export default function Dashboard({ session, subscription }) {
     ]
   )
 
+  const onboardingCommandCenter = useMemo(
+    () =>
+      usingOnboardingSnapshot
+        ? buildOnboardingSnapshotCommandCenter(onboardingSnapshot)
+        : null,
+    [usingOnboardingSnapshot, onboardingSnapshot]
+  )
+
+  const commandCenter = onboardingCommandCenter ?? baseCommandCenter
+
   const growthScenarios = commandCenter?.growthScenarios
 
   const borrowingRenderState = useMemo(() => {
     const analysisStatus = borrowingPowerAnalysis?.status
     const confidence = borrowingPowerAnalysis?.confidenceLabel || 'Low'
 
-    if (!dashboardState?.setupComplete) {
+    if (usingOnboardingSnapshot) {
+      return {
+        state: 'snapshot',
+        confidence: commandCenter?.decisionConfidence || 'Medium',
+        warning:
+          'Indicative based on onboarding snapshot. Complete portfolio details for higher confidence.',
+      }
+    }
+
+    if (!effectiveDashboardState?.setupComplete) {
       return {
         state: 'locked',
         confidence,
@@ -310,9 +358,11 @@ export default function Dashboard({ session, subscription }) {
       warning: null,
     }
   }, [
-    dashboardState?.setupComplete,
+    commandCenter?.decisionConfidence,
+    effectiveDashboardState?.setupComplete,
     borrowingPowerAnalysis?.status,
     borrowingPowerAnalysis?.confidenceLabel,
+    usingOnboardingSnapshot,
   ])
 
   const totalPropertyValue = useMemo(
@@ -324,9 +374,9 @@ export default function Dashboard({ session, subscription }) {
     [loans]
   )
   const currentLvrPct = useMemo(() => {
-    if (!totalPropertyValue || dashboardState.showNetPositionPartial) return null
+    if (!totalPropertyValue || effectiveDashboardState.showNetPositionPartial) return null
     return (totalRecordedDebt / totalPropertyValue) * 100
-  }, [dashboardState.showNetPositionPartial, totalPropertyValue, totalRecordedDebt])
+  }, [effectiveDashboardState.showNetPositionPartial, totalPropertyValue, totalRecordedDebt])
   const portfolioProperties = commandCenter?.portfolioProperties
   const netEquityDetailRows = useMemo(
     () =>
@@ -478,41 +528,59 @@ export default function Dashboard({ session, subscription }) {
 
   const heroDecisionProps = useMemo(() => {
     const purchasePrice =
+      commandCenter?.hero?.purchaseRangeLow ??
       leadScenario?.fallbackPrice ??
       leadScenario?.scenarioPurchasePrice ??
       475000
+    const baseAcquisitionReadiness =
+      commandCenter?.hero?.acquisitionReadiness ?? acquisitionReadiness
 
     return {
-      purchaseRangeLow: leadScenario ? Math.round(purchasePrice * 0.95) : null,
-      purchaseRangeHigh: leadScenario ? Math.round(purchasePrice * 1.1) : null,
+      purchaseRangeLow:
+        commandCenter?.hero?.purchaseRangeLow ??
+        (leadScenario ? Math.round(purchasePrice * 0.95) : null),
+      purchaseRangeHigh:
+        commandCenter?.hero?.purchaseRangeHigh ??
+        (leadScenario ? Math.round(purchasePrice * 1.1) : null),
       fiveYearEquityUplift: leadScenario?.fiveYearEquityProjection ?? null,
-      monthlyHoldingCost:
+      monthlyHoldingCost: commandCenter?.hero?.monthlyPosition?.propertyCashFlow ??
+        commandCenter?.hero?.monthlyPosition?.householdSurplus ??
         leadScenario?.estimatedMonthlyCashFlow ??
         leadScenario?.estimatedPostPurchaseSurplus ??
         null,
-      grossYield:
+      grossYield: commandCenter?.hero?.grossYield ??
         leadScenario?.estimatedGrossYield ??
         leadScenario?.expectedRentalYield ??
         null,
       currentEquity: commandCenter?.hero?.netPosition?.value ?? commandCenter?.totalValue ?? 0,
-      year3Equity:
+      year3Equity: commandCenter?.hero?.year3Equity ??
         leadScenario?.projectionData?.find((point) => point.year === 3)?.netEquity ?? null,
-      year5Equity:
+      year5Equity: commandCenter?.hero?.year5Equity ??
         leadScenario?.projectionData?.find((point) => point.year === 5)?.netEquity ??
         leadScenario?.fiveYearEquityProjection ??
         null,
-      year10Equity:
+      year10Equity: commandCenter?.hero?.year10Equity ??
         leadScenario?.projectionData?.find((point) => point.year === 10)?.netEquity ?? null,
-      unlockValue: dashboardState.canShowBorrowing
+      unlockValue: usingOnboardingSnapshot || effectiveDashboardState.canShowBorrowing
         ? commandCenter?.hero?.borrowingPower?.unlockPotential ?? null
         : null,
-      stressThreshold,
+      stressThreshold: commandCenter?.hero?.stressThreshold ?? stressThreshold,
       fixedRateExpiry,
       rateImpact: latestRateImpact,
       onDismissRateImpact: handleDismissRateImpact,
-      acquisitionReadiness,
-      acquisitionReadinessScore: acquisitionReadiness?.finalScore ?? null,
-      acquisitionReadinessLabel: acquisitionReadiness?.label ?? null,
+      acquisitionReadiness:
+        usingOnboardingSnapshot && baseAcquisitionReadiness
+          ? { ...baseAcquisitionReadiness, label: 'Indicative' }
+          : baseAcquisitionReadiness,
+      acquisitionReadinessScore:
+        commandCenter?.hero?.acquisitionReadiness?.finalScore ??
+        acquisitionReadiness?.finalScore ??
+        null,
+      acquisitionReadinessLabel: usingOnboardingSnapshot
+        ? 'Indicative'
+        : commandCenter?.hero?.acquisitionReadiness?.label ??
+          acquisitionReadiness?.label ??
+          null,
       isExecutable: Boolean(
         capacityUseCaseCount > 0 ||
         (yieldFirstScenario?.isExecutable ?? false)
@@ -521,9 +589,19 @@ export default function Dashboard({ session, subscription }) {
   }, [
     leadScenario,
     commandCenter?.hero?.netPosition?.value,
+    commandCenter?.hero?.purchaseRangeLow,
+    commandCenter?.hero?.purchaseRangeHigh,
+    commandCenter?.hero?.monthlyPosition?.propertyCashFlow,
+    commandCenter?.hero?.monthlyPosition?.householdSurplus,
+    commandCenter?.hero?.grossYield,
+    commandCenter?.hero?.year3Equity,
+    commandCenter?.hero?.year5Equity,
+    commandCenter?.hero?.year10Equity,
     commandCenter?.hero?.borrowingPower?.unlockPotential,
+    commandCenter?.hero?.stressThreshold,
+    commandCenter?.hero?.acquisitionReadiness,
     commandCenter?.totalValue,
-    dashboardState.canShowBorrowing,
+    effectiveDashboardState.canShowBorrowing,
     stressThreshold,
     fixedRateExpiry,
     latestRateImpact,
@@ -531,6 +609,7 @@ export default function Dashboard({ session, subscription }) {
     acquisitionReadiness?.label,
     capacityUseCaseCount,
     yieldFirstScenario?.isExecutable,
+    usingOnboardingSnapshot,
   ])
 
   if (loading) {
@@ -544,6 +623,12 @@ export default function Dashboard({ session, subscription }) {
   return (
     <div className="min-h-screen bg-gray-50">
       <style>{`
+        @keyframes vaulta-strip-pulse {
+          0%   { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+          70%  { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        }
+
         .dashboard-mounted {
           animation: dashboardFadeSlideIn 350ms ease-out both;
         }
@@ -560,6 +645,141 @@ export default function Dashboard({ session, subscription }) {
         }
       `}</style>
       <main className="mx-auto max-w-7xl px-4 py-8">
+        {usingOnboardingSnapshot && (
+          <div style={{
+            background: '#f0fdf7',
+            border: '1px solid #1D9E75',
+            borderRadius: 8,
+            padding: '10px 16px',
+            marginBottom: 16,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: 13,
+            color: '#065F46'
+          }}>
+            <span>
+              <strong>Onboarding snapshot loaded</strong>
+              &nbsp;· Property, income, and capital have been
+              captured. Complete your full profile for
+              lender-grade accuracy.
+            </span>
+            <button
+              type="button"
+              onClick={() => navigate('/properties')}
+              style={{
+                color: '#1D9E75',
+                fontWeight: 500,
+                textDecoration: 'none',
+                marginLeft: 16,
+                whiteSpace: 'nowrap',
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer'
+              }}
+            >
+              Complete setup →
+            </button>
+          </div>
+        )}
+        {usingOnboardingSnapshot && (
+          <div style={{
+            background: '#fffbeb',
+            border: '1.5px solid #f59e0b',
+            borderRadius: 10,
+            padding: '16px 20px',
+            marginBottom: 20,
+            animation: 'vaulta-strip-pulse 2s ease-in-out 3',
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 10,
+            }}>
+              <div>
+                <span style={{
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: '#92400e',
+                }}>
+                  Complete your setup to unlock full insights
+                </span>
+                <span style={{
+                  fontSize: 13,
+                  color: '#b45309',
+                  fontWeight: 500,
+                  marginLeft: 10,
+                }}>
+                  {commandCenter?.hero?.acquisitionReadiness?.finalScore || 61}%
+                  confidence · 5 steps remaining
+                </span>
+              </div>
+              <Link
+                to="/properties"
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: '#92400e',
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Continue setup →
+              </Link>
+            </div>
+            <div style={{
+              display: 'flex',
+              gap: 10,
+              flexWrap: 'wrap',
+            }}>
+              {[
+                { label: 'Add remaining properties', to: '/properties' },
+                { label: 'Complete mortgage details', to: '/mortgages' },
+                { label: 'Add cash flow & expenses', to: '/cashflow' },
+                { label: 'Add household financials', to: '/financials' },
+                { label: 'Add liabilities', to: '/financials' },
+              ].map(item => (
+                <Link
+                  key={item.label}
+                  to={item.to}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontSize: 12,
+                    color: '#92400e',
+                    background: '#fef3c7',
+                    border: '1px solid #fcd34d',
+                    borderRadius: 20,
+                    padding: '5px 12px',
+                    textDecoration: 'none',
+                    fontWeight: 500,
+                  }}
+                >
+                  <span style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    background: '#f59e0b',
+                    display: 'inline-block',
+                  }} />
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+            <p style={{
+              fontSize: 11,
+              color: '#b45309',
+              marginTop: 10,
+              marginBottom: 0,
+            }}>
+              Complete remaining setup to unlock accurate
+              borrowing, cash flow, and portfolio insights.
+            </p>
+          </div>
+        )}
         <section
           className={`rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-8 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
           style={isDashboardMounted ? { animationDelay: '0ms' } : { opacity: 0, transform: 'translateY(8px)' }}
@@ -577,6 +797,12 @@ export default function Dashboard({ session, subscription }) {
               <p className="mt-3 max-w-2xl text-sm leading-7 text-gray-600 md:text-base">
                 Your current position, constraints, and next best actions.
               </p>
+              {usingOnboardingSnapshot ? (
+                <p className="mt-3 max-w-2xl text-sm leading-7 text-emerald-700 md:text-[15px]">
+                  Indicative based on onboarding snapshot. Complete more detail across properties,
+                  cash flow, and financials for higher confidence.
+                </p>
+              ) : null}
             </div>
 
             <div className="flex flex-wrap gap-3">
@@ -630,9 +856,9 @@ export default function Dashboard({ session, subscription }) {
           <HeroDecisionCard {...heroDecisionProps} />
         </div>
 
-        {!dashboardState.hasProperties ? (
+        {!effectiveDashboardState.hasProperties ? (
           <section className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-2">
-            {dashboardState.missingSections.map((section) => (
+            {effectiveDashboardState.missingSections.map((section) => (
               <DashboardPromptCard
                 key={section.id}
                 eyebrow={section.label}
@@ -649,28 +875,28 @@ export default function Dashboard({ session, subscription }) {
               className={`mt-6 grid grid-cols-1 gap-5 lg:grid-cols-3 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
               style={isDashboardMounted ? { animationDelay: '120ms' } : { opacity: 0, transform: 'translateY(8px)' }}
             >
-              {dashboardState.canShowNetPosition ? (
+              {effectiveDashboardState.canShowNetPosition ? (
                 <CommandCentreCard
                   eyebrow="Net Position"
-                  title={dashboardState.showNetPositionPartial ? 'Asset Value' : 'Net Equity'}
+                  title={effectiveDashboardState.showNetPositionPartial ? 'Asset Value' : 'Net Equity'}
                   value={
-                    dashboardState.showNetPositionPartial
+                    effectiveDashboardState.showNetPositionPartial
                       ? totalPropertyValue
                       : commandCenter.hero.netPosition.value
                   }
                   valueTone={
-                    !dashboardState.showNetPositionPartial &&
+                    !effectiveDashboardState.showNetPositionPartial &&
                     Number(commandCenter.hero.netPosition.value) < 0
                       ? 'text-[#A32D2D]'
                       : null
                   }
                   helper={
-                    dashboardState.showNetPositionPartial
+                    effectiveDashboardState.showNetPositionPartial
                       ? 'Asset-only view until all mortgages are recorded'
                       : 'Assets minus total debt'
                   }
                   statusBadge={
-                    !dashboardState.showNetPositionPartial &&
+                    !effectiveDashboardState.showNetPositionPartial &&
                     Number(commandCenter.hero.netPosition.value) < 0
                       ? {
                           label: 'Negative equity',
@@ -680,15 +906,15 @@ export default function Dashboard({ session, subscription }) {
                       : null
                   }
                   detailRows={
-                    dashboardState.showNetPositionPartial ? [] : netEquityDetailRows
+                    effectiveDashboardState.showNetPositionPartial ? [] : netEquityDetailRows
                   }
                   detailEmptyState={
-                    dashboardState.showNetPositionPartial
+                    effectiveDashboardState.showNetPositionPartial
                       ? null
                       : 'No properties recorded yet'
                   }
                   progressInfo={
-                    dashboardState.showNetPositionPartial
+                    effectiveDashboardState.showNetPositionPartial
                       ? null
                       : {
                           label: 'LVR',
@@ -705,16 +931,16 @@ export default function Dashboard({ session, subscription }) {
                         }
                   }
                   subtitle={
-                    dashboardState.showNetPositionPartial
+                    effectiveDashboardState.showNetPositionPartial
                       ? 'Add mortgage details for every property to calculate true net equity, leverage, and LVR.'
                       : commandCenter.hero.netPosition.subtitle
                   }
                   cta={{
-                    label: dashboardState.showNetPositionPartial ? 'Add Mortgage' : commandCenter.hero.netPosition.cta.label,
+                    label: effectiveDashboardState.showNetPositionPartial ? 'Add Mortgage' : commandCenter.hero.netPosition.cta.label,
                   }}
                   onClick={() =>
                     navigate(
-                      dashboardState.showNetPositionPartial
+                      effectiveDashboardState.showNetPositionPartial
                         ? '/mortgages'
                         : commandCenter.hero.netPosition.cta.route
                     )
@@ -730,18 +956,19 @@ export default function Dashboard({ session, subscription }) {
                 />
               )}
 
-              {dashboardState.canShowMonthlyPosition ? (
+              {effectiveDashboardState.canShowMonthlyPosition ? (
                 <CommandCentreCard
                   eyebrow="Monthly Position"
                   title="Cash Flow and Surplus"
                   value={
-                    dashboardState.canShowActualMonthlySurplus
-                      ? borrowingPowerAnalysis?.actual_monthly_surplus
+                    effectiveDashboardState.canShowActualMonthlySurplus
+                      ? borrowingPowerAnalysis?.actual_monthly_surplus ??
+                        commandCenter.hero.monthlyPosition.householdSurplus
                       : null
                   }
                   helper="After-tax household surplus"
                   detailRows={[
-                    ...(dashboardState.canShowPropertyCashFlow
+                    ...(effectiveDashboardState.canShowPropertyCashFlow
                       ? [{
                           label: 'Property cash flow',
                           value: formatCurrency(commandCenter.hero.monthlyPosition.propertyCashFlow),
@@ -751,7 +978,7 @@ export default function Dashboard({ session, subscription }) {
                               : 'text-red-500',
                         }]
                       : []),
-                    ...(dashboardState.canShowHouseholdSurplus
+                    ...(effectiveDashboardState.canShowHouseholdSurplus
                       ? [{
                           label: 'Lender serviceability view',
                           value: formatCurrency(commandCenter.hero.monthlyPosition.householdSurplus),
@@ -765,17 +992,17 @@ export default function Dashboard({ session, subscription }) {
                   subtitle="Property cash flow, your real monthly position, and the lender view are shown separately."
                   cta={{
                     label:
-                      !dashboardState.canShowActualMonthlySurplus || !dashboardState.canShowPropertyCashFlow
+                      !effectiveDashboardState.canShowActualMonthlySurplus || !effectiveDashboardState.canShowPropertyCashFlow
                         ? 'Go to Cash Flow'
-                        : dashboardState.canShowHouseholdSurplus
+                        : effectiveDashboardState.canShowHouseholdSurplus
                           ? 'Explore cash flow'
                           : 'Open financials',
                   }}
                   onClick={() =>
                     navigate(
-                      !dashboardState.canShowActualMonthlySurplus || !dashboardState.canShowPropertyCashFlow
+                      !effectiveDashboardState.canShowActualMonthlySurplus || !effectiveDashboardState.canShowPropertyCashFlow
                         ? '/cashflow'
-                        : dashboardState.canShowHouseholdSurplus
+                        : effectiveDashboardState.canShowHouseholdSurplus
                           ? '/cashflow'
                           : '/financials'
                     )
@@ -791,7 +1018,7 @@ export default function Dashboard({ session, subscription }) {
                 />
               )}
 
-              {dashboardState.canShowBorrowing ? (
+              {usingOnboardingSnapshot || effectiveDashboardState.canShowBorrowing ? (
                 <DashboardBorrowingPowerCard
                   currentCapacity={commandCenter.hero.borrowingPower.currentCapacity}
                   unlockPotential={
@@ -827,7 +1054,9 @@ export default function Dashboard({ session, subscription }) {
                       : []),
                   ]}
                   subtitle={
-                    borrowingRenderState.state === 'warning'
+                    usingOnboardingSnapshot
+                      ? 'Indicative based on onboarding snapshot. Complete financial details for a fuller lender-grade view.'
+                      : borrowingRenderState.state === 'warning'
                       ? 'Borrowing output is available, but confidence is reduced. Use the breakdown before acting.'
                       : 'Additional borrowing headroom visible from your next best move'
                   }
@@ -841,13 +1070,13 @@ export default function Dashboard({ session, subscription }) {
                   eyebrow="Borrowing Power"
                   title="Complete setup to unlock borrowing analysis"
                   body="Borrowing power stays locked until Financials, liabilities, and mortgage commitments are fully recorded."
-                  ctaLabel={dashboardState.missingSections[0]?.ctaLabel || 'Open setup'}
-                  onAction={() => navigate(dashboardState.missingSections[0]?.route || '/financials')}
+                  ctaLabel={effectiveDashboardState.missingSections[0]?.ctaLabel || 'Open setup'}
+                  onAction={() => navigate(effectiveDashboardState.missingSections[0]?.route || '/financials')}
                 />
               )}
             </section>
 
-            {dashboardState.canShowBorrowing ? (
+            {effectiveDashboardState.canShowBorrowing && !usingOnboardingSnapshot ? (
               <section
                 className={`mt-5 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
                 style={isDashboardMounted ? { animationDelay: '150ms' } : { opacity: 0, transform: 'translateY(8px)' }}
@@ -859,7 +1088,7 @@ export default function Dashboard({ session, subscription }) {
               </section>
             ) : null}
 
-            {dashboardState.canShowTopActions ? (
+            {usingOnboardingSnapshot || effectiveDashboardState.canShowTopActions ? (
               <section
                 className={`mt-6 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
                 style={isDashboardMounted ? { animationDelay: '180ms' } : { opacity: 0, transform: 'translateY(8px)' }}
@@ -872,7 +1101,9 @@ export default function Dashboard({ session, subscription }) {
                     What to fix first
                   </h2>
                   <p className="mt-2 text-sm leading-6 text-gray-600">
-                    Ranked actions unlocked from validated portfolio, mortgage, and household inputs.
+                    {usingOnboardingSnapshot
+                      ? 'Indicative next steps based on your onboarding snapshot. Complete more detail to sharpen prioritisation.'
+                      : 'Ranked actions unlocked from validated portfolio, mortgage, and household inputs.'}
                   </p>
                 </div>
 
@@ -903,8 +1134,8 @@ export default function Dashboard({ session, subscription }) {
                 <LockedChecklistCard
                   eyebrow="Actions"
                   title="Unlock your top actions"
-                  body={dashboardState.topActionsLockedReason}
-                  missingSections={dashboardState.missingSections}
+                  body={effectiveDashboardState.topActionsLockedReason}
+                  missingSections={effectiveDashboardState.missingSections}
                   onAction={(route) => navigate(route)}
                 />
               </section>
@@ -923,7 +1154,7 @@ export default function Dashboard({ session, subscription }) {
               </div>
             </section>
 
-            {Number(dashboardState?.setupCompletionPct ?? 0) === 100 ? (
+            {Number(effectiveDashboardState?.setupCompletionPct ?? 0) === 100 || usingOnboardingSnapshot ? (
               <section className="hidden">
                 <p className="text-sm text-gray-600">
                   Portfolio data complete · Decision confidence: {commandCenter.decisionConfidence} ·
@@ -931,10 +1162,10 @@ export default function Dashboard({ session, subscription }) {
                 </p>
               </section>
             ) : (
-              <SetupProgress state={dashboardState} onOpenSection={(route) => navigate(route)} />
+              <SetupProgress state={effectiveDashboardState} onOpenSection={(route) => navigate(route)} />
             )}
 
-            {dashboardState.canShowBorrowing && commandCenter.compareOptions?.length > 0 ? (
+            {effectiveDashboardState.canShowBorrowing && commandCenter.compareOptions?.length > 0 ? (
               <section
                 className={`mt-8 rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] p-[22px] shadow-[0_10px_24px_rgba(15,23,42,0.04)] md:px-[26px] md:py-[22px] ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
                 style={isDashboardMounted ? { animationDelay: '240ms' } : { opacity: 0, transform: 'translateY(8px)' }}
@@ -1070,7 +1301,7 @@ export default function Dashboard({ session, subscription }) {
               </div>
             </section>
 
-            {dashboardState.canShowBorrowing && Array.isArray(borrowingPowerAnalysis?.topConstraints) && borrowingPowerAnalysis.topConstraints.length > 0 ? (
+            {effectiveDashboardState.canShowBorrowing && Array.isArray(borrowingPowerAnalysis?.topConstraints) && borrowingPowerAnalysis.topConstraints.length > 0 ? (
               <section
                 className={`mt-5 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
                 style={isDashboardMounted ? { animationDelay: '360ms' } : { opacity: 0, transform: 'translateY(8px)' }}

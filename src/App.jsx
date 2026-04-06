@@ -1,5 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './supabase'
 
 import Auth from './pages/Auth'
@@ -86,6 +86,8 @@ export default function App() {
   const [subscription, setSubscription] = useState(null)
   const [ready, setReady] = useState(false)
   const [subscriptionReady, setSubscriptionReady] = useState(false)
+  const [welcomeGateReady, setWelcomeGateReady] = useState(false)
+  const [requiresWelcome, setRequiresWelcome] = useState(false)
 
   const signOut = async () => {
     try {
@@ -170,7 +172,107 @@ export default function App() {
     }
   }, [session])
 
-  if (!ready || !subscriptionReady) {
+  const isActive =
+    subscription?.status === 'active' || subscription?.status === 'trialing'
+
+  useEffect(() => {
+    let isMounted = true
+
+    const resolveWelcomeGate = async () => {
+      if (!session?.user?.id || !isActive) {
+        if (!isMounted) return
+        setRequiresWelcome(false)
+        setWelcomeGateReady(true)
+        return
+      }
+
+      setWelcomeGateReady(false)
+
+      try {
+        const [
+          { data: propertyRow, error: propertyError },
+          { data: profileRow, error: profileError },
+        ] = await Promise.all([
+          supabase
+            .from('properties')
+            .select('id')
+            .eq('user_id', session.user.id)
+            .limit(1)
+            .maybeSingle(),
+          supabase
+            .from('user_financial_profiles')
+            .select('user_id')
+            .eq('user_id', session.user.id)
+            .maybeSingle(),
+        ])
+
+        if (propertyError || profileError) {
+          throw propertyError || profileError
+        }
+
+        if (!isMounted) return
+
+        const hasProperty = !!propertyRow?.id
+        const hasProfile = !!profileRow?.user_id
+
+        const hasSnapshot = (() => {
+          try {
+            return !!sessionStorage.getItem('onboardingSnapshot')
+          } catch {
+            return false
+          }
+        })()
+        const nextRequiresWelcome = !(hasProperty && hasProfile) && !hasSnapshot
+
+        console.log('Welcome gate', {
+          userId: session.user.id,
+          propertyRow,
+          profileRow,
+          propertyError,
+          profileError,
+          hasProperty,
+          hasProfile,
+          requiresWelcome: nextRequiresWelcome,
+        })
+
+        setRequiresWelcome(nextRequiresWelcome)
+        setWelcomeGateReady(true)
+      } catch (error) {
+        if (!isMounted) return
+
+        const hasSnapshot = (() => {
+          try {
+            return !!sessionStorage.getItem('onboardingSnapshot')
+          } catch {
+            return false
+          }
+        })()
+        const nextRequiresWelcome = !hasSnapshot
+
+        console.log('Welcome gate', {
+          userId: session.user.id,
+          propertyRow: null,
+          profileRow: null,
+          propertyError: error,
+          profileError: null,
+          hasProperty: false,
+          hasProfile: false,
+          requiresWelcome: nextRequiresWelcome,
+        })
+
+        setRequiresWelcome(nextRequiresWelcome)
+        setWelcomeGateReady(true)
+      }
+    }
+
+    resolveWelcomeGate()
+
+    return () => {
+      isMounted = false
+    }
+  }, [session?.user?.id, isActive])
+
+  if (!ready || !subscriptionReady || !welcomeGateReady) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -191,11 +293,17 @@ export default function App() {
 
   if (!session) return <Auth />
 
-  const isActive =
-    subscription?.status === 'active' || subscription?.status === 'trialing'
-
   if (!isActive) {
     return <Pricing session={session} existingPlan={null} />
+  }
+
+  if (requiresWelcome) {
+    return (
+      <Routes>
+        <Route path="/welcome" element={<Welcome session={session} />} />
+        <Route path="*" element={<Navigate to="/welcome" replace />} />
+      </Routes>
+    )
   }
 
   const cachedPages = {
@@ -223,7 +331,7 @@ export default function App() {
 
   return (
     <Routes>
-      <Route path="/welcome" element={<Welcome />} />
+      <Route path="/welcome" element={<Navigate to="/dashboard" replace />} />
       <Route
         path="/"
         element={
