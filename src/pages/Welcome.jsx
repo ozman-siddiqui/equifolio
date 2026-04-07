@@ -215,6 +215,9 @@ function MetricRow({ label, value, hint }) {
 
 export default function Welcome({ session = null }) {
   const navigate = useNavigate()
+  const snapshotKey = session?.user?.id
+    ? `onboardingSnapshot_${session.user.id}`
+    : 'onboardingSnapshot'
   const [draft, setDraft] = useState(() => {
     try {
       const saved = sessionStorage.getItem('vaulta_onboarding_draft')
@@ -224,8 +227,12 @@ export default function Welcome({ session = null }) {
     }
   })
   const [currentStep, setCurrentStep] = useState(1)
+  const [firstName, setFirstName] = useState('')
+  const [nameInput, setNameInput] = useState('')
+  const [isNameResolved, setIsNameResolved] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [isSavingName, setIsSavingName] = useState(false)
 
   useEffect(() => {
     try {
@@ -234,6 +241,50 @@ export default function Welcome({ session = null }) {
       // Ignore storage write failures in onboarding draft mode.
     }
   }, [draft])
+
+  useEffect(() => {
+    let active = true
+
+    async function loadFirstName() {
+      if (!session?.user?.id) {
+        if (!active) return
+        setCurrentStep(0)
+        setIsNameResolved(true)
+        return
+      }
+
+      try {
+        const { data: profileData } = await supabase
+          .from('user_profiles')
+          .select('first_name')
+          .eq('user_id', session.user.id)
+          .maybeSingle()
+
+        if (!active) return
+
+        const existingFirstName = String(profileData?.first_name ?? '').trim()
+
+        if (existingFirstName) {
+          setFirstName(existingFirstName)
+          setNameInput(existingFirstName)
+          setCurrentStep((prev) => (prev === 0 ? 1 : prev))
+        } else {
+          setCurrentStep(0)
+        }
+      } catch {
+        if (!active) return
+        setCurrentStep(0)
+      } finally {
+        if (active) setIsNameResolved(true)
+      }
+    }
+
+    loadFirstName()
+
+    return () => {
+      active = false
+    }
+  }, [session?.user?.id])
 
   const derived = useMemo(() => {
     const currentValue = parseNumber(draft.currentValue)
@@ -261,16 +312,36 @@ export default function Welcome({ session = null }) {
     }
 
     let acquisitionReadiness = 0
-    if (currentValue > 0) acquisitionReadiness += 20
-    if (loanBalance >= 0 && currentValue > 0) acquisitionReadiness += 15
-    if (annualIncome > 0) acquisitionReadiness += 20
-    if (cashSavings > 0) acquisitionReadiness += 15
-    if (interestRate > 0) acquisitionReadiness += 8
-    if (rentPerMonth > 0) acquisitionReadiness += 7
-    if (partnerIncome > 0) acquisitionReadiness += 8
-    if (offsetBalance > 0) acquisitionReadiness += 4
-    if (creditCardLimits > 0) acquisitionReadiness += 3
-    acquisitionReadiness = Math.min(88, acquisitionReadiness)
+    if (currentValue > 0) acquisitionReadiness += 14
+    if (loanBalance >= 0 && currentValue > 0) acquisitionReadiness += 10
+    if (interestRate > 0) acquisitionReadiness += 4
+    if (rentPerMonth > 0) acquisitionReadiness += 2
+
+    const stepOneCap = 30
+    const stepTwoCap = 50
+    const stepThreeCap = 65
+    const hasStepTwoData = annualIncome > 0 || partnerIncome > 0
+    const hasStepThreeData = cashSavings > 0 || offsetBalance > 0 || creditCardLimits > 0
+
+    if (hasStepTwoData) {
+      if (annualIncome > 0) acquisitionReadiness += 12
+      if (partnerIncome > 0) acquisitionReadiness += 8
+      acquisitionReadiness = Math.min(stepTwoCap, acquisitionReadiness)
+    } else {
+      acquisitionReadiness = Math.min(stepOneCap, acquisitionReadiness)
+    }
+
+    if (hasStepThreeData) {
+      if (cashSavings > 0) acquisitionReadiness += 10
+      if (offsetBalance > 0) acquisitionReadiness += 3
+      if (creditCardLimits > 0) acquisitionReadiness += 2
+      acquisitionReadiness = Math.min(stepThreeCap, acquisitionReadiness)
+    } else {
+      acquisitionReadiness = Math.min(
+        hasStepTwoData ? stepTwoCap : stepOneCap,
+        acquisitionReadiness
+      )
+    }
 
     const indicativePurchaseRangeLow = cashSavings > 0 ? cashSavings * 4.5 : 0
     const indicativePurchaseRangeHigh = cashSavings > 0 ? cashSavings * 5.5 : 0
@@ -289,13 +360,11 @@ export default function Welcome({ session = null }) {
     ].filter(isFilled).length
 
     const confidenceLevel =
-      acquisitionReadiness >= 70
-        ? 'High confidence'
-        : acquisitionReadiness >= 45
-          ? 'Good confidence'
-          : acquisitionReadiness >= 20
-            ? 'Indicative estimate'
-            : 'Add data to begin'
+      acquisitionReadiness >= 60
+        ? 'Indicative'
+        : acquisitionReadiness >= 40
+          ? 'Early view'
+          : 'Getting started'
 
     const capitalTotal = cashSavings + offsetBalance + Math.max(0, netEquity * 0.2)
 
@@ -392,7 +461,7 @@ export default function Welcome({ session = null }) {
         completedAt: new Date().toISOString(),
       }
       sessionStorage.setItem(
-        'onboardingSnapshot',
+        snapshotKey,
         JSON.stringify(snapshot)
       )
 
@@ -405,7 +474,44 @@ export default function Welcome({ session = null }) {
     }
   }
 
-  const progressWidth = currentStep === 1 ? '33%' : currentStep === 2 ? '66%' : '90%'
+  async function handleNameStep() {
+    const trimmedName = nameInput.trim()
+
+    if (!trimmedName) {
+      setErrorMessage('Please enter your first name.')
+      return
+    }
+
+    setErrorMessage('')
+    setIsSavingName(true)
+    setFirstName(trimmedName)
+
+    try {
+      if (session?.user?.id) {
+        const { error } = await supabase
+          .from('user_profiles')
+          .upsert(
+            {
+              user_id: session.user.id,
+              first_name: trimmedName,
+            },
+            { onConflict: 'user_id' }
+          )
+
+        if (error) {
+          console.error('First name save failed:', error)
+        }
+      }
+    } catch (err) {
+      console.error('First name save failed:', err)
+    } finally {
+      setCurrentStep(1)
+      setIsSavingName(false)
+    }
+  }
+
+  const progressWidth =
+    currentStep === 0 ? '8%' : currentStep === 1 ? '33%' : currentStep === 2 ? '66%' : '90%'
   const gaugeBackground = buildArcPath(90, 90, 68, 180, 360)
   const gaugeForeground = buildArcPath(
     90,
@@ -426,11 +532,12 @@ export default function Welcome({ session = null }) {
         : 'M8 52 L214 52'
   const trajectoryStrokeDasharray = derived.acquisitionReadiness < 20 ? '5 5' : undefined
 
-  const cashSegment = derived.capitalTotal > 0 ? (derived.cashSavings / derived.capitalTotal) * 100 : 0
-  const offsetSegment =
-    derived.capitalTotal > 0 ? (derived.offsetBalance / derived.capitalTotal) * 100 : 0
-  const equitySegment =
-    derived.capitalTotal > 0 ? (Math.max(0, derived.netEquity * 0.2) / derived.capitalTotal) * 100 : 0
+  const usableEquity = Math.max(0, derived.netEquity * 0.2)
+  const totalCapital =
+    (derived.cashSavings || 0) + (derived.offsetBalance || 0) + (usableEquity || 0)
+  const cashPct = totalCapital > 0 ? ((derived.cashSavings || 0) / totalCapital) * 100 : 33
+  const offsetPct = totalCapital > 0 ? ((derived.offsetBalance || 0) / totalCapital) * 100 : 33
+  const equityPct = totalCapital > 0 ? ((usableEquity || 0) / totalCapital) * 100 : 34
 
   const stepStatuses = [
     { number: 1, label: 'Properties', subtitle: 'Value, debt, rent, type' },
@@ -504,6 +611,12 @@ export default function Welcome({ session = null }) {
             flexDirection: 'column',
           }}
         >
+          {!isNameResolved ? (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ fontSize: 15, color: '#4d5a52' }}>Loading your onboarding...</div>
+            </div>
+          ) : (
+            <>
           <div
             style={{
               height: 2,
@@ -548,17 +661,81 @@ export default function Welcome({ session = null }) {
             })}
           </div>
 
+          {currentStep === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'center' }}>
+              <div
+                style={{
+                  maxWidth: 520,
+                  width: '100%',
+                  margin: '0 auto',
+                  background: '#0f211a',
+                  border: `1px solid ${colors.darkBorder}`,
+                  borderRadius: 24,
+                  padding: '34px 32px',
+                  boxShadow: '0 24px 48px rgba(4, 21, 15, 0.16)',
+                }}
+              >
+                <div style={{ fontSize: 13, letterSpacing: 2.6, textTransform: 'uppercase', color: '#5DCAA5' }}>
+                  Welcome
+                </div>
+                <div style={{ marginTop: 10, fontSize: 38, fontWeight: 500, letterSpacing: -1.3, color: '#f3fff9' }}>
+                  Welcome to Vaulta
+                </div>
+                <div style={{ marginTop: 10, fontSize: 18, lineHeight: 1.6, color: '#c7eadc' }}>
+                  What should we call you?
+                </div>
+
+                <div style={{ marginTop: 24 }}>
+                  <input
+                    value={nameInput}
+                    onChange={(event) => setNameInput(event.target.value)}
+                    placeholder="Your first name"
+                    style={baseInputStyle}
+                  />
+                  <div style={{ marginTop: 8, fontSize: 13, color: '#8bcab2' }}>
+                    We&apos;ll use this to personalise your experience
+                  </div>
+                </div>
+
+                {errorMessage ? (
+                  <div style={{ marginTop: 14, fontSize: 13, color: '#ffb4a8' }}>{errorMessage}</div>
+                ) : null}
+
+                <div style={{ marginTop: 24 }}>
+                  <button
+                    type="button"
+                    onClick={handleNameStep}
+                    disabled={isSavingName}
+                    style={{
+                      ...baseButtonStyle,
+                      opacity: isSavingName ? 0.7 : 1,
+                      cursor: isSavingName ? 'default' : 'pointer',
+                    }}
+                  >
+                    Let&apos;s get started →
+                  </button>
+                  <div style={{ marginTop: 10, fontSize: 12, color: '#8bcab2', textAlign: 'center' }}>
+                    Takes about 3 minutes · Your data stays private
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           {currentStep === 1 ? (
             <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
               <div style={{ fontSize: 15, letterSpacing: 3, color: colors.greenPrimary, textTransform: 'uppercase' }}>
                 Step 1 of 3 · Your portfolio
               </div>
               <div style={{ marginTop: 12, fontSize: 40, fontWeight: 500, letterSpacing: -1.5 }}>
-                Properties
+                {firstName ? `Welcome, ${firstName}` : 'Your properties'}
               </div>
               <div style={{ marginTop: 14, fontSize: 16, lineHeight: 1.7, color: '#4d5a52', maxWidth: 520 }}>
-                Start with what you own. We&apos;ll estimate your equity position, stress threshold, and
-                borrowing trajectory instantly.
+                Start with your primary property first.
+                You&apos;ll be able to add your remaining properties
+                from the dashboard after setup.
+                We&apos;ll use this to estimate equity position,
+                serviceability, and your next acquisition path instantly.
               </div>
 
               <div style={{ marginTop: 28, display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -682,11 +859,6 @@ export default function Welcome({ session = null }) {
               </div>
 
               <div style={{ marginTop: 'auto', paddingTop: 28 }}>
-                <div style={{ marginBottom: 12, fontSize: 13, lineHeight: 1.55, color: '#6b7280' }}>
-                  Start with your primary property.
-                  <br />
-                  You can add others in your dashboard.
-                </div>
                 {errorMessage ? (
                   <div style={{ marginBottom: 12, fontSize: 13, color: '#b42318' }}>{errorMessage}</div>
                 ) : null}
@@ -769,13 +941,13 @@ export default function Welcome({ session = null }) {
                 Capital
               </div>
               <div style={{ marginTop: 14, fontSize: 16, lineHeight: 1.7, color: '#4d5a52', maxWidth: 520 }}>
-                A fast liquidity view gets you to a believable purchase range and borrowing snapshot without
-                sending you through the full profile setup first.
+                Add your current liquidity position.
+                We&apos;ll use this to estimate deposit strength
+                and your indicative purchase range.
               </div>
-
               <div style={{ marginTop: 28, display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 520 }}>
                 <div>
-                  <div style={{ fontSize: 14, marginBottom: 8, color: '#374151' }}>Cash savings ($)</div>
+                  <div style={{ fontSize: 14, marginBottom: 8, color: '#374151' }}>Available cash outside offset ($)</div>
                   <input
                     value={draft.cashSavings}
                     onChange={(event) => updateDraft('cashSavings', event.target.value)}
@@ -783,7 +955,7 @@ export default function Welcome({ session = null }) {
                     style={baseInputStyle}
                   />
                   <div style={{ marginTop: 6, fontSize: 13, color: '#6b7280' }}>
-                    Cash available for a deposit
+                    Savings currently available outside your mortgage offset account.
                   </div>
                 </div>
 
@@ -795,6 +967,9 @@ export default function Welcome({ session = null }) {
                     placeholder="42,000"
                     style={baseInputStyle}
                   />
+                  <div style={{ marginTop: 6, fontSize: 13, color: '#6b7280' }}>
+                    Funds currently sitting in your mortgage offset.
+                  </div>
                 </div>
 
                 <div>
@@ -851,6 +1026,8 @@ export default function Welcome({ session = null }) {
               </div>
             </div>
           ) : null}
+            </>
+          )}
         </main>
 
         <aside
@@ -962,33 +1139,66 @@ export default function Welcome({ session = null }) {
           </div>
 
           <div style={{ marginTop: 18 }}>
-            <div style={{ fontSize: 15, color: '#4fa587', marginBottom: 10 }}>Capital allocation bar</div>
-            <div
-              style={{
+            <div style={{ fontSize: 15, color: '#4fa587', marginBottom: 6 }}>Indicative deposit sources</div>
+            <div style={{ marginTop: 10 }}>
+              <p style={{ fontSize: 9, color: '#5DCAA5', opacity: 0.6, marginBottom: 6 }}>
+                Shows where your deposit strength is coming from
+              </p>
+
+              <div style={{
                 display: 'flex',
-                height: 10,
-                borderRadius: 999,
+                height: 8,
+                borderRadius: 4,
                 overflow: 'hidden',
-                background: '#12382c',
-              }}
-            >
-              <div style={{ width: `${cashSegment}%`, background: colors.greenPrimary }} />
-              <div style={{ width: `${offsetSegment}%`, background: '#72d9b7' }} />
-              <div style={{ width: `${equitySegment}%`, background: '#0f6652' }} />
-            </div>
-            <div
-              style={{
-                marginTop: 10,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 5,
-                fontSize: 13,
-                color: '#5bb293',
-              }}
-            >
-              <div>Cash {formatCurrency(derived.cashSavings)}</div>
-              <div>Offset {formatCurrency(derived.offsetBalance)}</div>
-              <div>Equity {formatCurrency(Math.max(0, derived.netEquity * 0.2))}</div>
+                gap: 2,
+                marginBottom: 10,
+              }}>
+                <div style={{
+                  width: `${cashPct}%`,
+                  background: '#1D9E75',
+                  borderRadius: '4px 0 0 4px',
+                }} />
+                <div style={{
+                  width: `${offsetPct}%`,
+                  background: '#5DCAA5',
+                }} />
+                <div style={{
+                  width: `${equityPct}%`,
+                  background: '#085041',
+                  borderRadius: '0 4px 4px 0',
+                }} />
+              </div>
+
+              {[
+                { color: '#1D9E75', label: 'Cash available', value: derived.cashSavings || 0 },
+                { color: '#5DCAA5', label: 'Offset funds', value: derived.offsetBalance || 0 },
+                { color: '#085041', label: 'Usable equity', value: usableEquity || 0 },
+              ].map(item => (
+                <div key={item.label} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 4,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <div style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      background: item.color,
+                      flexShrink: 0,
+                    }} />
+                    <span style={{ fontSize: 10, color: '#9FE1CB' }}>{item.label}</span>
+                  </div>
+                  <span style={{ fontSize: 10, color: '#9FE1CB', fontWeight: 500 }}>
+                    ${item.value.toLocaleString()}
+                  </span>
+                </div>
+              ))}
+
+              <p style={{ fontSize: 9, color: '#5DCAA5', opacity: 0.5, marginTop: 6 }}>
+                Used to estimate your purchase range
+              </p>
             </div>
           </div>
 

@@ -220,9 +220,9 @@ export function buildOnboardingSnapshotCommandCenter(snapshot = null) {
       purchaseRangeLow: indicativePurchaseRangeLow,
       purchaseRangeHigh: indicativePurchaseRangeHigh,
       grossYield: currentValue > 0 && annualRent > 0 ? (annualRent / currentValue) * 100 : null,
-      year3Equity: Math.round(netEquity * Math.pow(1.05, 3)),
-      year5Equity: Math.round(netEquity * Math.pow(1.05, 5)),
-      year10Equity: Math.round(netEquity * Math.pow(1.05, 10)),
+      year3Equity: null,
+      year5Equity: null,
+      year10Equity: null,
     },
     growthScenarios: {
       feasibleStrategies: [],

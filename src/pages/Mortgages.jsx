@@ -88,6 +88,14 @@ export default function Mortgages({ session = null }) {
   const navigate = useNavigate()
   const { properties, loans, loading, fetchData } = usePortfolioData(session)
   const handlePortfolioSave = async (options) => fetchData(options)
+  const handleOpenAddLoan = () => {
+    if (properties.length > 0) {
+      setShowAddLoan(true)
+      return
+    }
+
+    navigate('/properties')
+  }
   const handleLoanSave = async (options = {}) => {
     await fetchData({
       ...options,
@@ -523,7 +531,7 @@ export default function Mortgages({ session = null }) {
               <div className="flex shrink-0 items-start">
                 <button
                   type="button"
-                  onClick={() => setShowAddLoan(true)}
+                  onClick={handleOpenAddLoan}
                   className={utilityPrimaryButtonClass}
                 >
                   <Plus size={15} className="shrink-0" />

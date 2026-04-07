@@ -1,3 +1,5 @@
+import { Lock } from 'lucide-react'
+
 export default function SetupProgress({ state, onOpenSection }) {
   return (
     <section className="mt-6 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm shadow-gray-100/70 md:p-7">
@@ -33,29 +35,44 @@ export default function SetupProgress({ state, onOpenSection }) {
           <button
             key={item.id}
             type="button"
-            onClick={() => onOpenSection(item.route)}
+            onClick={() => {
+              if (item.unlocked === false) return
+              onOpenSection(item.route)
+            }}
+            disabled={item.unlocked === false}
+            title={item.unlocked === false ? item.lockedReason : undefined}
             className={`rounded-2xl border px-4 py-4 text-left transition-colors ${
-              item.complete
+              item.unlocked === false
+                ? 'cursor-not-allowed border-gray-100 bg-gray-50/50 opacity-70'
+                : item.complete
                 ? 'border-green-100 bg-green-50/70'
                 : item.id === 'cashflow'
                   ? 'border-amber-200 bg-amber-50/70 hover:bg-amber-50'
                 : 'border-gray-100 bg-gray-50/70 hover:bg-gray-50'
             }`}
           >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
               {item.label}
+              {item.unlocked === false ? <Lock size={11} /> : null}
             </p>
             <p
               className={`mt-2 text-base font-semibold ${
-                item.complete
+                item.unlocked === false
+                  ? 'text-gray-500'
+                  : item.complete
                   ? 'text-green-700'
                   : item.id === 'cashflow'
                     ? 'text-amber-700'
                     : 'text-gray-900'
               }`}
             >
-              {item.complete ? 'Complete' : item.id === 'cashflow' ? 'Required' : 'Missing'}
+              {item.unlocked === false
+                ? 'Locked'
+                : item.complete ? 'Complete' : item.id === 'cashflow' ? 'Required' : 'Missing'}
             </p>
+            {item.unlocked === false && item.lockedReason ? (
+              <p className="mt-2 text-xs leading-5 text-gray-500">{item.lockedReason}</p>
+            ) : null}
             {item.id === 'cashflow' ? (
               <p className="mt-2 text-xs leading-5 text-amber-800/80">
                 Owner-occupied property costs are included in living expenses.

@@ -217,7 +217,10 @@ export default function App() {
 
         const hasSnapshot = (() => {
           try {
-            return !!sessionStorage.getItem('onboardingSnapshot')
+            const snapshotKey = session?.user?.id
+              ? `onboardingSnapshot_${session.user.id}`
+              : 'onboardingSnapshot'
+            return !!sessionStorage.getItem(snapshotKey)
           } catch {
             return false
           }
@@ -242,7 +245,10 @@ export default function App() {
 
         const hasSnapshot = (() => {
           try {
-            return !!sessionStorage.getItem('onboardingSnapshot')
+            const snapshotKey = session?.user?.id
+              ? `onboardingSnapshot_${session.user.id}`
+              : 'onboardingSnapshot'
+            return !!sessionStorage.getItem(snapshotKey)
           } catch {
             return false
           }

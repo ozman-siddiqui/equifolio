@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ChevronRight, Plus, Siren, Sparkles } from 'lucide-react'
+import { ChevronRight, Lock, Plus, Siren, Sparkles } from 'lucide-react'
 
 import AddPropertyModal from '../components/AddPropertyModal'
 import UpgradeModal from '../components/UpgradeModal'
@@ -41,15 +41,20 @@ export default function Dashboard({ session, subscription }) {
   const navigate = useNavigate()
   const { properties, loans, transactions, loading, fetchData } = usePortfolioData(session)
   const { financialProfile, liabilities } = useFinancialData()
+  const userId = session?.user?.id ?? null
+  const snapshotKey = userId
+    ? `onboardingSnapshot_${userId}`
+    : 'onboardingSnapshot'
 
   const [showAddProperty, setShowAddProperty] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [isDashboardMounted, setIsDashboardMounted] = useState(false)
   const [liveCashRate, setLiveCashRate] = useState(CURRENT_CASH_RATE)
   const [latestRateImpact, setLatestRateImpact] = useState(null)
+  const [firstName, setFirstName] = useState('')
   const [onboardingSnapshot, setOnboardingSnapshot] = useState(() => {
     try {
-      const raw = sessionStorage.getItem('onboardingSnapshot')
+      const raw = sessionStorage.getItem(snapshotKey)
       return raw ? JSON.parse(raw) : null
     } catch {
       return null
@@ -113,6 +118,34 @@ export default function Dashboard({ session, subscription }) {
     }
 
     loadLatestRateImpact()
+
+    return () => {
+      active = false
+    }
+  }, [session?.user?.id])
+
+  useEffect(() => {
+    let active = true
+
+    async function loadFirstName() {
+      if (!session?.user?.id) {
+        if (active) setFirstName('')
+        return
+      }
+
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('first_name')
+        .eq('user_id', session.user.id)
+        .maybeSingle()
+
+      if (!active) return
+      if (error || !data?.first_name) return
+
+      setFirstName(data.first_name)
+    }
+
+    loadFirstName()
 
     return () => {
       active = false
@@ -271,29 +304,59 @@ export default function Dashboard({ session, subscription }) {
       properties: {
         label: 'Add remaining properties',
         to: '/properties',
+        unlocked: true,
+        lockedReason: null,
       },
       mortgages: {
         label: 'Complete mortgage details',
         to: '/mortgages',
+        unlocked: true,
+        lockedReason: null,
       },
       cashflow: {
-        label: 'Add cash flow & expenses',
+        label: 'Add property cash flow & expenses',
         to: '/cashflow',
+        unlocked: true,
+        lockedReason: null,
       },
       financials: {
         label: 'Add household financials',
         to: '/financials',
+        unlocked: true,
+        lockedReason: null,
       },
       liabilities: {
         label: 'Add liabilities',
         to: '/financials',
+        unlocked: true,
+        lockedReason: null,
       },
     }
 
     return (dashboardState?.missingSections || [])
-      .map((section) => sectionMap[section?.id])
+      .map((section) => {
+        const mapped = sectionMap[section?.id]
+        if (!mapped) return null
+
+        return {
+          ...mapped,
+          unlocked: section?.unlocked ?? mapped.unlocked,
+          lockedReason: section?.lockedReason ?? mapped.lockedReason,
+        }
+      })
       .filter(Boolean)
   }, [dashboardState?.missingSections])
+
+  const totalSections = 5
+  const completedSections =
+    totalSections - (incompleteSteps?.length ?? totalSections)
+  const dataCoveragePct =
+    Math.round((completedSections / totalSections) * 100)
+  const snapshotConfidenceLabel =
+    dataCoveragePct >= 90 ? 'High'
+    : dataCoveragePct >= 70 ? 'Indicative'
+    : dataCoveragePct >= 40 ? 'Low'
+    : 'Early stage'
 
   const effectiveDashboardState = useMemo(() => {
     if (!usingOnboardingSnapshot) return dashboardState
@@ -547,6 +610,11 @@ export default function Dashboard({ session, subscription }) {
     [commandCenter?.growthScenarios]
   )
 
+  const isAcquisitionMode =
+    Boolean(leadScenario) &&
+    Number(borrowingPowerAnalysis?.borrowing_power_estimate ?? 0) > 0 &&
+    incompleteSteps.length === 0
+
   async function handleDismissRateImpact() {
     if (!latestRateImpact?.id) return
 
@@ -599,15 +667,20 @@ export default function Dashboard({ session, subscription }) {
         leadScenario?.expectedRentalYield ??
         null,
       currentEquity: liveEquityBase,
-      year3Equity: commandCenter?.hero?.year3Equity ??
-        leadScenario?.projectionData?.find((point) => point.year === 3)?.netEquity ??
-        Math.round(liveEquityBase * 1.05 ** 3),
-      year5Equity: commandCenter?.hero?.year5Equity ??
-        leadScenario?.projectionData?.find((point) => point.year === 5)?.netEquity ??
+      year3Equity:
+        leadScenario?.projectionData?.find(
+          (point) => Number(point.year) === 3
+        )?.netEquity ?? null,
+      year5Equity:
+        leadScenario?.projectionData?.find(
+          (point) => Number(point.year) === 5
+        )?.netEquity ??
         leadScenario?.fiveYearEquityProjection ??
-        Math.round(liveEquityBase * 1.05 ** 5),
-      year10Equity: commandCenter?.hero?.year10Equity ??
-        leadScenario?.projectionData?.find((point) => point.year === 10)?.netEquity ?? null,
+        null,
+      year10Equity:
+        leadScenario?.projectionData?.find(
+          (point) => Number(point.year) === 10
+        )?.netEquity ?? null,
       unlockValue: usingOnboardingSnapshot || effectiveDashboardState.canShowBorrowing
         ? commandCenter?.hero?.borrowingPower?.unlockPotential ?? null
         : null,
@@ -624,10 +697,12 @@ export default function Dashboard({ session, subscription }) {
         acquisitionReadiness?.finalScore ??
         null,
       acquisitionReadinessLabel: usingOnboardingSnapshot
-        ? 'Indicative'
+        ? 'Acquisition readiness'
         : commandCenter?.hero?.acquisitionReadiness?.label ??
-          acquisitionReadiness?.label ??
-          null,
+            acquisitionReadiness?.label ??
+            null,
+      firstName: firstName || null,
+      isAcquisitionMode,
       confidenceChipLabel: usingOnboardingSnapshot
         ? 'Indicative'
         : 'High confidence',
@@ -645,9 +720,6 @@ export default function Dashboard({ session, subscription }) {
     commandCenter?.hero?.monthlyPosition?.propertyCashFlow,
     commandCenter?.hero?.monthlyPosition?.householdSurplus,
     commandCenter?.hero?.grossYield,
-    commandCenter?.hero?.year3Equity,
-    commandCenter?.hero?.year5Equity,
-    commandCenter?.hero?.year10Equity,
     commandCenter?.hero?.borrowingPower?.unlockPotential,
     commandCenter?.hero?.stressThreshold,
     commandCenter?.hero?.acquisitionReadiness,
@@ -658,7 +730,9 @@ export default function Dashboard({ session, subscription }) {
     latestRateImpact,
     acquisitionReadiness?.finalScore,
     acquisitionReadiness?.label,
+    firstName,
     capacityUseCaseCount,
+    isAcquisitionMode,
     usingOnboardingSnapshot,
     yieldFirstScenario?.isExecutable,
   ])
@@ -737,8 +811,7 @@ export default function Dashboard({ session, subscription }) {
                   fontWeight: 500,
                   marginLeft: 10,
                 }}>
-                  {commandCenter?.hero?.acquisitionReadiness?.finalScore || 61}%
-                  confidence · {incompleteSteps.length} step{incompleteSteps.length === 1 ? '' : 's'} to unlock full insights
+                  Platform setup · {dataCoveragePct}% complete · {incompleteSteps.length} step{incompleteSteps.length === 1 ? '' : 's'} to unlock full insights
                 </span>
               </div>
               <Link
@@ -760,32 +833,56 @@ export default function Dashboard({ session, subscription }) {
               flexWrap: 'wrap',
             }}>
               {incompleteSteps.map(item => (
-                <Link
-                  key={item.label}
-                  to={item.to}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    fontSize: 12,
-                    color: '#92400e',
-                    background: '#fef3c7',
-                    border: '1px solid #fcd34d',
-                    borderRadius: 20,
-                    padding: '5px 12px',
-                    textDecoration: 'none',
-                    fontWeight: 500,
-                  }}
-                >
-                  <span style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: '50%',
-                    background: '#f59e0b',
-                    display: 'inline-block',
-                  }} />
-                  {item.label}
-                </Link>
+                item.unlocked === false ? (
+                  <span
+                    key={item.label}
+                    title={item.lockedReason || 'Add a property first'}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: 12,
+                      color: '#78716c',
+                      background: '#f5f5f4',
+                      border: '1px solid #d6d3d1',
+                      borderRadius: 20,
+                      padding: '5px 12px',
+                      fontWeight: 500,
+                      cursor: 'not-allowed',
+                      opacity: 0.9,
+                    }}
+                  >
+                    <Lock size={11} />
+                    {item.lockedReason || 'Add a property first'}
+                  </span>
+                ) : (
+                  <Link
+                    key={item.label}
+                    to={item.to}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: 12,
+                      color: '#92400e',
+                      background: '#fef3c7',
+                      border: '1px solid #fcd34d',
+                      borderRadius: 20,
+                      padding: '5px 12px',
+                      textDecoration: 'none',
+                      fontWeight: 500,
+                    }}
+                  >
+                    <span style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      background: '#f59e0b',
+                      display: 'inline-block',
+                    }} />
+                    {item.label}
+                  </Link>
+                )
               ))}
             </div>
             <p style={{
@@ -853,12 +950,16 @@ export default function Dashboard({ session, subscription }) {
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-wrap items-center gap-6">
               <StripMetric
-                label="Data Coverage"
-                value={`${commandCenter.dataCoveragePct}%`}
+                label="Platform setup"
+                value={`${dataCoveragePct}% complete`}
               />
               <StripMetric
                 label="Decision Confidence"
-                value={commandCenter.decisionConfidence}
+                value={
+                  usingOnboardingSnapshot
+                    ? snapshotConfidenceLabel
+                    : commandCenter.decisionConfidence
+                }
               />
             </div>
 
@@ -883,8 +984,8 @@ export default function Dashboard({ session, subscription }) {
                 eyebrow={section.label}
                 title={section.title}
                 body={section.body}
-                ctaLabel={section.ctaLabel}
-                onAction={() => navigate(section.route)}
+                ctaLabel={section.unlocked === false ? (section.lockedReason || 'Add a property first') : section.ctaLabel}
+                onAction={() => navigate(section.unlocked === false ? '/properties' : section.route)}
               />
             ))}
           </section>
@@ -1176,8 +1277,12 @@ export default function Dashboard({ session, subscription }) {
             {Number(effectiveDashboardState?.setupCompletionPct ?? 0) === 100 || usingOnboardingSnapshot ? (
               <section className="hidden">
                 <p className="text-sm text-gray-600">
-                  Portfolio data complete · Decision confidence: {commandCenter.decisionConfidence} ·
-                  {' '}Data coverage: {commandCenter.dataCoveragePct}%
+                  Portfolio data complete · Decision confidence: {
+                    usingOnboardingSnapshot
+                      ? snapshotConfidenceLabel
+                      : commandCenter.decisionConfidence
+                  } ·
+                  {' '}Data coverage: {dataCoveragePct}%
                 </p>
               </section>
             ) : (
@@ -1455,15 +1560,24 @@ function LockedChecklistCard({ eyebrow, title, body, missingSections, onAction }
           <button
             key={section.id}
             type="button"
-            onClick={() => onAction(section.route)}
-            className="flex w-full items-start justify-between gap-4 rounded-2xl border border-gray-100 bg-gray-50/70 px-4 py-4 text-left transition-colors hover:bg-gray-50"
+            onClick={() => onAction(section.unlocked === false ? '/properties' : section.route)}
+            className={`flex w-full items-start justify-between gap-4 rounded-2xl border px-4 py-4 text-left transition-colors ${
+              section.unlocked === false
+                ? 'cursor-not-allowed border-gray-100 bg-gray-50/50 opacity-70'
+                : 'border-gray-100 bg-gray-50/70 hover:bg-gray-50'
+            }`}
+            title={section.unlocked === false ? section.lockedReason : undefined}
           >
             <div className="min-w-0">
               <p className="text-sm font-semibold text-gray-900">{section.label}</p>
-              <p className="mt-1 text-sm leading-6 text-gray-600">{section.body}</p>
+              <p className="mt-1 text-sm leading-6 text-gray-600">
+                {section.unlocked === false ? (section.lockedReason || 'Add a property first') : section.body}
+              </p>
             </div>
-            <span className="shrink-0 text-sm font-semibold text-primary-600">
-              {section.ctaLabel}
+            <span className={`shrink-0 text-sm font-semibold ${
+              section.unlocked === false ? 'text-gray-500' : 'text-primary-600'
+            }`}>
+              {section.unlocked === false ? 'Start with properties' : section.ctaLabel}
             </span>
           </button>
         ))}
