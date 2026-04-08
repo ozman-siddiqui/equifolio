@@ -2142,6 +2142,32 @@ export default function PortfolioGrowthScenariosRebuild() {
   // Source of truth for the displayed economic outcome card is the enriched recommended scenario.
   const topSuggestedScenario =
     hasExecutableScenario ? recommendedScenarioWithEconomicOutcome || recommendedScenario : null
+  const topSuggestedScenarioAfterTaxSurplus = useMemo(() => {
+    if (!hasExecutableScenario || !topSuggestedScenario) return null
+
+    const postPurchaseSurplus = getSafeNumber(topSuggestedScenario.estimatedPostPurchaseSurplus)
+    const actualHouseholdMonthlySurplus = getSafeNumber(
+      borrowingAnalysis?.actual_monthly_surplus
+    )
+    const afterTaxMonthlyImpact = getSafeNumber(
+      recommendedScenarioSafeTaxView?.afterTaxMonthlyImpact
+    )
+
+    if (
+      postPurchaseSurplus === null ||
+      actualHouseholdMonthlySurplus === null ||
+      afterTaxMonthlyImpact === null
+    ) {
+      return postPurchaseSurplus
+    }
+
+    return actualHouseholdMonthlySurplus + afterTaxMonthlyImpact
+  }, [
+    borrowingAnalysis?.actual_monthly_surplus,
+    hasExecutableScenario,
+    recommendedScenarioSafeTaxView?.afterTaxMonthlyImpact,
+    topSuggestedScenario,
+  ])
   const suggestedPathTitle = hasExecutableScenario
     ? 'Buy 1 investment property now'
     : 'No acquisition scenario is currently executable'
@@ -3644,12 +3670,12 @@ export default function PortfolioGrowthScenariosRebuild() {
                       }
                     />
                     <ScenarioMetric
-                      label={hasExecutableScenario ? 'Monthly Cost' : 'Market Entry Floor'}
+                      label={hasExecutableScenario ? 'After-tax surplus after acquisition' : 'Market Entry Floor'}
                       valueClassName="text-[20px] md:text-[22px]"
                       value={
                         hasExecutableScenario
-                          ? `${Number(topSuggestedScenario?.estimatedMonthlyCashFlow || 0) >= 0 ? '+' : '-'}${formatCurrency(
-                              Math.abs(Number(topSuggestedScenario?.estimatedMonthlyCashFlow || 0))
+                          ? `${Number(topSuggestedScenarioAfterTaxSurplus || 0) >= 0 ? '+' : '-'}${formatCurrency(
+                              Math.abs(Number(topSuggestedScenarioAfterTaxSurplus || 0))
                             )}`
                           : formatCurrency(Number(scenarioModel.viability?.realisticMarketEntryMin || 0))
                       }
