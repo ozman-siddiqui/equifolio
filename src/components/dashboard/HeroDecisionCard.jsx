@@ -105,7 +105,13 @@ function pointToPercentX(pointX, viewBoxWidth = 520) {
   return `${(pointX / viewBoxWidth) * 100}%`
 }
 
-function StatTile({ eyebrow, value, detail, tone = 'default' }) {
+function StatTile({
+  eyebrow,
+  value,
+  detail,
+  tone = 'default',
+  tooltip = null,
+}) {
   const toneClasses =
     tone === 'highlight'
       ? 'border-emerald-200/80 bg-emerald-50/80 shadow-[0_20px_45px_-34px_rgba(16,185,129,0.35)] hover:border-[rgba(0,0,0,0.12)]'
@@ -113,10 +119,20 @@ function StatTile({ eyebrow, value, detail, tone = 'default' }) {
 
   return (
     <div
-      className={`rounded-[1.6rem] border p-4 transition-[transform,box-shadow,border-color] duration-[120ms] ease-out will-change-transform hover:-translate-y-px hover:shadow-[0_2px_10px_rgba(0,0,0,0.04)] md:p-5 ${toneClasses}`}
+      className={`relative rounded-[1.6rem] border p-4 transition-[transform,box-shadow,border-color] duration-[120ms] ease-out will-change-transform hover:-translate-y-px hover:shadow-[0_2px_10px_rgba(0,0,0,0.04)] md:p-5 ${toneClasses}`}
     >
-      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+      <p className="flex items-center text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
         {eyebrow}
+        {tooltip && (
+          <span
+            title={tooltip}
+            style={{ cursor: 'help', marginLeft: 4, opacity: 0.5 }}
+            className="inline-flex h-4 w-4 flex-shrink-0 items-center justify-center text-slate-400"
+            aria-label={`Explain ${eyebrow}`}
+          >
+              <Info size={10} />
+          </span>
+        )}
       </p>
       <p className="mt-3 text-[1.8rem] font-semibold tracking-tight text-slate-950">{value}</p>
       <p className="mt-2 text-sm leading-6 text-slate-600">{detail}</p>
@@ -142,6 +158,10 @@ export default function HeroDecisionCard({
   fixedRateExpiry = null,
   rateImpact = null,
   onDismissRateImpact = () => {},
+  isAcquisitionMode = false,
+  confidenceChipLabel = 'High confidence',
+  topUnlockCopy = null,
+  firstName = null,
   isExecutable = true,
 }) {
   const navigate = useNavigate()
@@ -152,7 +172,6 @@ export default function HeroDecisionCard({
   const pulseTimeoutRef = useRef(null)
   const [hasAnimated, setHasAnimated] = useState(false)
   const [isReadinessExpanded, setIsReadinessExpanded] = useState(false)
-  const [showStressInfo, setShowStressInfo] = useState(false)
 
   const purchaseRangeLowNumber = toFiniteNumber(purchaseRangeLow)
   const purchaseRangeHighNumber = toFiniteNumber(purchaseRangeHigh)
@@ -228,7 +247,7 @@ export default function HeroDecisionCard({
   const unlockStripDisplay =
     unlockValueNumber != null
       ? `Reduce card limits → +${unlockValueDisplay} borrowing capacity`
-      : 'Unavailable until setup complete'
+      : topUnlockCopy || 'Unavailable until setup complete'
   const hasScenarioData =
     purchaseRangeLowNumber != null &&
     purchaseRangeHighNumber != null &&
@@ -239,8 +258,6 @@ export default function HeroDecisionCard({
     isExecutable === true &&
     purchaseRangeLowNumber != null &&
     purchaseRangeHighNumber != null
-  const isDataRichBlockedScenario = hasScenarioData === true && isExecutableScenario === false
-  const hasNoScenarioData = hasScenarioData === false
   const readinessPillars = acquisitionReadinessData?.pillars ?? null
   const toPillarScoreDisplay = (value) => {
     const numeric = toFiniteNumber(value)
@@ -248,7 +265,7 @@ export default function HeroDecisionCard({
     const percentage = numeric <= 1 ? Math.round(numeric * 100) : Math.round(numeric)
     return `${percentage}%`
   }
-  const acquisitionSummaryCopy = isExecutableScenario
+  const acquisitionSummaryCopy = isAcquisitionMode
     ? 'Executable now.'
     : hasScenarioData
       ? 'Building toward viability.'
@@ -278,23 +295,27 @@ export default function HeroDecisionCard({
   const hasLimitedReadinessDrivers = acquisitionBreakdownRows.length <= 1
 
   const baselineYear0 = currentEquityNumber ?? 0
-  const baselineYear3 =
-    currentEquityNumber != null ? Math.round(currentEquityNumber * Math.pow(1.06, 3)) : 0
-  const baselineYear5 =
-    currentEquityNumber != null ? Math.round(currentEquityNumber * Math.pow(1.06, 5)) : 0
-  const baselineYear10 =
-    currentEquityNumber != null ? Math.round(currentEquityNumber * Math.pow(1.06, 10)) : 0
+  const baselineYear3 = year3EquityNumber ?? null
+  const baselineYear5 = year5EquityNumber ?? null
+  const baselineYear10 = year10EquityNumber ?? null
+  const hasProjectionData =
+    baselineYear3 != null &&
+    baselineYear5 != null
+  const hasYear10Point = baselineYear10 != null
   const acquisitionYear0 = baselineYear0
-  const acquisitionYear3 = baselineYear3 + (year3EquityNumber ?? 0)
-  const acquisitionYear5 = baselineYear5 + (year5EquityNumber ?? 0)
-  const acquisitionYear10 = baselineYear10 + (year10EquityNumber ?? 0)
-  const hasYear10Point = year10EquityNumber != null
+  const acquisitionYear3 = hasProjectionData ? baselineYear3 : null
+  const acquisitionYear5 = hasProjectionData ? baselineYear5 : null
+  const acquisitionYear10 = hasYear10Point ? baselineYear10 : null
+  const hasComparisonBaseline = false
 
   const chartFloorY = 182
-  const chartXPositions = hasYear10Point
+  const chartHasFuturePoints = hasProjectionData
+  const chartXPositions = chartHasFuturePoints && hasYear10Point
     ? [36, 184, 305, 484]
-    : [36, 262, 484]
-  const visibleValues = hasScenarioData
+    : chartHasFuturePoints
+      ? [36, 262, 484]
+      : [36]
+  const visibleValues = hasProjectionData
     ? hasYear10Point
       ? [
           baselineYear0,
@@ -307,61 +328,73 @@ export default function HeroDecisionCard({
           acquisitionYear10,
         ]
       : [baselineYear0, baselineYear3, baselineYear5, acquisitionYear0, acquisitionYear3, acquisitionYear5]
-    : hasYear10Point
-      ? [currentEquityNumber ?? 0, baselineYear3, baselineYear5, baselineYear10]
-      : [currentEquityNumber ?? 0, baselineYear3, baselineYear5]
+    : [currentEquityNumber ?? 0]
   const minVal = Math.min(...visibleValues) * 0.98
   const maxVal = Math.max(...visibleValues) * 1.02
   const toChartY = (value) => scaleY(Number(value || 0), minVal, maxVal, chartFloorY)
 
-  const baselinePoints = hasYear10Point
+  const baselinePoints = chartHasFuturePoints && hasYear10Point
     ? [
         { x: chartXPositions[0], y: toChartY(baselineYear0), label: 'Today' },
         { x: chartXPositions[1], y: toChartY(baselineYear3), label: 'Year 3' },
         { x: chartXPositions[2], y: toChartY(baselineYear5), label: 'Year 5' },
         { x: chartXPositions[3], y: toChartY(baselineYear10), label: 'Year 10' },
       ]
-    : [
+    : chartHasFuturePoints
+      ? [
         { x: chartXPositions[0], y: toChartY(baselineYear0), label: 'Today' },
         { x: chartXPositions[1], y: toChartY(baselineYear3), label: 'Year 3' },
         { x: chartXPositions[2], y: toChartY(baselineYear5), label: 'Year 5' },
       ]
-  const acquisitionPoints = hasYear10Point
+      : [
+        { x: chartXPositions[0], y: toChartY(baselineYear0), label: 'Today' },
+      ]
+  const acquisitionPoints = chartHasFuturePoints && hasYear10Point
     ? [
         { x: chartXPositions[0], y: toChartY(acquisitionYear0), label: 'Today' },
         { x: chartXPositions[1], y: toChartY(acquisitionYear3), label: 'Year 3' },
         { x: chartXPositions[2], y: toChartY(acquisitionYear5), label: 'Year 5' },
         { x: chartXPositions[3], y: toChartY(acquisitionYear10), label: 'Year 10' },
       ]
-    : [
+    : chartHasFuturePoints
+      ? [
         { x: chartXPositions[0], y: toChartY(acquisitionYear0), label: 'Today' },
         { x: chartXPositions[1], y: toChartY(acquisitionYear3), label: 'Year 3' },
         { x: chartXPositions[2], y: toChartY(acquisitionYear5), label: 'Year 5' },
       ]
-  const primaryChartPoints = hasScenarioData ? acquisitionPoints : baselinePoints
-  const baselinePath = buildSubtleMonotonicPath(baselinePoints)
-  const primaryPath = buildSubtleMonotonicPath(primaryChartPoints)
-  const areaPath = buildAreaPath(primaryChartPoints, chartFloorY)
+      : [
+        { x: chartXPositions[0], y: toChartY(acquisitionYear0), label: 'Today' },
+      ]
+  const primaryChartPoints = isAcquisitionMode ? acquisitionPoints : baselinePoints
+  const baselinePath = baselinePoints.length > 1 ? buildSubtleMonotonicPath(baselinePoints) : ''
+  const primaryPath = primaryChartPoints.length > 1 ? buildSubtleMonotonicPath(primaryChartPoints) : ''
+  const areaPath =
+    primaryChartPoints.length > 1 ? buildAreaPath(primaryChartPoints, chartFloorY) : ''
   const chartYear3Display =
-    hasScenarioData && acquisitionYear3 > 0
+    isAcquisitionMode && acquisitionYear3 != null
       ? `~${formatCompactCurrency(acquisitionYear3)}`
-      : hasNoScenarioData && baselineYear3 > 0
+      : !isAcquisitionMode && baselineYear3 != null
         ? `~${formatCompactCurrency(baselineYear3)}`
         : '--'
   const chartYear5Display =
-    hasScenarioData && acquisitionYear5 > 0
+    isAcquisitionMode && acquisitionYear5 != null
       ? `~${formatCurrency(acquisitionYear5)}`
-      : hasNoScenarioData && baselineYear5 > 0
+      : !isAcquisitionMode && baselineYear5 != null
         ? `~${formatCurrency(baselineYear5)}`
         : '--'
   const chartYear10Display =
-    hasYear10Point && hasScenarioData && acquisitionYear10 > 0
+    hasYear10Point && isAcquisitionMode && acquisitionYear10 != null
       ? `~${formatCurrency(acquisitionYear10)}`
-      : hasYear10Point && hasNoScenarioData && baselineYear10 > 0
+      : hasYear10Point && !isAcquisitionMode && baselineYear10 != null
         ? `~${formatCurrency(baselineYear10)}`
         : '--'
-  const acquisitionDifference = acquisitionYear5 - baselineYear5
-  const acquisitionDifferenceDisplay = hasScenarioData
+  const acquisitionDifference =
+    acquisitionYear5 != null && baselineYear5 != null
+      ? acquisitionYear5 - baselineYear5
+      : null
+  const acquisitionDifferenceDisplay = isAcquisitionMode
+    && hasComparisonBaseline
+    && acquisitionDifference != null
     ? `${acquisitionDifference >= 0 ? '+' : '-'}${formatCurrency(Math.abs(acquisitionDifference))} target property equity by year 5`
     : null
 
@@ -391,7 +424,7 @@ export default function HeroDecisionCard({
       const secondFrame = requestAnimationFrame(() => {
         strokeElement.style.transition = 'stroke-dashoffset 1500ms cubic-bezier(0.4, 0, 0.2, 1)'
         strokeElement.style.strokeDashoffset = '0'
-        if (fillElement && hasScenarioData) {
+        if (fillElement && isAcquisitionMode) {
           fillElement.style.opacity = '1'
         }
         setHasAnimated(true)
@@ -421,7 +454,7 @@ export default function HeroDecisionCard({
         endpointElement.style.animation = 'none'
       }
     }
-  }, [hasScenarioData, primaryPath])
+  }, [isAcquisitionMode, primaryPath])
 
   return (
     <section className="relative overflow-hidden rounded-[2.4rem] border border-emerald-200/80 bg-white px-7 py-7 pb-4 shadow-[0_40px_120px_-72px_rgba(15,23,42,0.22)] md:px-9 md:py-9 md:pb-6">
@@ -446,10 +479,10 @@ export default function HeroDecisionCard({
               </p>
               <div className="mt-4 flex flex-wrap items-center gap-2.5">
                 <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-700">
-                  {isExecutableScenario ? 'Indicatively viable' : 'Building toward'}
+                  {isAcquisitionMode ? 'Indicatively viable' : 'Building toward'}
                 </span>
                 <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600">
-                  High confidence
+                  {confidenceChipLabel}
                 </span>
               </div>
             </div>
@@ -457,23 +490,20 @@ export default function HeroDecisionCard({
 
           <div className="mt-7 max-w-4xl">
             <h1 className="max-w-3xl text-[2.3rem] font-semibold leading-[1.06] tracking-[-0.04em] text-slate-950 max-[480px]:text-[2rem] md:text-[3.25rem]">
-              {isExecutableScenario
+              {isAcquisitionMode
                 ? 'Buy 1 investment property'
-                : 'Building toward your next acquisition'}
-              {isExecutableScenario ? (
+                : firstName
+                  ? `${firstName}, here’s your next best move`
+                  : 'Building toward your next acquisition'}
+              {isAcquisitionMode ? (
                 <span className="mt-2 block">in the {purchaseRangeDisplay} range</span>
               ) : null}
             </h1>
             <p className="mt-5 max-w-2xl text-[1.05rem] leading-8 text-emerald-800">
-              {isExecutableScenario ? (
+              {isAcquisitionMode ? (
                 <>
                   Based on current inputs, this pathway appears viable and illustrative - subject
                   to lender assessment and market conditions.
-                </>
-              ) : isDataRichBlockedScenario ? (
-                <>
-                  Your existing portfolio is compounding. Focus on the top actions below to unlock
-                  your next acquisition move.
                 </>
               ) : (
                 <>
@@ -484,28 +514,60 @@ export default function HeroDecisionCard({
             </p>
           </div>
 
-          {hasScenarioData ? (
+          {isAcquisitionMode && hasScenarioData ? (
             <div className="mt-8 grid gap-3 min-[481px]:grid-cols-1 md:grid-cols-2 xl:grid-cols-4 max-[480px]:grid-cols-1">
               <StatTile
                 eyebrow="Executable range"
                 value={executableRangeDisplay}
                 detail="20% deposit - funded"
                 tone="highlight"
+                tooltip="Indicative property price range based on your current deposit position and borrowing capacity."
               />
               <StatTile
                 eyebrow="Target property equity (5Y)"
                 value={fiveYearEquityUpliftDisplay}
                 detail="At 6% annual growth"
+                tooltip="Estimated equity in the target property after 5 years, based on purchase price and assumed growth rate."
               />
               <StatTile
                 eyebrow="Estimated monthly cash flow"
                 value={monthlyHoldingCostDisplay}
                 detail="After tax offset est."
+                tooltip="Projected monthly position after acquiring the target property, including estimated rental income minus loan repayments and holding costs."
               />
               <StatTile
                 eyebrow="Gross yield est."
                 value={grossYieldDisplay}
                 detail="Regional market"
+                tooltip="Estimated annual rental income as a percentage of purchase price. Based on regional market assumptions where actual rent is not yet known."
+              />
+            </div>
+          ) : null}
+
+          {!isAcquisitionMode ? (
+            <div className="mt-8 grid gap-3 min-[481px]:grid-cols-1 md:grid-cols-2 xl:grid-cols-3 max-[480px]:grid-cols-1">
+              <StatTile
+                eyebrow="Current equity"
+                value={currentEquityDisplay}
+                detail="Across your portfolio today"
+                tone="highlight"
+                tooltip="Your total property value minus outstanding loan balances across your portfolio today."
+              />
+              <StatTile
+                eyebrow="Projected equity (5Y)"
+                value={hasProjectionData && year5EquityNumber != null ? formatCurrency(year5EquityNumber) : '--'}
+                detail={
+                  hasProjectionData
+                    ? 'Based on current portfolio only'
+                    : 'Complete mortgage details to unlock 5Y projection'
+                }
+                tooltip="Estimated portfolio equity in 5 years based on current property values, growth assumptions, and loan amortisation. Does not include future acquisitions."
+              />
+              <StatTile
+                eyebrow="Monthly surplus / gap"
+                value={monthlyHoldingCostDisplay}
+                detail="Live estimate · refine expenses for accuracy"
+                tooltip="Indicative monthly serviceability position based on income and rental income minus estimated loan repayments. Add living expenses for a more accurate view."
               />
             </div>
           ) : null}
@@ -609,22 +671,21 @@ export default function HeroDecisionCard({
                 <div className="mt-1 flex items-center gap-1">
                   <p className="text-sm text-slate-600">
                     {stressThreshold?.status === 'safe'
-                      ? 'No stress break point within tested range'
+                      ? 'No stress break point found within the tested range'
                       : stressThreshold?.status === 'warning'
                       ? 'Limited headroom — monitor closely'
                       : stressThreshold?.status === 'critical'
                       ? 'Portfolio under rate stress'
                       : 'Data unavailable'}
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => setShowStressInfo((prev) => !prev)}
-                    className="ml-1 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-slate-300 hover:text-slate-600"
+                  <span
+                    title="Rate resilience estimates the interest rate at which your lender-view monthly surplus turns negative under your current portfolio settings. A result of >10.00% means no break point was found within the tested range — your portfolio remains serviceable even under extreme rate stress."
+                    style={{ cursor: 'help', marginLeft: 4, opacity: 0.5 }}
+                    className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center text-slate-400"
                     aria-label="Explain rate resilience"
-                    aria-expanded={showStressInfo}
                   >
                     <Info size={12} />
-                  </button>
+                  </span>
                 </div>
                 <div className="mt-2">
                   {stressThreshold?.status === 'safe' ? (
@@ -645,21 +706,6 @@ export default function HeroDecisionCard({
                     </span>
                   )}
                 </div>
-                {showStressInfo && (
-                  <div className="mt-3 rounded-2xl border border-slate-200/80 bg-slate-50 px-3 py-3 text-sm leading-6 text-slate-600">
-                    <p className="font-medium text-slate-900">What this means</p>
-                    <p className="mt-1">
-                      Rate resilience estimates the interest rate at which your
-                      lender-view monthly surplus turns negative under your current
-                      portfolio settings.
-                    </p>
-                    <p className="mt-1">
-                      A result of &gt;10.00% means no break point was found within
-                      the tested range — your portfolio remains serviceable even
-                      under extreme rate stress.
-                    </p>
-                  </div>
-                )}
               </div>
               <p className="text-[clamp(16px,1.6vw,22px)] font-semibold tracking-tight text-slate-950">
                 {stressThreshold?.stressThresholdLabel ?? '—'}
@@ -671,45 +717,54 @@ export default function HeroDecisionCard({
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-                  {hasScenarioData
+                  {isAcquisitionMode
                     ? 'Portfolio equity with vs without acquisition'
                     : 'Current portfolio trajectory'}
                 </p>
-                {hasScenarioData ? (
+                {isAcquisitionMode ? (
                   <>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">
-                      Compare the illustrative 5-year outcome of
-                      <br />
-                      taking the next acquisition vs staying on
-                      <br />
-                      your current path.
-                    </p>
-                    <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-slate-500">
-                      <span className="inline-flex items-center gap-2">
-                        <span className="h-0.5 w-6 rounded-full bg-[#1D9E75]" />
-                        With acquisition
-                      </span>
-                      <span className="inline-flex items-center gap-2">
-                        <span
-                          className="h-0.5 w-6 rounded-full"
-                          style={{
-                            backgroundImage:
-                              'repeating-linear-gradient(to right, #b8e8d8 0 8px, transparent 8px 14px)',
-                          }}
-                        />
-                        Without acquisition
-                      </span>
-                    </div>
+                    {hasProjectionData ? (
+                      <>
+                        <p className="mt-2 text-sm leading-6 text-slate-500">
+                          Canonical forward equity path from the
+                          <br />
+                          current lead acquisition scenario.
+                        </p>
+                        <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-slate-500">
+                          <span className="inline-flex items-center gap-2">
+                            <span className="h-0.5 w-6 rounded-full bg-[#1D9E75]" />
+                            Scenario trajectory
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="mt-2 text-sm leading-6 text-slate-500">
+                        Complete mortgage details to unlock forward equity trajectory
+                      </p>
+                    )}
                   </>
                 ) : (
-                  <p className="mt-2 text-sm leading-6 text-slate-500">
-                    Projected equity path without additional
-                    <br />
-                    acquisition activity.
-                  </p>
+                  <>
+                    {hasProjectionData ? (
+                      <>
+                        <p className="mt-2 text-sm leading-6 text-slate-500">
+                          Projected equity path without additional
+                          <br />
+                          acquisition activity.
+                        </p>
+                        <p className="mt-2 text-sm leading-6 text-slate-500">
+                          Assumes current property growth and debt path only
+                        </p>
+                      </>
+                    ) : (
+                      <p className="mt-2 text-sm leading-6 text-slate-500">
+                        Complete mortgage details to unlock forward equity trajectory
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
-              {hasScenarioData && acquisitionDifferenceDisplay ? (
+              {isAcquisitionMode && acquisitionDifferenceDisplay ? (
                 <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50/90 px-3.5 py-1.5 text-sm font-medium text-emerald-800">
                   {acquisitionDifferenceDisplay}
                 </span>
@@ -736,10 +791,10 @@ export default function HeroDecisionCard({
                   </linearGradient>
                 </defs>
 
-                {hasScenarioData ? (
+                {isAcquisitionMode && areaPath ? (
                   <path ref={fillPathRef} d={areaPath} fill="url(#heroDecisionFill)" style={{ opacity: 0 }} />
                 ) : null}
-                {hasScenarioData ? (
+                {isAcquisitionMode && hasComparisonBaseline && baselinePath ? (
                   <path
                     d={baselinePath}
                     fill="none"
@@ -749,28 +804,32 @@ export default function HeroDecisionCard({
                     strokeLinecap="round"
                   />
                 ) : null}
-                <path
-                  ref={strokePathRef}
-                  d={primaryPath}
-                  fill="none"
-                  stroke={hasScenarioData ? 'url(#heroDecisionStroke)' : '#1D9E75'}
-                  strokeWidth={hasScenarioData ? '2.5' : '3.5'}
-                  strokeLinecap="round"
-                  style={{
-                    strokeDasharray: 1,
-                    strokeDashoffset: 1,
-                  }}
-                />
+                {primaryPath ? (
+                  <path
+                    ref={strokePathRef}
+                    d={primaryPath}
+                    fill="none"
+                    stroke={isAcquisitionMode ? 'url(#heroDecisionStroke)' : '#1D9E75'}
+                    strokeWidth={isAcquisitionMode ? '2.5' : '3.5'}
+                    strokeLinecap="round"
+                    style={{
+                      strokeDasharray: 1,
+                      strokeDashoffset: 1,
+                    }}
+                  />
+                ) : null}
 
-                <line
-                  x1={primaryChartPoints[1].x}
-                  y1="34"
-                  x2={primaryChartPoints[1].x}
-                  y2="182"
-                  stroke="#9adfc5"
-                  strokeWidth="1.5"
-                  strokeDasharray="4 5"
-                />
+                {primaryChartPoints.length > 1 ? (
+                  <line
+                    x1={primaryChartPoints[1].x}
+                    y1="34"
+                    x2={primaryChartPoints[1].x}
+                    y2="182"
+                    stroke="#9adfc5"
+                    strokeWidth="1.5"
+                    strokeDasharray="4 5"
+                  />
+                ) : null}
 
                 {primaryChartPoints.map((point, index) => (
                   <g key={point.label}>
@@ -804,29 +863,33 @@ export default function HeroDecisionCard({
                     point: primaryChartPoints[0],
                     alignClass: 'text-left translate-x-2 max-[480px]:translate-x-0',
                   },
-                  {
-                    label: 'Year 3',
-                    value: chartYear3Display,
-                    point: primaryChartPoints[1],
-                    alignClass: 'text-center -translate-x-1/2',
-                  },
-                  {
-                    label: 'Year 5',
-                    value: chartYear5Display,
-                    point: primaryChartPoints[2],
-                    alignClass: hasYear10Point
-                      ? 'text-center -translate-x-1/2'
-                      : 'text-right -translate-x-[calc(100%+8px)] max-[480px]:-translate-x-full',
-                  },
-                  ...(hasYear10Point
+                  ...(chartHasFuturePoints
                     ? [
                         {
-                          label: 'Year 10',
-                          value: chartYear10Display,
-                          point: primaryChartPoints[3],
-                          alignClass:
-                            'text-right -translate-x-[calc(100%+8px)] max-[480px]:-translate-x-full',
+                          label: 'Year 3',
+                          value: chartYear3Display,
+                          point: primaryChartPoints[1],
+                          alignClass: 'text-center -translate-x-1/2',
                         },
+                        {
+                          label: 'Year 5',
+                          value: chartYear5Display,
+                          point: primaryChartPoints[2],
+                          alignClass: hasYear10Point
+                            ? 'text-center -translate-x-1/2'
+                            : 'text-right -translate-x-[calc(100%+8px)] max-[480px]:-translate-x-full',
+                        },
+                        ...(hasYear10Point
+                          ? [
+                              {
+                                label: 'Year 10',
+                                value: chartYear10Display,
+                                point: primaryChartPoints[3],
+                                alignClass:
+                                  'text-right -translate-x-[calc(100%+8px)] max-[480px]:-translate-x-full',
+                              },
+                            ]
+                          : []),
                       ]
                     : []),
                 ].map(({ label, value, point, alignClass }) => (
@@ -857,7 +920,7 @@ export default function HeroDecisionCard({
         <aside className="flex flex-col gap-4">
           <div className="rounded-[2rem] border border-emerald-700/90 bg-[linear-gradient(180deg,#12403b_0%,#0f3d38_100%)] px-5 py-4 text-white shadow-[0_30px_80px_-38px_rgba(6,78,59,0.72)]">
             <p className="text-[1.35rem] font-semibold tracking-tight">
-              {isExecutableScenario ? 'Deploy this strategy' : 'See what unlocks this'}
+              {isExecutableScenario ? 'Deploy this strategy' : 'Unlock your next move'}
             </p>
             <button
               type="button"

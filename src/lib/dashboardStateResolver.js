@@ -2,7 +2,13 @@ function hasNumber(value) {
   return value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value))
 }
 
-function buildMissingSection(id) {
+function buildMissingSection(itemOrId) {
+  const item =
+    typeof itemOrId === 'string'
+      ? { id: itemOrId, unlocked: true, lockedReason: null, route: null }
+      : itemOrId || {}
+  const { id, unlocked = true, lockedReason = null, route = null } = item
+
   switch (id) {
     case 'properties':
       return {
@@ -11,7 +17,9 @@ function buildMissingSection(id) {
         title: 'Add your first property',
         body: 'Start by adding a property to unlock portfolio position, equity, and performance tracking.',
         ctaLabel: 'Add property',
-        route: '/properties',
+        route: route || '/properties',
+        unlocked,
+        lockedReason,
       }
     case 'mortgages':
       return {
@@ -20,7 +28,9 @@ function buildMissingSection(id) {
         title: 'Add mortgages',
         body: 'Link debt to your properties to calculate net equity, lending exposure, and refinancing opportunities.',
         ctaLabel: 'Add mortgage',
-        route: '/mortgages',
+        route: route || '/mortgages',
+        unlocked,
+        lockedReason,
       }
     case 'financials':
       return {
@@ -29,7 +39,9 @@ function buildMissingSection(id) {
         title: 'Add household financials',
         body: 'Add income and living costs to unlock borrowing power, actual monthly surplus, and serviceability analysis.',
         ctaLabel: 'Open financials',
-        route: '/financials',
+        route: route || '/financials',
+        unlocked,
+        lockedReason,
       }
     case 'liabilities':
       return {
@@ -38,7 +50,9 @@ function buildMissingSection(id) {
         title: 'Add liabilities',
         body: 'Include credit cards and personal debts so serviceability and borrowing capacity are accurate.',
         ctaLabel: 'Add liabilities',
-        route: '/financials',
+        route: route || '/financials',
+        unlocked,
+        lockedReason,
       }
     case 'cashflow':
       return {
@@ -47,7 +61,9 @@ function buildMissingSection(id) {
         title: 'Final step: complete your cash flow',
         body: 'Add rent and property expenses for your investment properties to unlock your true monthly position and accurate investment insights. Owner-occupied property costs are included in living expenses. Usually takes under 2 minutes.',
         ctaLabel: 'Update cash flow',
-        route: '/cashflow',
+        route: route || '/cashflow',
+        unlocked,
+        lockedReason,
       }
     default:
       return buildMissingSection('cashflow')
@@ -108,18 +124,54 @@ export default function buildDashboardStateResolver({
   const hasCashFlow = hasPropertyRentData && hasPropertyExpenseData
 
   const setupChecklist = [
-    { id: 'properties', label: 'Properties', complete: hasProperties, route: '/properties' },
-    { id: 'mortgages', label: 'Mortgages', complete: hasMortgages && hasFullMortgageCoverage, route: '/mortgages' },
-    { id: 'financials', label: 'Financials', complete: hasFinancials, route: '/financials' },
-    { id: 'liabilities', label: 'Liabilities', complete: hasLiabilities, route: '/financials' },
-    { id: 'cashflow', label: 'Cash Flow', complete: hasCashFlow, route: '/cashflow', required: true },
+    {
+      id: 'properties',
+      label: 'Properties',
+      complete: hasProperties,
+      route: '/properties',
+      unlocked: true,
+      lockedReason: null,
+    },
+    {
+      id: 'mortgages',
+      label: 'Mortgages',
+      complete: hasMortgages && hasFullMortgageCoverage,
+      route: '/mortgages',
+      unlocked: hasProperties,
+      lockedReason: hasProperties ? null : 'Add a property first',
+    },
+    {
+      id: 'cashflow',
+      label: 'Cash Flow',
+      complete: hasCashFlow,
+      route: '/cashflow',
+      required: true,
+      unlocked: hasProperties,
+      lockedReason: hasProperties ? null : 'Add a property first',
+    },
+    {
+      id: 'financials',
+      label: 'Financials',
+      complete: hasFinancials,
+      route: '/financials',
+      unlocked: hasProperties,
+      lockedReason: hasProperties ? null : 'Add a property first',
+    },
+    {
+      id: 'liabilities',
+      label: 'Liabilities',
+      complete: hasLiabilities,
+      route: '/financials',
+      unlocked: hasProperties,
+      lockedReason: hasProperties ? null : 'Add a property first',
+    },
   ]
 
   const setupCompletedCount = setupChecklist.filter((item) => item.complete).length
   const setupComplete = setupCompletedCount === setupChecklist.length
   const missingSections = setupChecklist
     .filter((item) => !item.complete)
-    .map((item) => buildMissingSection(item.id))
+    .map((item) => buildMissingSection(item))
 
   let stage = 0
   if (hasProperties) stage = 1
