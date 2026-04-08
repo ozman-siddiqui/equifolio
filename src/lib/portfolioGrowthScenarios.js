@@ -1,4 +1,7 @@
+import { calculateAfterTaxHoldingCost } from './afterTaxHoldingCost'
 import { estimateRepayment } from './mortgageMath'
+import { calculateNegativeGearingTaxBenefit } from './negativeGearingTaxBenefit'
+import { normalizeTaxOwnership } from './taxOwnership'
 
 const DEFAULT_DEBT_RATE_PCT = 5.8
 const PROPERTY_MANAGEMENT_RATE = 0.07
@@ -310,6 +313,65 @@ function getExpenseRatio(transactions) {
   return Math.min(Math.max(ratio, 0.18), 0.45)
 }
 
+function buildTaxOwnership(financialProfile = null, taxSettings = null) {
+  const ownershipOverride = taxSettings?.ownershipOverride
+  const ownership = normalizeTaxOwnership({
+    ownershipStructure:
+      ownershipOverride?.ownershipStructure ?? financialProfile?.ownership_structure,
+    ownershipSplitUserPct:
+      ownershipOverride?.ownershipSplitUserPct ?? financialProfile?.ownership_split_user_pct,
+    ownershipSplitPartnerPct:
+      ownershipOverride?.ownershipSplitPartnerPct ?? financialProfile?.ownership_split_partner_pct,
+  })
+  const userTaxableIncome =
+    Number(financialProfile?.employment_income_annual || 0) +
+    Number(financialProfile?.other_income_annual || 0)
+  const partnerTaxableIncome = Number(financialProfile?.partner_income_annual || 0)
+
+  return {
+    ...ownership,
+    userTaxableIncome: Number.isFinite(userTaxableIncome) ? userTaxableIncome : 0,
+    partnerTaxableIncome: Number.isFinite(partnerTaxableIncome) ? partnerTaxableIncome : 0,
+  }
+}
+
+function buildScenarioAfterTaxFields({
+  monthlyPreTaxPropertyCashFlow = 0,
+  taxOwnership = null,
+  includeDepreciation = false,
+  annualDepreciation = 0,
+} = {}) {
+  const safeMonthlyPreTaxPropertyCashFlow = roundCurrency(monthlyPreTaxPropertyCashFlow)
+  const hasTaxableIncome =
+    Number(taxOwnership?.userTaxableIncome || 0) > 0 &&
+    (taxOwnership?.ownershipStructure !== 'joint' ||
+      Number(taxOwnership?.partnerTaxableIncome || 0) > 0)
+
+  const negativeGearing = hasTaxableIncome
+    ? calculateNegativeGearingTaxBenefit({
+        ownershipStructure: taxOwnership?.ownershipStructure,
+        ownershipSplitUserPct: taxOwnership?.ownershipSplitUserPct,
+        ownershipSplitPartnerPct: taxOwnership?.ownershipSplitPartnerPct,
+        userTaxableIncome: taxOwnership?.userTaxableIncome,
+        partnerTaxableIncome: taxOwnership?.partnerTaxableIncome,
+        monthlyPreTaxPropertyCashFlow: safeMonthlyPreTaxPropertyCashFlow,
+        includeDepreciation,
+        annualDepreciation,
+      })
+    : { totalTaxBenefitMonthly: 0 }
+
+  const afterTaxHoldingCost = calculateAfterTaxHoldingCost({
+    monthlyPreTaxPropertyCashFlow: safeMonthlyPreTaxPropertyCashFlow,
+    taxBenefitMonthly: negativeGearing.totalTaxBenefitMonthly,
+  })
+
+  return {
+    monthlyPreTaxPropertyCashFlow: afterTaxHoldingCost.monthlyPreTaxPropertyCashFlow,
+    totalTaxBenefitMonthly: roundCurrency(negativeGearing.totalTaxBenefitMonthly || 0),
+    afterTaxMonthlyImpact: afterTaxHoldingCost.afterTaxMonthlyCashFlow,
+  }
+}
+
 function buildModeledExpenseBreakdown({ propertyValue = 0, rent = 0 }) {
   const safePropertyValue = Math.max(0, Number(propertyValue || 0))
   const safeRent = Math.max(0, Number(rent || 0))
@@ -611,6 +673,8 @@ function buildStrategyScenario({
   usableEquity,
   availableCash,
   currentSurplus,
+  taxOwnership,
+  taxSettings,
   config,
   confidenceScore,
 }) {
@@ -790,6 +854,12 @@ function buildStrategyScenario({
     monthlyRentalIncome: evaluation.monthlyGrossRent,
     monthlyExpenses: evaluation.monthlyPropertyCosts,
   })
+  const scenarioAfterTax = buildScenarioAfterTaxFields({
+    monthlyPreTaxPropertyCashFlow: evaluation.incrementalMonthlyCashFlow,
+    taxOwnership,
+    includeDepreciation: Boolean(taxSettings?.includeDepreciation),
+    annualDepreciation: Math.max(0, Number(taxSettings?.annualDepreciation || 0)),
+  })
   const fiveYearProjectionPoint =
     projectionData.find((point) => Number(point.year) === 5) ||
     projectionData[Math.min(5, projectionData.length - 1)]
@@ -962,6 +1032,9 @@ function buildStrategyScenario({
     estimatedPostPurchaseSurplus: evaluation.postPurchaseSurplus,
     estimatedGrossYield: grossYieldPct,
     estimatedMonthlyCashFlow: evaluation.incrementalMonthlyCashFlow,
+    monthlyPreTaxPropertyCashFlow: scenarioAfterTax.monthlyPreTaxPropertyCashFlow,
+    totalTaxBenefitMonthly: scenarioAfterTax.totalTaxBenefitMonthly,
+    afterTaxMonthlyImpact: scenarioAfterTax.afterTaxMonthlyImpact,
     monthlyRentalIncome: evaluation.monthlyGrossRent,
     monthlyLoanRepayment: evaluation.monthlyLoanRepayment,
     repaymentType: evaluation.repaymentType,
@@ -1041,6 +1114,8 @@ export default function buildPortfolioGrowthScenarios({
   loans = [],
   transactions = [],
   borrowingAnalysis = null,
+  financialProfile = null,
+  taxSettings = null,
   usableEquity = 0,
   availableCash = 0,
   portfolioCashFlow = 0,
@@ -1092,6 +1167,7 @@ export default function buildPortfolioGrowthScenarios({
     transactions,
     mergedConfig.riskModes.growth.grossYieldPct
   )
+  const taxOwnership = buildTaxOwnership(financialProfile, taxSettings)
   const balancedYieldPct = getPortfolioYield(
     properties,
     transactions,
@@ -1141,6 +1217,8 @@ export default function buildPortfolioGrowthScenarios({
     usableEquity: availableEquity,
     availableCash: cashOnHand,
     currentSurplus,
+    taxOwnership,
+    taxSettings,
     config: mergedConfig,
     confidenceScore,
   })
@@ -1165,6 +1243,8 @@ export default function buildPortfolioGrowthScenarios({
     usableEquity: availableEquity,
     availableCash: cashOnHand,
     currentSurplus,
+    taxOwnership,
+    taxSettings,
     config: mergedConfig,
     confidenceScore,
   })

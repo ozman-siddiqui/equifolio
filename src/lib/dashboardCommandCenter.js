@@ -1,6 +1,13 @@
 import calculateBorrowingPower from './borrowingPowerEngine'
 import { buildPortfolioRefinanceRanking } from './refinanceEngine'
 import buildPortfolioGrowthScenarios, { generateScenarioProjectionData } from './portfolioGrowthScenarios'
+import { useGrowthScenariosUiStore } from '../stores/growthScenariosUiStore'
+
+const DEPOSIT_STRATEGY_OPTIONS = [
+  { value: '20', depositRatio: 0.2 },
+  { value: '10', depositRatio: 0.1 },
+  { value: '5', depositRatio: 0.05 },
+]
 
 function toMonthly(amount, frequency) {
   const safeAmount = Number(amount || 0)
@@ -50,6 +57,12 @@ function getPortfolioProjectionInterestRate(loans = []) {
   if (validRates.length === 0) return 5.8
 
   return validRates.reduce((sum, rate) => sum + rate, 0) / validRates.length
+}
+
+function normalizeInterestRateInput(value, fallback) {
+  const numericValue = Number(value)
+  if (!Number.isFinite(numericValue) || numericValue <= 0) return fallback
+  return Math.min(15, numericValue)
 }
 
 function getPortfolioProjectionGrowthRatePct(properties = []) {
@@ -1004,14 +1017,38 @@ export default function buildDashboardCommandCenter({
     hero.borrowingPower.unlockPotential != null
       ? `+${formatCurrency(hero.borrowingPower.unlockPotential)}`
       : null
+  const growthScenariosUiState = useGrowthScenariosUiStore.getState()
+  const defaultInterestRate = getPortfolioProjectionInterestRate(loans)
+  const selectedDepositStrategy =
+    DEPOSIT_STRATEGY_OPTIONS.find(
+      (option) => option.value === growthScenariosUiState?.depositStrategy
+    ) || DEPOSIT_STRATEGY_OPTIONS[0]
+  const effectiveInterestRate = normalizeInterestRateInput(
+    growthScenariosUiState?.selectedInterestRate,
+    defaultInterestRate
+  )
+  const growthScenarioTaxSettings = {
+    ownershipOverride: growthScenariosUiState?.ownershipOverride ?? null,
+    includeDepreciation: Boolean(growthScenariosUiState?.includeDepreciation),
+    annualDepreciation: Math.max(
+      0,
+      Number(growthScenariosUiState?.annualDepreciationInput || 0)
+    ),
+  }
 
   const growthScenarios = buildPortfolioGrowthScenarios({
     properties,
     loans,
     transactions,
     borrowingAnalysis,
+    financialProfile,
+    taxSettings: growthScenarioTaxSettings,
     usableEquity,
-    availableCash: Number(financialProfile?.cash_available_for_investment || 0),
+    availableCash: 0,
+    config: {
+      depositRatio: selectedDepositStrategy.depositRatio,
+      interestRatePct: effectiveInterestRate,
+    },
     portfolioCashFlow: monthlyPropertyCashFlow,
   })
 

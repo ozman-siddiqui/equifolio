@@ -1,7 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useLayoutEffect } from 'react'
-import { useRef } from 'react'
 import { ChevronRight, Lock, Plus, Siren, Sparkles } from 'lucide-react'
 
 import AddPropertyModal from '../components/AddPropertyModal'
@@ -54,7 +52,7 @@ export default function Dashboard({ session, subscription }) {
   const [liveCashRate, setLiveCashRate] = useState(CURRENT_CASH_RATE)
   const [latestRateImpact, setLatestRateImpact] = useState(null)
   const [firstName, setFirstName] = useState('')
-  const heroDecisionRef = useRef(null)
+  const [isFirstNameResolved, setIsFirstNameResolved] = useState(() => !session?.user?.id)
   const [onboardingSnapshot, setOnboardingSnapshot] = useState(() => {
     try {
       const raw = sessionStorage.getItem(snapshotKey)
@@ -131,8 +129,13 @@ export default function Dashboard({ session, subscription }) {
     let active = true
 
     async function loadFirstName() {
+      if (active) setIsFirstNameResolved(false)
+
       if (!session?.user?.id) {
-        if (active) setFirstName('')
+        if (active) {
+          setFirstName('')
+          setIsFirstNameResolved(true)
+        }
         return
       }
 
@@ -143,9 +146,15 @@ export default function Dashboard({ session, subscription }) {
         .maybeSingle()
 
       if (!active) return
-      if (error || !data?.first_name) return
+
+      if (error || !data?.first_name) {
+        setFirstName('')
+        setIsFirstNameResolved(true)
+        return
+      }
 
       setFirstName(data.first_name)
+      setIsFirstNameResolved(true)
     }
 
     loadFirstName()
@@ -699,62 +708,6 @@ export default function Dashboard({ session, subscription }) {
     }
   }
 
-  useLayoutEffect(() => {
-    const heroRoot = heroDecisionRef.current
-    if (!heroRoot) return undefined
-
-    let activeButton = null
-
-    const syncHeroPrimaryCta = () => {
-      const nextButton = heroRoot.querySelector('aside button')
-      if (!nextButton) return
-
-      if (activeButton && activeButton !== nextButton && activeButton.__dashboardHeroCtaHandler) {
-        activeButton.removeEventListener('click', activeButton.__dashboardHeroCtaHandler, true)
-      }
-
-      const labelNode = Array.from(nextButton.childNodes)
-        .find((node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim())
-
-      if (labelNode) {
-        labelNode.textContent = heroPrimaryCta.label
-      }
-
-      if (nextButton.__dashboardHeroCtaHandler) {
-        nextButton.removeEventListener('click', nextButton.__dashboardHeroCtaHandler, true)
-      }
-
-      const handleHeroPrimaryCtaClick = (event) => {
-        event.preventDefault()
-        event.stopPropagation()
-        navigate(heroPrimaryCta.route)
-      }
-
-      nextButton.addEventListener('click', handleHeroPrimaryCtaClick, true)
-      nextButton.__dashboardHeroCtaHandler = handleHeroPrimaryCtaClick
-      activeButton = nextButton
-    }
-
-    syncHeroPrimaryCta()
-
-    const observer = new MutationObserver(() => {
-      syncHeroPrimaryCta()
-    })
-
-    observer.observe(heroRoot, {
-      childList: true,
-      subtree: true,
-      characterData: true,
-    })
-
-    return () => {
-      observer.disconnect()
-      if (activeButton?.__dashboardHeroCtaHandler) {
-        activeButton.removeEventListener('click', activeButton.__dashboardHeroCtaHandler, true)
-      }
-    }
-  }, [heroPrimaryCta, navigate])
-
   const heroDecisionProps = useMemo(() => {
     const liveEquityBase =
       commandCenter?.hero?.netPosition?.value ??
@@ -778,12 +731,36 @@ export default function Dashboard({ session, subscription }) {
         (leadScenario ? Math.round(purchasePrice * 1.1) : null) ??
         (liveEquityBase > 0 ? Math.round(liveEquityBase * 1.2) : null),
       fiveYearEquityUplift: leadScenario?.fiveYearEquityProjection ?? null,
-      monthlyHoldingCost: borrowingPowerAnalysis?.actual_monthly_surplus ??
-        commandCenter?.hero?.monthlyPosition?.householdSurplus ??
-        commandCenter?.hero?.monthlyPosition?.propertyCashFlow ??
-        leadScenario?.estimatedMonthlyCashFlow ??
-        leadScenario?.estimatedPostPurchaseSurplus ??
-        null,
+      currentHouseholdSurplus: borrowingPowerAnalysis?.actual_monthly_surplus ?? null,
+      afterTaxAcquisitionImpact: leadScenario?.afterTaxMonthlyImpact ?? null,
+      monthlyHoldingCost:
+        isAcquisitionMode && leadScenario
+          ? (
+              (
+                borrowingPowerAnalysis?.actual_monthly_surplus ?? 0
+              ) +
+              (
+                leadScenario?.afterTaxMonthlyImpact ??
+                0
+              )
+            )
+          : (
+              borrowingPowerAnalysis?.actual_monthly_surplus ??
+              commandCenter?.hero?.monthlyPosition?.householdSurplus ??
+              null
+            ),
+      postAcquisitionSurplus:
+        isAcquisitionMode && leadScenario
+          ? (
+              (
+                borrowingPowerAnalysis?.actual_monthly_surplus ?? 0
+              ) +
+              (
+                leadScenario?.afterTaxMonthlyImpact ??
+                0
+              )
+            )
+          : null,
       grossYield: commandCenter?.hero?.grossYield ??
         leadScenario?.estimatedGrossYield ??
         leadScenario?.expectedRentalYield ??
@@ -830,6 +807,16 @@ export default function Dashboard({ session, subscription }) {
         : commandCenter?.hero?.acquisitionReadiness?.label ??
             acquisitionReadiness?.label ??
             null,
+      subtitle: isAcquisitionMode
+        ? 'Based on current inputs, this pathway appears viable and illustrative - subject to lender assessment and market conditions.'
+        : 'Your existing portfolio is compounding. Focus on the top actions below to unlock your next acquisition move.',
+      isFirstNameResolved,
+      monthlyTileEyebrow: isAcquisitionMode ? 'After-tax surplus' : 'Monthly surplus / gap',
+      monthlyTileDetail: isAcquisitionMode
+        ? '20% deposit - funded'
+        : 'Live estimate · refine expenses for accuracy',
+      primaryCtaLabel: heroPrimaryCta.label,
+      primaryCtaRoute: heroPrimaryCta.route,
       firstName: firstName || null,
       isAcquisitionMode,
       confidenceChipLabel: usingOnboardingSnapshot
@@ -866,9 +853,12 @@ export default function Dashboard({ session, subscription }) {
     acquisitionReadiness?.label,
     incompleteSteps.length,
     firstName,
+    isFirstNameResolved,
     topUnlockCopy,
     capacityUseCaseCount,
     isAcquisitionMode,
+    heroPrimaryCta.label,
+    heroPrimaryCta.route,
     usingOnboardingSnapshot,
     yieldFirstScenario?.isExecutable,
   ])
@@ -1098,7 +1088,6 @@ export default function Dashboard({ session, subscription }) {
         </section>
 
         <div
-          ref={heroDecisionRef}
           className={`mt-5 mb-[22px] ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
           style={isDashboardMounted ? { animationDelay: '50ms' } : { opacity: 0, transform: 'translateY(8px)' }}
         >
@@ -1234,7 +1223,7 @@ export default function Dashboard({ session, subscription }) {
               {effectiveDashboardState.canShowMonthlyPosition ? (
                 <CommandCentreCard
                   eyebrow="Monthly Position"
-                  title="Cash Flow and Surplus"
+                  title="Current monthly surplus"
                   value={
                     effectiveDashboardState.canShowActualMonthlySurplus
                       ? borrowingPowerAnalysis?.actual_monthly_surplus ??
@@ -1245,7 +1234,7 @@ export default function Dashboard({ session, subscription }) {
                   detailRows={[
                     ...(effectiveDashboardState.canShowPropertyCashFlow
                       ? [{
-                          label: 'Property cash flow',
+                          label: 'Portfolio property cash flow',
                           value: formatCurrency(commandCenter.hero.monthlyPosition.propertyCashFlow),
                           tone:
                             Number(commandCenter.hero.monthlyPosition.propertyCashFlow) >= 0
@@ -1253,18 +1242,8 @@ export default function Dashboard({ session, subscription }) {
                               : 'text-red-500',
                         }]
                       : []),
-                    ...(effectiveDashboardState.canShowHouseholdSurplus
-                      ? [{
-                          label: 'Lender serviceability view',
-                          value: formatCurrency(commandCenter.hero.monthlyPosition.householdSurplus),
-                          tone:
-                            Number(commandCenter.hero.monthlyPosition.householdSurplus) >= 0
-                              ? 'text-gray-900'
-                              : 'text-red-500',
-                        }]
-                      : []),
                   ]}
-                  subtitle="Property cash flow, your real monthly position, and the lender view are shown separately."
+                  subtitle="Your current household position, portfolio property cash flow, and the lender borrowing lens are shown separately."
                   cta={{
                     label:
                       !effectiveDashboardState.canShowActualMonthlySurplus || !effectiveDashboardState.canShowPropertyCashFlow

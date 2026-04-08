@@ -144,7 +144,12 @@ export default function HeroDecisionCard({
   purchaseRangeLow = 475000,
   purchaseRangeHigh = 550000,
   fiveYearEquityUplift = 298638,
+  currentHouseholdSurplus = null,
+  afterTaxAcquisitionImpact = null,
   monthlyHoldingCost = -982,
+  postAcquisitionSurplus = null,
+  monthlyTileEyebrow = null,
+  monthlyTileDetail = null,
   grossYield = 5.5,
   currentEquity = 576500,
   year3Equity = 720000,
@@ -159,6 +164,10 @@ export default function HeroDecisionCard({
   rateImpact = null,
   onDismissRateImpact = () => {},
   isAcquisitionMode = false,
+  subtitle = null,
+  isFirstNameResolved = true,
+  primaryCtaLabel = 'Explore scenarios',
+  primaryCtaRoute = '/growth-scenarios',
   confidenceChipLabel = 'High confidence',
   topUnlockCopy = null,
   firstName = null,
@@ -176,7 +185,10 @@ export default function HeroDecisionCard({
   const purchaseRangeLowNumber = toFiniteNumber(purchaseRangeLow)
   const purchaseRangeHighNumber = toFiniteNumber(purchaseRangeHigh)
   const fiveYearEquityUpliftNumber = toFiniteNumber(fiveYearEquityUplift)
+  const currentHouseholdSurplusNumber = toFiniteNumber(currentHouseholdSurplus)
+  const afterTaxAcquisitionImpactNumber = toFiniteNumber(afterTaxAcquisitionImpact)
   const monthlyHoldingCostNumber = toFiniteNumber(monthlyHoldingCost)
+  const postAcquisitionSurplusNumber = toFiniteNumber(postAcquisitionSurplus)
   const grossYieldNumber = toFiniteNumber(grossYield)
   const currentEquityNumber = toFiniteNumber(currentEquity)
   const year3EquityNumber = toFiniteNumber(year3Equity)
@@ -210,10 +222,38 @@ export default function HeroDecisionCard({
   const fiveYearEquityUpliftDisplay =
     fiveYearEquityUpliftNumber != null ? `+${formatCurrency(fiveYearEquityUpliftNumber)}` : '--'
   const monthlyHoldingCostDisplay =
-    monthlyHoldingCostNumber != null ? `${formatCompactCurrency(monthlyHoldingCostNumber)}/mo` : '--'
+    monthlyHoldingCostNumber != null ? `${formatCurrency(monthlyHoldingCostNumber)}/mo` : '--'
   const grossYieldDisplay = grossYieldNumber != null ? `${grossYieldNumber.toFixed(1)}%` : '--'
   const currentEquityDisplay =
     currentEquityNumber != null ? formatCurrency(currentEquityNumber) : '--'
+  const activeScenarioDepositAssumptionDetail = 'Based on active scenario: 20% deposit - funded'
+  const resolvedMonthlyTileEyebrow =
+    monthlyTileEyebrow ?? (isAcquisitionMode ? 'After-tax surplus' : 'Monthly surplus / gap')
+  const resolvedMonthlyTileDetail =
+    monthlyTileDetail ??
+    (isAcquisitionMode
+      ? activeScenarioDepositAssumptionDetail.replace('Based on active scenario: ', '')
+      : 'Live estimate · refine expenses for accuracy')
+  const postAcquisitionBreakdownRows =
+    isAcquisitionMode &&
+    currentHouseholdSurplusNumber != null &&
+    afterTaxAcquisitionImpactNumber != null &&
+    postAcquisitionSurplusNumber != null
+      ? [
+          {
+            label: 'Current household surplus',
+            value: `${currentHouseholdSurplusNumber >= 0 ? '+' : '-'}${formatCurrency(Math.abs(currentHouseholdSurplusNumber))}`,
+          },
+          {
+            label: 'After-tax acquisition impact',
+            value: `${afterTaxAcquisitionImpactNumber >= 0 ? '+' : '-'}${formatCurrency(Math.abs(afterTaxAcquisitionImpactNumber))}`,
+          },
+          {
+            label: 'Resulting post-acquisition surplus',
+            value: `${postAcquisitionSurplusNumber >= 0 ? '+' : '-'}${formatCurrency(Math.abs(postAcquisitionSurplusNumber))}`,
+          },
+        ]
+      : null
   const acquisitionReadinessScoreDisplay =
     acquisitionReadinessScoreNumber != null ? `${acquisitionReadinessScoreNumber}%` : '--'
   const acquisitionReadinessBarWidth =
@@ -492,7 +532,9 @@ export default function HeroDecisionCard({
             <h1 className="max-w-3xl text-[2.3rem] font-semibold leading-[1.06] tracking-[-0.04em] text-slate-950 max-[480px]:text-[2rem] md:text-[3.25rem]">
               {isAcquisitionMode
                 ? 'Buy 1 investment property'
-                : firstName
+                : !isFirstNameResolved
+                  ? <span className="inline-block min-h-[1em]">&nbsp;</span>
+                  : firstName
                   ? `${firstName}, here’s your next best move`
                   : 'Building toward your next acquisition'}
               {isAcquisitionMode ? (
@@ -500,7 +542,7 @@ export default function HeroDecisionCard({
               ) : null}
             </h1>
             <p className="mt-5 max-w-2xl text-[1.05rem] leading-8 text-emerald-800">
-              {isAcquisitionMode ? (
+              {subtitle ?? (isAcquisitionMode ? (
                 <>
                   Based on current inputs, this pathway appears viable and illustrative - subject
                   to lender assessment and market conditions.
@@ -510,7 +552,7 @@ export default function HeroDecisionCard({
                   Your existing portfolio is compounding. Focus on the top actions below to unlock
                   your next acquisition move.
                 </>
-              )}
+              ))}
             </p>
           </div>
 
@@ -530,9 +572,9 @@ export default function HeroDecisionCard({
                 tooltip="Estimated equity in the target property after 5 years, based on purchase price and assumed growth rate."
               />
               <StatTile
-                eyebrow="Estimated monthly cash flow"
+                eyebrow={resolvedMonthlyTileEyebrow}
                 value={monthlyHoldingCostDisplay}
-                detail="After tax offset est."
+                detail={resolvedMonthlyTileDetail}
                 tooltip="Projected monthly position after acquiring the target property, including estimated rental income minus loan repayments and holding costs."
               />
               <StatTile
@@ -541,6 +583,35 @@ export default function HeroDecisionCard({
                 detail="Regional market"
                 tooltip="Estimated annual rental income as a percentage of purchase price. Based on regional market assumptions where actual rent is not yet known."
               />
+            </div>
+          ) : null}
+
+          {isAcquisitionMode && postAcquisitionBreakdownRows ? (
+            <div className="mt-4 rounded-[1.25rem] border border-slate-200/80 bg-white/70 px-4 py-3">
+              <div className="grid gap-2 md:grid-cols-3 md:gap-4">
+                {postAcquisitionBreakdownRows.map((row, index) => (
+                  <div
+                    key={row.label}
+                    className={`flex items-center justify-between gap-3 text-[11px] leading-5 ${
+                      index === postAcquisitionBreakdownRows.length - 1
+                        ? 'font-medium text-slate-900'
+                        : 'text-slate-600'
+                    } md:block`}
+                  >
+                    <span className="block">
+                      {index === 0
+                        ? 'Current monthly surplus'
+                        : index === 1
+                          ? 'After-tax acquisition impact'
+                          : 'Resulting after-tax surplus'}
+                    </span>
+                    <span className="block md:mt-1">{row.value}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-[11px] leading-5 text-slate-500">
+                Explore ownership, depreciation and full tax assumptions in Model next acquisition.
+              </p>
             </div>
           ) : null}
 
@@ -564,9 +635,9 @@ export default function HeroDecisionCard({
                 tooltip="Estimated portfolio equity in 5 years based on current property values, growth assumptions, and loan amortisation. Does not include future acquisitions."
               />
               <StatTile
-                eyebrow="Monthly surplus / gap"
+                eyebrow={resolvedMonthlyTileEyebrow}
                 value={monthlyHoldingCostDisplay}
-                detail="Live estimate · refine expenses for accuracy"
+                detail={resolvedMonthlyTileDetail}
                 tooltip="Indicative monthly serviceability position based on income and rental income minus estimated loan repayments. Add living expenses for a more accurate view."
               />
             </div>
@@ -924,10 +995,10 @@ export default function HeroDecisionCard({
             </p>
             <button
               type="button"
-              onClick={() => navigate('/growth-scenarios')}
+              onClick={() => navigate(primaryCtaRoute)}
               className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-[1.15rem] bg-white px-4 py-3 text-sm font-semibold text-emerald-950 shadow-[0_18px_40px_-28px_rgba(255,255,255,0.28)] transition-all duration-150 ease-out hover:bg-[#eef5f2] hover:shadow-[0_0_0_3px_rgba(29,158,117,0.25)]"
             >
-              Explore scenarios
+              {primaryCtaLabel}
               <ArrowRight size={16} />
             </button>
           </div>
