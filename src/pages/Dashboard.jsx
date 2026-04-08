@@ -52,6 +52,7 @@ export default function Dashboard({ session, subscription }) {
   const [liveCashRate, setLiveCashRate] = useState(CURRENT_CASH_RATE)
   const [latestRateImpact, setLatestRateImpact] = useState(null)
   const [firstName, setFirstName] = useState('')
+  const [isFirstNameResolved, setIsFirstNameResolved] = useState(() => !session?.user?.id)
   const [onboardingSnapshot, setOnboardingSnapshot] = useState(() => {
     try {
       const raw = sessionStorage.getItem(snapshotKey)
@@ -128,8 +129,13 @@ export default function Dashboard({ session, subscription }) {
     let active = true
 
     async function loadFirstName() {
+      if (active) setIsFirstNameResolved(false)
+
       if (!session?.user?.id) {
-        if (active) setFirstName('')
+        if (active) {
+          setFirstName('')
+          setIsFirstNameResolved(true)
+        }
         return
       }
 
@@ -140,9 +146,15 @@ export default function Dashboard({ session, subscription }) {
         .maybeSingle()
 
       if (!active) return
-      if (error || !data?.first_name) return
+
+      if (error || !data?.first_name) {
+        setFirstName('')
+        setIsFirstNameResolved(true)
+        return
+      }
 
       setFirstName(data.first_name)
+      setIsFirstNameResolved(true)
     }
 
     loadFirstName()
@@ -798,6 +810,7 @@ export default function Dashboard({ session, subscription }) {
       subtitle: isAcquisitionMode
         ? 'Based on current inputs, this pathway appears viable and illustrative - subject to lender assessment and market conditions.'
         : 'Your existing portfolio is compounding. Focus on the top actions below to unlock your next acquisition move.',
+      isFirstNameResolved,
       monthlyTileEyebrow: isAcquisitionMode ? 'After-tax surplus' : 'Monthly surplus / gap',
       monthlyTileDetail: isAcquisitionMode
         ? '20% deposit - funded'
@@ -840,6 +853,7 @@ export default function Dashboard({ session, subscription }) {
     acquisitionReadiness?.label,
     incompleteSteps.length,
     firstName,
+    isFirstNameResolved,
     topUnlockCopy,
     capacityUseCaseCount,
     isAcquisitionMode,

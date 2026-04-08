@@ -165,6 +165,7 @@ export default function HeroDecisionCard({
   onDismissRateImpact = () => {},
   isAcquisitionMode = false,
   subtitle = null,
+  isFirstNameResolved = true,
   primaryCtaLabel = 'Explore scenarios',
   primaryCtaRoute = '/growth-scenarios',
   confidenceChipLabel = 'High confidence',
@@ -531,7 +532,9 @@ export default function HeroDecisionCard({
             <h1 className="max-w-3xl text-[2.3rem] font-semibold leading-[1.06] tracking-[-0.04em] text-slate-950 max-[480px]:text-[2rem] md:text-[3.25rem]">
               {isAcquisitionMode
                 ? 'Buy 1 investment property'
-                : firstName
+                : !isFirstNameResolved
+                  ? <span className="inline-block min-h-[1em]">&nbsp;</span>
+                  : firstName
                   ? `${firstName}, here’s your next best move`
                   : 'Building toward your next acquisition'}
               {isAcquisitionMode ? (
