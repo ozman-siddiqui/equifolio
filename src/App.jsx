@@ -225,7 +225,7 @@ export default function App() {
             return false
           }
         })()
-        const nextRequiresWelcome = !(hasProperty && hasProfile) && !hasSnapshot
+        const nextRequiresWelcome = !hasProperty && !hasSnapshot
 
         console.log('Welcome gate', {
           userId: session.user.id,

@@ -105,8 +105,13 @@ function pointToPercentX(pointX, viewBoxWidth = 520) {
   return `${(pointX / viewBoxWidth) * 100}%`
 }
 
-function StatTile({ eyebrow, value, detail, tone = 'default', tooltip = null }) {
-  const [showTooltip, setShowTooltip] = useState(false)
+function StatTile({
+  eyebrow,
+  value,
+  detail,
+  tone = 'default',
+  tooltip = null,
+}) {
   const toneClasses =
     tone === 'highlight'
       ? 'border-emerald-200/80 bg-emerald-50/80 shadow-[0_20px_45px_-34px_rgba(16,185,129,0.35)] hover:border-[rgba(0,0,0,0.12)]'
@@ -119,21 +124,16 @@ function StatTile({ eyebrow, value, detail, tone = 'default', tooltip = null }) 
       <p className="flex items-center text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
         {eyebrow}
         {tooltip && (
-          <button
-            type="button"
-            onClick={() => setShowTooltip((prev) => !prev)}
-            className="ml-1 inline-flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-slate-300 hover:text-slate-600"
+          <span
+            title={tooltip}
+            style={{ cursor: 'help', marginLeft: 4, opacity: 0.5 }}
+            className="inline-flex h-4 w-4 flex-shrink-0 items-center justify-center text-slate-400"
             aria-label={`Explain ${eyebrow}`}
           >
-            <Info size={10} />
-          </button>
+              <Info size={10} />
+          </span>
         )}
       </p>
-      {showTooltip && tooltip && (
-        <div className="absolute left-0 top-8 z-10 w-72 rounded-xl border border-slate-200 bg-white p-3 text-xs leading-5 text-slate-600 shadow-lg">
-          {tooltip}
-        </div>
-      )}
       <p className="mt-3 text-[1.8rem] font-semibold tracking-tight text-slate-950">{value}</p>
       <p className="mt-2 text-sm leading-6 text-slate-600">{detail}</p>
     </div>
@@ -160,6 +160,7 @@ export default function HeroDecisionCard({
   onDismissRateImpact = () => {},
   isAcquisitionMode = false,
   confidenceChipLabel = 'High confidence',
+  topUnlockCopy = null,
   firstName = null,
   isExecutable = true,
 }) {
@@ -171,7 +172,6 @@ export default function HeroDecisionCard({
   const pulseTimeoutRef = useRef(null)
   const [hasAnimated, setHasAnimated] = useState(false)
   const [isReadinessExpanded, setIsReadinessExpanded] = useState(false)
-  const [showStressInfo, setShowStressInfo] = useState(false)
 
   const purchaseRangeLowNumber = toFiniteNumber(purchaseRangeLow)
   const purchaseRangeHighNumber = toFiniteNumber(purchaseRangeHigh)
@@ -247,7 +247,7 @@ export default function HeroDecisionCard({
   const unlockStripDisplay =
     unlockValueNumber != null
       ? `Reduce card limits → +${unlockValueDisplay} borrowing capacity`
-      : 'Unavailable until setup complete'
+      : topUnlockCopy || 'Unavailable until setup complete'
   const hasScenarioData =
     purchaseRangeLowNumber != null &&
     purchaseRangeHighNumber != null &&
@@ -566,7 +566,7 @@ export default function HeroDecisionCard({
               <StatTile
                 eyebrow="Monthly surplus / gap"
                 value={monthlyHoldingCostDisplay}
-                detail="Indicative · Add expenses for accuracy"
+                detail="Live estimate · refine expenses for accuracy"
                 tooltip="Indicative monthly serviceability position based on income and rental income minus estimated loan repayments. Add living expenses for a more accurate view."
               />
             </div>
@@ -671,22 +671,21 @@ export default function HeroDecisionCard({
                 <div className="mt-1 flex items-center gap-1">
                   <p className="text-sm text-slate-600">
                     {stressThreshold?.status === 'safe'
-                      ? 'No stress break point within tested range'
+                      ? 'No stress break point found within the tested range'
                       : stressThreshold?.status === 'warning'
                       ? 'Limited headroom — monitor closely'
                       : stressThreshold?.status === 'critical'
                       ? 'Portfolio under rate stress'
                       : 'Data unavailable'}
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => setShowStressInfo((prev) => !prev)}
-                    className="ml-1 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-slate-300 hover:text-slate-600"
+                  <span
+                    title="Rate resilience estimates the interest rate at which your lender-view monthly surplus turns negative under your current portfolio settings. A result of >10.00% means no break point was found within the tested range — your portfolio remains serviceable even under extreme rate stress."
+                    style={{ cursor: 'help', marginLeft: 4, opacity: 0.5 }}
+                    className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center text-slate-400"
                     aria-label="Explain rate resilience"
-                    aria-expanded={showStressInfo}
                   >
                     <Info size={12} />
-                  </button>
+                  </span>
                 </div>
                 <div className="mt-2">
                   {stressThreshold?.status === 'safe' ? (
@@ -707,21 +706,6 @@ export default function HeroDecisionCard({
                     </span>
                   )}
                 </div>
-                {showStressInfo && (
-                  <div className="mt-3 rounded-2xl border border-slate-200/80 bg-slate-50 px-3 py-3 text-sm leading-6 text-slate-600">
-                    <p className="font-medium text-slate-900">What this means</p>
-                    <p className="mt-1">
-                      Rate resilience estimates the interest rate at which your
-                      lender-view monthly surplus turns negative under your current
-                      portfolio settings.
-                    </p>
-                    <p className="mt-1">
-                      A result of &gt;10.00% means no break point was found within
-                      the tested range — your portfolio remains serviceable even
-                      under extreme rate stress.
-                    </p>
-                  </div>
-                )}
               </div>
               <p className="text-[clamp(16px,1.6vw,22px)] font-semibold tracking-tight text-slate-950">
                 {stressThreshold?.stressThresholdLabel ?? '—'}
@@ -936,7 +920,7 @@ export default function HeroDecisionCard({
         <aside className="flex flex-col gap-4">
           <div className="rounded-[2rem] border border-emerald-700/90 bg-[linear-gradient(180deg,#12403b_0%,#0f3d38_100%)] px-5 py-4 text-white shadow-[0_30px_80px_-38px_rgba(6,78,59,0.72)]">
             <p className="text-[1.35rem] font-semibold tracking-tight">
-              {isExecutableScenario ? 'Deploy this strategy' : 'See what unlocks this'}
+              {isExecutableScenario ? 'Deploy this strategy' : 'Unlock your next move'}
             </p>
             <button
               type="button"

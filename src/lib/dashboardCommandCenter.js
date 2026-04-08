@@ -1,6 +1,6 @@
 import calculateBorrowingPower from './borrowingPowerEngine'
 import { buildPortfolioRefinanceRanking } from './refinanceEngine'
-import buildPortfolioGrowthScenarios from './portfolioGrowthScenarios'
+import buildPortfolioGrowthScenarios, { generateScenarioProjectionData } from './portfolioGrowthScenarios'
 
 function toMonthly(amount, frequency) {
   const safeAmount = Number(amount || 0)
@@ -40,6 +40,49 @@ function formatRange(min, max) {
 function toSafeNumber(value) {
   const numeric = Number(String(value ?? '').replace(/,/g, '').trim())
   return Number.isFinite(numeric) ? numeric : 0
+}
+
+function getPortfolioProjectionInterestRate(loans = []) {
+  const validRates = loans
+    .map((loan) => Number(loan?.interest_rate))
+    .filter((rate) => Number.isFinite(rate) && rate > 0)
+
+  if (validRates.length === 0) return 5.8
+
+  return validRates.reduce((sum, rate) => sum + rate, 0) / validRates.length
+}
+
+function getPortfolioProjectionGrowthRatePct(properties = []) {
+  const validRates = properties
+    .map((property) => {
+      const currentValue = Number(property?.current_value)
+      const purchasePrice = Number(property?.purchase_price)
+      const purchaseDate = property?.purchase_date ? new Date(property.purchase_date) : null
+
+      if (
+        !Number.isFinite(currentValue) ||
+        !Number.isFinite(purchasePrice) ||
+        currentValue <= 0 ||
+        purchasePrice <= 0 ||
+        !purchaseDate ||
+        Number.isNaN(purchaseDate.getTime())
+      ) {
+        return null
+      }
+
+      const yearsHeld = Math.max(
+        (Date.now() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25),
+        0.5
+      )
+      const rate = Math.pow(currentValue / purchasePrice, 1 / yearsHeld) - 1
+      return Number.isFinite(rate) && rate > 0 ? rate : null
+    })
+    .filter(Boolean)
+
+  if (validRates.length === 0) return 3.5
+
+  const average = validRates.reduce((sum, rate) => sum + rate, 0) / validRates.length
+  return Math.min(Math.max(average * 100, 2.5), 6)
 }
 
 function getPropertyStatus({ hasLoanCoverage, netCashFlow, refinanceCandidate, alerts }) {
@@ -518,6 +561,24 @@ export default function buildDashboardCommandCenter({
   const netEquity = hasIncompleteLoanCoverage ? null : Math.round(totalValue - totalDebt)
   const usableEquity =
     hasIncompleteLoanCoverage ? null : Math.round(Math.max(totalValue * 0.8 - totalDebt, 0))
+  const equityProjectionData =
+    hasIncompleteLoanCoverage || totalValue <= 0 || totalDebt < 0
+      ? []
+      : generateScenarioProjectionData({
+          purchasePrice: totalValue,
+          loanSize: totalDebt,
+          interestRatePct: getPortfolioProjectionInterestRate(loans),
+          annualGrowthRatePct: getPortfolioProjectionGrowthRatePct(properties),
+          loanTermYears: 30,
+          monthlyCashFlow: 0,
+          monthlyRentalIncome: 0,
+          monthlyExpenses: 0,
+        })
+          .filter((point) => [0, 3, 5, 10].includes(Number(point?.year)))
+          .map((point) => ({
+            year: Number(point.year),
+            netEquity: Number(point.netEquity),
+          }))
 
   const propertySummaries = properties.map((property) => {
     const propertyLoans = loans.filter((loan) => String(loan.property_id) === String(property.id))
@@ -1140,6 +1201,7 @@ export default function buildDashboardCommandCenter({
 
   return {
     hero,
+    equityProjectionData,
     growthScenarios: {
       ...growthScenarios,
       bestBlockedStrategy,

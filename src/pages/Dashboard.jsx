@@ -1,5 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useLayoutEffect } from 'react'
+import { useRef } from 'react'
 import { ChevronRight, Lock, Plus, Siren, Sparkles } from 'lucide-react'
 
 import AddPropertyModal from '../components/AddPropertyModal'
@@ -52,6 +54,7 @@ export default function Dashboard({ session, subscription }) {
   const [liveCashRate, setLiveCashRate] = useState(CURRENT_CASH_RATE)
   const [latestRateImpact, setLatestRateImpact] = useState(null)
   const [firstName, setFirstName] = useState('')
+  const heroDecisionRef = useRef(null)
   const [onboardingSnapshot, setOnboardingSnapshot] = useState(() => {
     try {
       const raw = sessionStorage.getItem(snapshotKey)
@@ -339,6 +342,7 @@ export default function Dashboard({ session, subscription }) {
         if (!mapped) return null
 
         return {
+          id: section?.id,
           ...mapped,
           unlocked: section?.unlocked ?? mapped.unlocked,
           lockedReason: section?.lockedReason ?? mapped.lockedReason,
@@ -346,6 +350,41 @@ export default function Dashboard({ session, subscription }) {
       })
       .filter(Boolean)
   }, [dashboardState?.missingSections])
+
+  const workflowSteps = useMemo(() => {
+    const priorityOrder = ['cashflow', 'financials', 'liabilities']
+    const prioritizedSteps = priorityOrder
+      .map((id) => incompleteSteps.find((step) => step.id === id))
+      .filter(Boolean)
+
+    return prioritizedSteps.length > 0 ? prioritizedSteps : incompleteSteps
+  }, [incompleteSteps])
+
+  const primaryWorkflowStep = workflowSteps[0] ?? null
+  const queuedWorkflowSteps = workflowSteps.slice(1, 3)
+  const primaryWorkflowCtaLabel = primaryWorkflowStep?.id === 'cashflow'
+    ? 'Open cash flow →'
+    : primaryWorkflowStep?.id === 'financials'
+      ? 'Open financials →'
+      : primaryWorkflowStep?.id === 'liabilities'
+        ? 'Add liabilities →'
+        : 'Continue →'
+  const topUnlockCopy = primaryWorkflowStep?.id === 'cashflow'
+    ? 'Add cash flow to unlock your true monthly position'
+    : primaryWorkflowStep?.id === 'financials'
+      ? 'Complete financials to unlock borrowing insights'
+      : primaryWorkflowStep?.id === 'liabilities'
+        ? 'Add liabilities to improve borrowing accuracy'
+        : null
+  const heroPrimaryCta = primaryWorkflowStep?.unlocked === false
+    ? { label: 'Model next acquisition →', route: '/growth-scenarios' }
+    : primaryWorkflowStep?.id === 'cashflow'
+      ? { label: 'Open cash flow', route: '/cashflow' }
+      : primaryWorkflowStep?.id === 'financials'
+        ? { label: 'Open financials', route: '/financials' }
+        : primaryWorkflowStep?.id === 'liabilities'
+          ? { label: 'Add liabilities', route: '/financials' }
+          : { label: 'Model next acquisition →', route: '/growth-scenarios' }
 
   const totalSections = 5
   const completedSections =
@@ -412,6 +451,15 @@ export default function Dashboard({ session, subscription }) {
     usingOnboardingSnapshot && !hasLiveHeroInputs
       ? (onboardingCommandCenter ?? baseCommandCenter)
       : baseCommandCenter
+
+  const hasLiveEquityInputs = useMemo(
+    () => !['properties', 'mortgages'].some((id) =>
+      dashboardState?.missingSections?.some(
+        (section) => section?.id === id
+      )
+    ),
+    [dashboardState?.missingSections]
+  )
 
   const growthScenarios = commandCenter?.growthScenarios
 
@@ -610,6 +658,24 @@ export default function Dashboard({ session, subscription }) {
     [commandCenter?.growthScenarios]
   )
 
+  const equityLeadScenario = useMemo(
+    () =>
+      hasLiveEquityInputs
+        ? (
+            baseCommandCenter?.growthScenarios?.feasibleStrategies?.[0] ??
+            baseCommandCenter?.growthScenarios?.nearViableStrategies?.[0] ??
+            baseCommandCenter?.growthScenarios?.bestBlockedStrategy ??
+            null
+          )
+        : null,
+    [hasLiveEquityInputs, baseCommandCenter?.growthScenarios]
+  )
+
+  const equityProjectionData = useMemo(
+    () => (hasLiveEquityInputs ? baseCommandCenter?.equityProjectionData ?? null : null),
+    [hasLiveEquityInputs, baseCommandCenter?.equityProjectionData]
+  )
+
   const isAcquisitionMode =
     Boolean(leadScenario) &&
     Number(borrowingPowerAnalysis?.borrowing_power_estimate ?? 0) > 0 &&
@@ -632,6 +698,62 @@ export default function Dashboard({ session, subscription }) {
       setLatestRateImpact(null)
     }
   }
+
+  useLayoutEffect(() => {
+    const heroRoot = heroDecisionRef.current
+    if (!heroRoot) return undefined
+
+    let activeButton = null
+
+    const syncHeroPrimaryCta = () => {
+      const nextButton = heroRoot.querySelector('aside button')
+      if (!nextButton) return
+
+      if (activeButton && activeButton !== nextButton && activeButton.__dashboardHeroCtaHandler) {
+        activeButton.removeEventListener('click', activeButton.__dashboardHeroCtaHandler, true)
+      }
+
+      const labelNode = Array.from(nextButton.childNodes)
+        .find((node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim())
+
+      if (labelNode) {
+        labelNode.textContent = heroPrimaryCta.label
+      }
+
+      if (nextButton.__dashboardHeroCtaHandler) {
+        nextButton.removeEventListener('click', nextButton.__dashboardHeroCtaHandler, true)
+      }
+
+      const handleHeroPrimaryCtaClick = (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        navigate(heroPrimaryCta.route)
+      }
+
+      nextButton.addEventListener('click', handleHeroPrimaryCtaClick, true)
+      nextButton.__dashboardHeroCtaHandler = handleHeroPrimaryCtaClick
+      activeButton = nextButton
+    }
+
+    syncHeroPrimaryCta()
+
+    const observer = new MutationObserver(() => {
+      syncHeroPrimaryCta()
+    })
+
+    observer.observe(heroRoot, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    })
+
+    return () => {
+      observer.disconnect()
+      if (activeButton?.__dashboardHeroCtaHandler) {
+        activeButton.removeEventListener('click', activeButton.__dashboardHeroCtaHandler, true)
+      }
+    }
+  }, [heroPrimaryCta, navigate])
 
   const heroDecisionProps = useMemo(() => {
     const liveEquityBase =
@@ -668,17 +790,24 @@ export default function Dashboard({ session, subscription }) {
         null,
       currentEquity: liveEquityBase,
       year3Equity:
-        leadScenario?.projectionData?.find(
+        equityProjectionData?.find(
+          (point) => Number(point.year) === 3
+        )?.netEquity ??
+        equityLeadScenario?.projectionData?.find(
           (point) => Number(point.year) === 3
         )?.netEquity ?? null,
       year5Equity:
-        leadScenario?.projectionData?.find(
+        equityProjectionData?.find(
           (point) => Number(point.year) === 5
         )?.netEquity ??
-        leadScenario?.fiveYearEquityProjection ??
-        null,
+        equityLeadScenario?.projectionData?.find(
+          (point) => Number(point.year) === 5
+        )?.netEquity ?? null,
       year10Equity:
-        leadScenario?.projectionData?.find(
+        equityProjectionData?.find(
+          (point) => Number(point.year) === 10
+        )?.netEquity ??
+        equityLeadScenario?.projectionData?.find(
           (point) => Number(point.year) === 10
         )?.netEquity ?? null,
       unlockValue: usingOnboardingSnapshot || effectiveDashboardState.canShowBorrowing
@@ -705,13 +834,18 @@ export default function Dashboard({ session, subscription }) {
       isAcquisitionMode,
       confidenceChipLabel: usingOnboardingSnapshot
         ? 'Indicative'
-        : 'High confidence',
+        : incompleteSteps.length > 0
+          ? 'Setup-based readiness'
+          : 'High confidence',
+      topUnlockCopy,
       isExecutable: Boolean(
         capacityUseCaseCount > 0 ||
         (yieldFirstScenario?.isExecutable ?? false)
       ),
     }
   }, [
+    equityProjectionData,
+    equityLeadScenario,
     leadScenario,
     commandCenter?.hero?.netPosition?.value,
     commandCenter?.hero?.purchaseRangeLow,
@@ -730,7 +864,9 @@ export default function Dashboard({ session, subscription }) {
     latestRateImpact,
     acquisitionReadiness?.finalScore,
     acquisitionReadiness?.label,
+    incompleteSteps.length,
     firstName,
+    topUnlockCopy,
     capacityUseCaseCount,
     isAcquisitionMode,
     usingOnboardingSnapshot,
@@ -782,7 +918,7 @@ export default function Dashboard({ session, subscription }) {
             <span>Snapshot loaded · 1 property, income, and capital captured</span>
           </div>
         )}
-        {usingOnboardingSnapshot && incompleteSteps.length > 0 && (
+        {incompleteSteps.length > 0 && (
           <div style={{
             background: '#fffbeb',
             border: '1.5px solid #f59e0b',
@@ -803,29 +939,47 @@ export default function Dashboard({ session, subscription }) {
                   fontWeight: 700,
                   color: '#92400e',
                 }}>
-                  Complete your setup to unlock full insights
+                  {primaryWorkflowStep
+                    ? `Next → ${primaryWorkflowStep.label}`
+                    : 'Complete your setup to unlock full insights'}
                 </span>
-                <span style={{
+                <div style={{
                   fontSize: 13,
                   color: '#b45309',
                   fontWeight: 500,
-                  marginLeft: 10,
+                  marginTop: 4,
                 }}>
-                  Platform setup · {dataCoveragePct}% complete · {incompleteSteps.length} step{incompleteSteps.length === 1 ? '' : 's'} to unlock full insights
-                </span>
+                  {queuedWorkflowSteps.length > 0
+                    ? `Then → ${queuedWorkflowSteps.map((step) => step.label).join(' · ')}`
+                    : `Platform setup · ${dataCoveragePct}% complete · ${incompleteSteps.length} step${incompleteSteps.length === 1 ? '' : 's'} remaining`}
+                </div>
               </div>
-              <Link
-                to="/properties"
-                style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: '#92400e',
-                  textDecoration: 'none',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                Continue setup →
-              </Link>
+              {primaryWorkflowStep?.unlocked === false ? (
+                <span
+                  title={primaryWorkflowStep.lockedReason || 'Add a property first'}
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: '#78716c',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {primaryWorkflowStep.lockedReason || 'Add a property first'}
+                </span>
+              ) : (
+                <Link
+                  to={primaryWorkflowStep?.to || '/properties'}
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: '#92400e',
+                    textDecoration: 'none',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {primaryWorkflowCtaLabel}
+                </Link>
+              )}
             </div>
             <div style={{
               display: 'flex',
@@ -943,12 +1097,20 @@ export default function Dashboard({ session, subscription }) {
           </div>
         </section>
 
-        <section
-          className={`mt-4 rounded-3xl border border-gray-100 bg-white px-5 py-4 shadow-sm shadow-gray-100/70 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
-          style={isDashboardMounted ? { animationDelay: '0ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+        <div
+          ref={heroDecisionRef}
+          className={`mt-5 mb-[22px] ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+          style={isDashboardMounted ? { animationDelay: '50ms' } : { opacity: 0, transform: 'translateY(8px)' }}
         >
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex flex-wrap items-center gap-6">
+          <HeroDecisionCard {...heroDecisionProps} />
+        </div>
+
+        <section
+          className={`mb-[22px] rounded-[1.5rem] border border-gray-100 bg-white/80 px-4 py-3 shadow-sm shadow-gray-100/50 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+          style={isDashboardMounted ? { animationDelay: '90ms' } : { opacity: 0, transform: 'translateY(8px)' }}
+        >
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-wrap items-center gap-5">
               <StripMetric
                 label="Platform setup"
                 value={`${dataCoveragePct}% complete`}
@@ -963,18 +1125,11 @@ export default function Dashboard({ session, subscription }) {
               />
             </div>
 
-            <p className="text-sm text-gray-500">
+            <p className="text-xs text-gray-500">
               Better data coverage sharpens borrowing, refinance, and portfolio actions.
             </p>
           </div>
         </section>
-
-        <div
-          className={`mt-5 mb-[22px] ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
-          style={isDashboardMounted ? { animationDelay: '50ms' } : { opacity: 0, transform: 'translateY(8px)' }}
-        >
-          <HeroDecisionCard {...heroDecisionProps} />
-        </div>
 
         {!effectiveDashboardState.hasProperties ? (
           <section className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-2">
