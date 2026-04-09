@@ -415,7 +415,6 @@ export default function Dashboard({ session, subscription }) {
       canShowNetPosition: true,
       showNetPositionPartial: false,
       canShowMonthlyPosition: true,
-      canShowActualMonthlySurplus: true,
       canShowPropertyCashFlow: true,
       canShowHouseholdSurplus: true,
       canShowTopActions: true,
@@ -709,7 +708,14 @@ export default function Dashboard({ session, subscription }) {
   }
 
   const heroDecisionProps = useMemo(() => {
+    const snapshotCurrentValue = Number(onboardingSnapshot?.currentValue ?? 0)
+    const snapshotLoanBalance = Number(onboardingSnapshot?.loanBalance ?? 0)
+    const snapshotEquityBase =
+      Number.isFinite(snapshotCurrentValue) && Number.isFinite(snapshotLoanBalance)
+        ? Math.max(0, snapshotCurrentValue - snapshotLoanBalance)
+        : null
     const liveEquityBase =
+      (usingOnboardingSnapshot ? snapshotEquityBase : null) ??
       commandCenter?.hero?.netPosition?.value ??
       commandCenter?.totalValue ??
       0
@@ -745,9 +751,13 @@ export default function Dashboard({ session, subscription }) {
               )
             )
           : (
-              borrowingPowerAnalysis?.actual_monthly_surplus ??
-              commandCenter?.hero?.monthlyPosition?.householdSurplus ??
-              null
+              effectiveDashboardState.canShowActualMonthlySurplus
+                ? (
+                    borrowingPowerAnalysis?.actual_monthly_surplus ??
+                    commandCenter?.hero?.monthlyPosition?.householdSurplus ??
+                    null
+                  )
+                : null
             ),
       postAcquisitionSurplus:
         isAcquisitionMode && leadScenario
@@ -799,6 +809,9 @@ export default function Dashboard({ session, subscription }) {
           ? { ...baseAcquisitionReadiness, label: 'Indicative' }
           : baseAcquisitionReadiness,
       acquisitionReadinessScore:
+        (usingOnboardingSnapshot
+          ? Number(onboardingSnapshot?.finalScore ?? null)
+          : null) ??
         commandCenter?.hero?.acquisitionReadiness?.finalScore ??
         acquisitionReadiness?.finalScore ??
         null,
@@ -814,7 +827,9 @@ export default function Dashboard({ session, subscription }) {
       monthlyTileEyebrow: isAcquisitionMode ? 'After-tax surplus' : 'Monthly surplus / gap',
       monthlyTileDetail: isAcquisitionMode
         ? '20% deposit - funded'
-        : 'Live estimate · refine expenses for accuracy',
+        : effectiveDashboardState.canShowActualMonthlySurplus
+          ? 'Live estimate · refine expenses for accuracy'
+          : 'Add income, expenses and liabilities to unlock your monthly position.',
       primaryCtaLabel: heroPrimaryCta.label,
       primaryCtaRoute: heroPrimaryCta.route,
       firstName: firstName || null,
@@ -860,6 +875,9 @@ export default function Dashboard({ session, subscription }) {
     heroPrimaryCta.label,
     heroPrimaryCta.route,
     usingOnboardingSnapshot,
+    onboardingSnapshot?.currentValue,
+    onboardingSnapshot?.loanBalance,
+    onboardingSnapshot?.finalScore,
     yieldFirstScenario?.isExecutable,
   ])
 
@@ -1230,7 +1248,11 @@ export default function Dashboard({ session, subscription }) {
                         commandCenter.hero.monthlyPosition.householdSurplus
                       : null
                   }
-                  helper="After-tax household surplus"
+                  helper={
+                    effectiveDashboardState.canShowActualMonthlySurplus
+                      ? 'After-tax household surplus'
+                      : 'Complete cash flow to unlock'
+                  }
                   detailRows={[
                     ...(effectiveDashboardState.canShowPropertyCashFlow
                       ? [{
@@ -1243,7 +1265,11 @@ export default function Dashboard({ session, subscription }) {
                         }]
                       : []),
                   ]}
-                  subtitle="Your current household position, portfolio property cash flow, and the lender borrowing lens are shown separately."
+                  subtitle={
+                    effectiveDashboardState.canShowActualMonthlySurplus
+                      ? 'Your current household position and portfolio property cash flow are shown separately.'
+                      : 'Add income, expenses and liabilities to unlock your monthly position.'
+                  }
                   cta={{
                     label:
                       !effectiveDashboardState.canShowActualMonthlySurplus || !effectiveDashboardState.canShowPropertyCashFlow

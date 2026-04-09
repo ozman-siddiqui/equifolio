@@ -460,15 +460,48 @@ export default function Welcome({ session = null }) {
         finalScore: derived.acquisitionReadiness,
         completedAt: new Date().toISOString(),
       }
+
+      if (session?.user?.id) {
+        const employmentIncomeAnnual = parseNumber(draft.annualIncome)
+        const partnerIncomeAnnual = parseNumber(draft.partnerIncome)
+        const cashAvailableForInvestment = parseNumber(draft.cashSavings)
+        const householdIncomeAnnual = employmentIncomeAnnual + partnerIncomeAnnual
+
+        const { error: profileError } = await supabase
+          .from('user_financial_profiles')
+          .upsert(
+            {
+              user_id: session.user.id,
+              employment_income_annual: employmentIncomeAnnual,
+              partner_income_annual: partnerIncomeAnnual,
+              household_income_annual: householdIncomeAnnual || null,
+              cash_available_for_investment: cashAvailableForInvestment,
+            },
+            { onConflict: 'user_id' }
+          )
+
+        if (profileError) {
+          console.error('Welcome completion profile save failed:', profileError)
+        }
+      }
+
       sessionStorage.setItem(
         snapshotKey,
         JSON.stringify(snapshot)
       )
+      const saved = sessionStorage.getItem(snapshotKey)
 
-      window.location.replace('/dashboard')
+      if (!saved) {
+        console.error('Onboarding snapshot write verification failed:', {
+          snapshotKey,
+          userId: session?.user?.id ?? null,
+        })
+      }
+
+      navigate('/dashboard', { replace: true })
     } catch (err) {
       console.error('Snapshot handoff error:', err)
-      window.location.replace('/dashboard')
+      navigate('/dashboard', { replace: true })
     } finally {
       setIsSaving(false)
     }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { supabase } from './supabase'
 
 import Auth from './pages/Auth'
@@ -82,6 +82,7 @@ class AppRouteErrorBoundary extends React.Component {
 }
 
 export default function App() {
+  const location = useLocation()
   const [session, setSession] = useState(null)
   const [subscription, setSubscription] = useState(null)
   const [ready, setReady] = useState(false)
@@ -225,7 +226,7 @@ export default function App() {
             return false
           }
         })()
-        const nextRequiresWelcome = !hasProperty && !hasSnapshot
+        const nextRequiresWelcome = !hasProperty && !hasProfile && !hasSnapshot
 
         console.log('Welcome gate', {
           userId: session.user.id,
@@ -276,7 +277,7 @@ export default function App() {
     return () => {
       isMounted = false
     }
-  }, [session?.user?.id, isActive])
+  }, [session?.user?.id, isActive, location.pathname])
 
   if (!ready || !subscriptionReady || !welcomeGateReady) {
     return (

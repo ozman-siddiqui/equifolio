@@ -121,7 +121,9 @@ export function buildOnboardingSnapshotCommandCenter(snapshot = null) {
   const cashSavings = toSafeNumber(snapshot.cashSavings)
   const offsetBalance = toSafeNumber(snapshot.offsetBalance)
   const creditCardLimits = toSafeNumber(snapshot.creditCardLimits)
-  const rentPerMonth = toSafeNumber(snapshot.monthlyRentalIncome)
+  const rentPerMonth = toSafeNumber(
+    snapshot.rentPerMonth ?? snapshot.monthlyRentalIncome
+  )
   const annualRent = rentPerMonth * 12
   const netEquity = Math.max(0, currentValue - loanBalance)
   const monthlyRate = interestRate / 100 / 12
@@ -153,6 +155,9 @@ export function buildOnboardingSnapshotCommandCenter(snapshot = null) {
   if (offsetBalance > 0) acquisitionReadiness += 4
   if (creditCardLimits > 0) acquisitionReadiness += 3
   acquisitionReadiness = Math.min(65, acquisitionReadiness)
+  const snapshotFinalScore = toSafeNumber(snapshot.finalScore)
+  const onboardingReadinessScore =
+    snapshotFinalScore != null ? Math.round(snapshotFinalScore) : acquisitionReadiness
 
   const indicativePurchaseRangeLow = cashSavings > 0 ? Math.round(cashSavings * 4.5) : null
   const indicativePurchaseRangeHigh = cashSavings > 0 ? Math.round(cashSavings * 5.5) : null
@@ -253,7 +258,7 @@ export function buildOnboardingSnapshotCommandCenter(snapshot = null) {
       monthlyPosition: {
         propertyCashFlow: Math.round(rentPerMonth - monthlyRepayment),
         householdSurplus: Math.round(householdSurplus),
-        subtitle: 'Indicative monthly position using onboarding inputs.',
+        subtitle: 'Add income, expenses and liabilities to unlock your monthly position.',
         cta: { label: 'Complete cash flow', route: '/cashflow' },
       },
       borrowingPower: {
@@ -269,7 +274,7 @@ export function buildOnboardingSnapshotCommandCenter(snapshot = null) {
       },
       usableEquity: Math.round(Math.max(currentValue * 0.8 - loanBalance, 0)),
       acquisitionReadiness: {
-        finalScore: acquisitionReadiness,
+        finalScore: onboardingReadinessScore,
         label: 'Indicative',
       },
       stressThreshold,
@@ -982,7 +987,9 @@ export default function buildDashboardCommandCenter({
       propertyCashFlow: Math.round(monthlyPropertyCashFlow),
       householdSurplus: borrowingAnalysis?.status === 'insufficient_data' ? null : Number(borrowingAnalysis?.net_monthly_surplus ?? null),
       subtitle:
-        'Property cash flow, actual monthly surplus, and lender-view serviceability are shown separately.',
+        borrowingAnalysis?.status === 'insufficient_data'
+          ? 'Add income, expenses and liabilities to unlock your monthly position.'
+          : 'Property cash flow, actual monthly surplus, and lender-view serviceability are shown separately.',
       cta:
         borrowingAnalysis?.status === 'insufficient_data'
           ? { label: 'Complete Financials', route: '/financials' }
