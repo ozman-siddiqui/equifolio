@@ -381,12 +381,6 @@ export default function Dashboard({ session, subscription }) {
         unlocked: noLivePropertyYet ? false : true,
         lockedReason: noLivePropertyYet ? 'Add a property first' : null,
       },
-      liabilities: {
-        label: 'Add liabilities',
-        to: '/financials',
-        unlocked: noLivePropertyYet ? false : true,
-        lockedReason: noLivePropertyYet ? 'Add a property first' : null,
-      },
     }
 
     return (dashboardState?.missingSections || [])

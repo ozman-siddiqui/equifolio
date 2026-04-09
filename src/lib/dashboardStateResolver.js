@@ -117,7 +117,6 @@ export default function buildDashboardStateResolver({
     loans.every((loan) => hasNumber(loan?.monthly_repayment))
   const canShowActualMonthlySurplus =
     hasFinancials &&
-    hasLiabilities &&
     hasActualMortgageRepayments &&
     hasPropertyRentData &&
     hasPropertyExpenseData
@@ -182,8 +181,14 @@ export default function buildDashboardStateResolver({
 
   const canShowNetPosition = hasProperties && hasPropertyValues
   const canShowMonthlyPosition = hasTransactions || hasFinancials
-  const canShowBorrowing = setupComplete
-  const canShowTopActions = setupComplete
+  const canShowBorrowing =
+    hasProperties &&
+    hasMortgages &&
+    hasFinancials
+  const canShowTopActions =
+    hasProperties &&
+    hasMortgages &&
+    hasFinancials
 
   return {
     hasProperties,
