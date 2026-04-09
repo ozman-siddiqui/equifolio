@@ -3,6 +3,8 @@ import { BriefcaseBusiness, CreditCard, Wallet } from 'lucide-react'
 
 import { supabase } from '../supabase'
 import useFinancialData from '../hooks/useFinancialData'
+import usePortfolioData from '../hooks/usePortfolioData'
+import { useFinancialDataStore } from '../stores/financialDataStore'
 import { normalizeTaxOwnership, validateTaxOwnership } from '../lib/taxOwnership'
 import {
   utilityPrimaryButtonClass,
@@ -131,6 +133,7 @@ function formatCurrency(amount) {
 
 export default function Financials({ session = null }) {
   const { financialProfile, loading, error, fetchFinancialData } = useFinancialData()
+  const { fetchData: fetchPortfolioData } = usePortfolioData(session)
 
   const [profileForm, setProfileForm] = useState(defaultProfileForm)
   const [profileDirty, setProfileDirty] = useState(false)
@@ -374,6 +377,130 @@ export default function Financials({ session = null }) {
     }
   }
 
+  const persistInScopeLiabilityDraft = async () => {
+    console.log('[Financials] persistInScopeLiabilityDraft entered', {
+      showLiabilityForm,
+      liabilityForm,
+      editingLiabilityId,
+      hasMeaningfulLiabilityDraft:
+        Boolean(editingLiabilityId) ||
+        Boolean(liabilityForm.name.trim()) ||
+        liabilityForm.balance !== '' ||
+        liabilityForm.monthly_repayment !== '' ||
+        (liabilityForm.credit_limit !== '')
+    })
+
+    const hasMeaningfulLiabilityDraft =
+      Boolean(editingLiabilityId) ||
+      Boolean(liabilityForm.name.trim()) ||
+      liabilityForm.balance !== '' ||
+      liabilityForm.monthly_repayment !== '' ||
+      (shouldShowCreditLimit(liabilityForm.type) && liabilityForm.credit_limit !== '')
+
+    if (!showLiabilityForm || !hasMeaningfulLiabilityDraft) {
+      return { attempted: false, saved: false, error: null }
+    }
+
+    setLiabilityState({ loading: true, error: '', success: '' })
+
+    const creditLimit = parseMoney(liabilityForm.credit_limit)
+    const outstandingBalance = parseMoney(liabilityForm.balance)
+    const monthlyRepayment = parseMoney(liabilityForm.monthly_repayment)
+
+    const visibleNumericFields = shouldShowCreditLimit(liabilityForm.type)
+      ? [creditLimit, outstandingBalance, monthlyRepayment]
+      : [outstandingBalance, monthlyRepayment]
+
+    const invalidNumeric = visibleNumericFields.some(
+      (value) => value !== null && (!Number.isFinite(value) || value < 0)
+    )
+
+    if (!session?.user?.id) {
+      const errorMessage = 'You must be signed in to save liabilities.'
+      setLiabilityState({
+        loading: false,
+        error: errorMessage,
+        success: '',
+      })
+      return { attempted: true, saved: false, error: errorMessage }
+    }
+
+    if (!liabilityForm.type) {
+      const errorMessage = 'Liability type is required.'
+      setLiabilityState({
+        loading: false,
+        error: errorMessage,
+        success: '',
+      })
+      return { attempted: true, saved: false, error: errorMessage }
+    }
+
+    if (!liabilityForm.name.trim()) {
+      const errorMessage = 'Lender or provider name is required.'
+      setLiabilityState({
+        loading: false,
+        error: errorMessage,
+        success: '',
+      })
+      return { attempted: true, saved: false, error: errorMessage }
+    }
+
+    if (invalidNumeric) {
+      const errorMessage =
+        'Credit limit, outstanding balance, and monthly repayment must be valid numbers 0 or greater.'
+      setLiabilityState({
+        loading: false,
+        error: errorMessage,
+        success: '',
+      })
+      return { attempted: true, saved: false, error: errorMessage }
+    }
+
+    const payload = {
+      user_id: session.user.id,
+      type: liabilityForm.type,
+      name: liabilityForm.name.trim(),
+      credit_limit: shouldShowCreditLimit(liabilityForm.type) ? creditLimit : null,
+      balance: outstandingBalance,
+      monthly_repayment: monthlyRepayment,
+    }
+    console.log('[Financials] liability payload before save', payload)
+
+    const query = editingLiabilityId
+      ? supabase.from('liabilities').update(payload).eq('id', editingLiabilityId)
+      : supabase.from('liabilities').insert([payload])
+
+    const { error: saveError } = await query
+    console.log('[Financials] liability query result', { saveError, editingLiabilityId })
+
+    if (saveError) {
+      const errorMessage = saveError.message || 'Liability could not be saved.'
+      setLiabilityState({
+        loading: false,
+        error: errorMessage,
+        success: '',
+      })
+      return { attempted: true, saved: false, error: errorMessage }
+    }
+
+    await fetchLiabilities()
+    console.log('[Financials] fetchLiabilities complete')
+    await fetchFinancialData({ force: true })
+    console.log('[Financials] fetchFinancialData complete')
+    await fetchPortfolioData({ force: true, userId: session.user.id })
+    console.log('[Financials] fetchPortfolioData complete')
+    setLiabilityState({
+      loading: false,
+      error: '',
+      success: editingLiabilityId ? 'Liability updated.' : 'Liability added.',
+    })
+    setShowLiabilityForm(false)
+    setEditingLiabilityId(null)
+    setLiabilityForm(defaultLiabilityForm())
+
+    return { attempted: true, saved: true, error: null }
+  }
+
   const handleSaveProfile = async (event) => {
     event.preventDefault()
     setProfileState({ loading: true, error: '', success: '' })
@@ -493,7 +620,36 @@ export default function Financials({ session = null }) {
       return
     }
 
+    const { data: savedProfileRow, error: readBackError } = await supabase
+      .from('user_financial_profiles')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .maybeSingle()
+
+    console.log('[Financials] direct DB read after save', {
+      readBackError,
+      savedProfileRow,
+    })
+
+    const liabilityDraftResult = await persistInScopeLiabilityDraft()
+    if (liabilityDraftResult.error) {
+      setProfileState({
+        loading: false,
+        error: liabilityDraftResult.error,
+        success: '',
+      })
+      return
+    }
+
     await fetchFinancialData({ force: true })
+    console.log('[Financials] shared store after fetchFinancialData', {
+      financialProfile: useFinancialDataStore.getState().financialProfile,
+      liabilities: useFinancialDataStore.getState().liabilities,
+    })
+    await fetchPortfolioData({ force: true, userId: session.user.id })
+    console.log('[Financials] portfolio refresh complete', {
+      userId: session.user.id,
+    })
     setProfileDirty(false)
     setProfileState({
       loading: false,
@@ -531,89 +687,7 @@ export default function Financials({ session = null }) {
 
   const handleSaveLiability = async (event) => {
     event.preventDefault()
-    setLiabilityState({ loading: true, error: '', success: '' })
-
-    const creditLimit = parseMoney(liabilityForm.credit_limit)
-    const outstandingBalance = parseMoney(liabilityForm.balance)
-    const monthlyRepayment = parseMoney(liabilityForm.monthly_repayment)
-
-    const visibleNumericFields = shouldShowCreditLimit(liabilityForm.type)
-      ? [creditLimit, outstandingBalance, monthlyRepayment]
-      : [outstandingBalance, monthlyRepayment]
-
-    const invalidNumeric = visibleNumericFields.some(
-      (value) => value !== null && (!Number.isFinite(value) || value < 0)
-    )
-
-    if (!session?.user?.id) {
-      setLiabilityState({
-        loading: false,
-        error: 'You must be signed in to save liabilities.',
-        success: '',
-      })
-      return
-    }
-
-    if (!liabilityForm.type) {
-      setLiabilityState({
-        loading: false,
-        error: 'Liability type is required.',
-        success: '',
-      })
-      return
-    }
-
-    if (!liabilityForm.name.trim()) {
-      setLiabilityState({
-        loading: false,
-        error: 'Lender or provider name is required.',
-        success: '',
-      })
-      return
-    }
-
-    if (invalidNumeric) {
-      setLiabilityState({
-        loading: false,
-        error: 'Credit limit, outstanding balance, and monthly repayment must be valid numbers 0 or greater.',
-        success: '',
-      })
-      return
-    }
-
-    const payload = {
-      user_id: session.user.id,
-      type: liabilityForm.type,
-      name: liabilityForm.name.trim(),
-      credit_limit: shouldShowCreditLimit(liabilityForm.type) ? creditLimit : null,
-      balance: outstandingBalance,
-      monthly_repayment: monthlyRepayment,
-    }
-
-    const query = editingLiabilityId
-      ? supabase.from('liabilities').update(payload).eq('id', editingLiabilityId)
-      : supabase.from('liabilities').insert([payload])
-
-    const { error: saveError } = await query
-
-    if (saveError) {
-      setLiabilityState({
-        loading: false,
-        error: saveError.message || 'Liability could not be saved.',
-        success: '',
-      })
-      return
-    }
-
-    await fetchLiabilities()
-    setLiabilityState({
-      loading: false,
-      error: '',
-      success: editingLiabilityId ? 'Liability updated.' : 'Liability added.',
-    })
-    setShowLiabilityForm(false)
-    setEditingLiabilityId(null)
-    setLiabilityForm(defaultLiabilityForm())
+    await persistInScopeLiabilityDraft()
   }
 
   const handleDeleteLiability = async (liabilityId) => {
@@ -627,6 +701,8 @@ export default function Financials({ session = null }) {
     }
 
     await fetchLiabilities()
+    await fetchFinancialData({ force: true })
+    await fetchPortfolioData({ force: true, userId: session.user.id })
   }
 
   if (loading) {

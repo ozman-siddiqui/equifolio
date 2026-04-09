@@ -156,14 +156,6 @@ export default function buildDashboardStateResolver({
       unlocked: hasProperties,
       lockedReason: hasProperties ? null : 'Add a property first',
     },
-    {
-      id: 'liabilities',
-      label: 'Liabilities',
-      complete: hasLiabilities,
-      route: '/financials',
-      unlocked: hasProperties,
-      lockedReason: hasProperties ? null : 'Add a property first',
-    },
   ]
 
   const setupCompletedCount = setupChecklist.filter((item) => item.complete).length

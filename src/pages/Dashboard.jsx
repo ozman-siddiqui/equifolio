@@ -490,6 +490,27 @@ export default function Dashboard({ session, subscription }) {
     usingOnboardingSnapshot,
   ])
 
+  useEffect(() => {
+    console.log('[Dashboard] financial/shared-state update', {
+      financialProfile,
+      liabilities,
+      borrowingPowerAnalysis,
+      borrowingPowerEstimate:
+        borrowingPowerAnalysis?.borrowing_power_estimate ?? null,
+      netMonthlySurplus:
+        borrowingPowerAnalysis?.net_monthly_surplus ?? null,
+      canShowBorrowing: effectiveDashboardState?.canShowBorrowing ?? null,
+      canShowActualMonthlySurplus:
+        effectiveDashboardState?.canShowActualMonthlySurplus ?? null,
+    })
+  }, [
+    borrowingPowerAnalysis,
+    effectiveDashboardState?.canShowActualMonthlySurplus,
+    effectiveDashboardState?.canShowBorrowing,
+    financialProfile,
+    liabilities,
+  ])
+
   const baseCommandCenter = useMemo(
     () =>
       buildDashboardCommandCenter({
@@ -553,7 +574,7 @@ export default function Dashboard({ session, subscription }) {
       }
     }
 
-    if (!effectiveDashboardState?.setupComplete) {
+    if (!effectiveDashboardState?.canShowBorrowing) {
       return {
         state: 'locked',
         confidence,
@@ -586,7 +607,7 @@ export default function Dashboard({ session, subscription }) {
     }
   }, [
     commandCenter?.decisionConfidence,
-    effectiveDashboardState?.setupComplete,
+    effectiveDashboardState?.canShowBorrowing,
     borrowingPowerAnalysis?.status,
     borrowingPowerAnalysis?.confidenceLabel,
     usingOnboardingSnapshot,

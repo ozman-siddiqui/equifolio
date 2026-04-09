@@ -64,8 +64,11 @@ export const useFinancialDataStore = create((set, get) => ({
   error: '',
   hasLoaded: false,
   async fetchFinancialData({ force = false } = {}) {
-    if (financialFetchPromise) {
+    if (financialFetchPromise && !force) {
       return financialFetchPromise
+    }
+    if (financialFetchPromise && force) {
+      financialFetchPromise = null
     }
 
     const { hasLoaded } = get()
