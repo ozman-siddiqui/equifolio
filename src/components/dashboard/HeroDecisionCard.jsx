@@ -135,7 +135,15 @@ function StatTile({
         )}
       </p>
       <p className="mt-3 text-[1.8rem] font-semibold tracking-tight text-slate-950">{value}</p>
-      <p className="mt-2 text-sm leading-6 text-slate-600">{detail}</p>
+      <p className="mt-2 text-sm leading-6 text-slate-600">
+        {Array.isArray(detail)
+          ? detail.map((line) => (
+              <span key={line} className="block">
+                {line}
+              </span>
+            ))
+          : detail}
+      </p>
     </div>
   )
 }
@@ -226,13 +234,15 @@ export default function HeroDecisionCard({
   const grossYieldDisplay = grossYieldNumber != null ? `${grossYieldNumber.toFixed(1)}%` : '--'
   const currentEquityDisplay =
     currentEquityNumber != null ? formatCurrency(currentEquityNumber) : '--'
-  const activeScenarioDepositAssumptionDetail = 'Based on active scenario: 20% deposit - funded'
   const resolvedMonthlyTileEyebrow =
     monthlyTileEyebrow ?? (isAcquisitionMode ? 'After-tax surplus' : 'Monthly surplus / gap')
   const resolvedMonthlyTileDetail =
     monthlyTileDetail ??
     (isAcquisitionMode
-      ? activeScenarioDepositAssumptionDetail.replace('Based on active scenario: ', '')
+      ? [
+          'Based on active acquisition scenario',
+          'Updates in Model next acquisition',
+        ]
       : 'Live estimate · refine expenses for accuracy')
   const postAcquisitionBreakdownRows =
     isAcquisitionMode &&
@@ -561,7 +571,7 @@ export default function HeroDecisionCard({
               <StatTile
                 eyebrow="Executable range"
                 value={executableRangeDisplay}
-                detail="20% deposit - funded"
+                detail="Based on active acquisition scenario"
                 tone="highlight"
                 tooltip="Indicative property price range based on your current deposit position and borrowing capacity."
               />

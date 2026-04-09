@@ -40,7 +40,7 @@ const formatCurrency = (amount) =>
 export default function Dashboard({ session, subscription }) {
   const navigate = useNavigate()
   const { properties, loans, transactions, loading, fetchData } = usePortfolioData(session)
-  const { financialProfile, liabilities } = useFinancialData()
+  const { financialProfile, liabilities, loading: financialDataLoading } = useFinancialData()
   const userId = session?.user?.id ?? null
   const snapshotKey = userId
     ? `onboardingSnapshot_${userId}`
@@ -266,7 +266,7 @@ export default function Dashboard({ session, subscription }) {
     }
   }, [loans, properties])
 
-  const dashboardCompleteness = useMemo(
+  const rawDashboardCompleteness = useMemo(
     () =>
       buildDashboardCompleteness({
         properties,
@@ -276,6 +276,30 @@ export default function Dashboard({ session, subscription }) {
       }),
     [properties, loans, financialProfile, liabilities]
   )
+
+  const dashboardCompleteness = useMemo(() => {
+    const liabilitiesStepComplete =
+      Boolean(rawDashboardCompleteness?.financialProfileComplete) &&
+      !financialDataLoading &&
+      Array.isArray(liabilities)
+
+    if (
+      rawDashboardCompleteness?.hasLiabilitiesData ||
+      !liabilitiesStepComplete
+    ) {
+      return rawDashboardCompleteness
+    }
+
+    return {
+      ...rawDashboardCompleteness,
+      hasLiabilitiesData: true,
+      liabilitiesStatus: 'reviewed_empty',
+      messages: {
+        ...rawDashboardCompleteness?.messages,
+        liabilities: 'Liabilities reviewed through Financials.',
+      },
+    }
+  }, [financialDataLoading, liabilities, rawDashboardCompleteness])
 
   const dashboardState = useMemo(
     () =>
@@ -304,17 +328,37 @@ export default function Dashboard({ session, subscription }) {
     [onboardingSnapshot, dashboardState?.setupComplete]
   )
 
+  const hasLivePropertyValues = useMemo(
+    () =>
+      Array.isArray(properties) &&
+      properties.some((property) => Number(property?.current_value || 0) > 0),
+    [properties]
+  )
+  const hasLiveMortgageRows = useMemo(
+    () => Array.isArray(loans) && loans.length > 0,
+    [loans]
+  )
+  const hasFullLiveMortgageCoverage = useMemo(
+    () =>
+      hasLivePropertyValues &&
+      Array.isArray(properties) &&
+      properties.length > 0 &&
+      properties.every((property) =>
+        loans.some((loan) => String(loan?.property_id) === String(property?.id))
+      ),
+    [hasLivePropertyValues, loans, properties]
+  )
+
   const hasLiveHeroInputs = useMemo(() => {
-    const missing = dashboardState?.missingSections || []
-    return !['properties', 'mortgages', 'financials'].some((id) =>
-      missing.some((section) => section?.id === id)
-    )
-  }, [dashboardState?.missingSections])
+    return hasLivePropertyValues && hasLiveMortgageRows
+  }, [hasLiveMortgageRows, hasLivePropertyValues])
 
   const incompleteSteps = useMemo(() => {
+    const noLivePropertyYet =
+      usingOnboardingSnapshot && !dashboardCompleteness?.hasProperties
     const sectionMap = {
       properties: {
-        label: 'Add remaining properties',
+        label: noLivePropertyYet ? 'Add your first property' : 'Add remaining properties',
         to: '/properties',
         unlocked: true,
         lockedReason: null,
@@ -322,26 +366,26 @@ export default function Dashboard({ session, subscription }) {
       mortgages: {
         label: 'Complete mortgage details',
         to: '/mortgages',
-        unlocked: true,
-        lockedReason: null,
+        unlocked: noLivePropertyYet ? false : true,
+        lockedReason: noLivePropertyYet ? 'Add a property first' : null,
       },
       cashflow: {
         label: 'Add property cash flow & expenses',
         to: '/cashflow',
-        unlocked: true,
-        lockedReason: null,
+        unlocked: noLivePropertyYet ? false : true,
+        lockedReason: noLivePropertyYet ? 'Add a property first' : null,
       },
       financials: {
         label: 'Add household financials',
         to: '/financials',
-        unlocked: true,
-        lockedReason: null,
+        unlocked: noLivePropertyYet ? false : true,
+        lockedReason: noLivePropertyYet ? 'Add a property first' : null,
       },
       liabilities: {
         label: 'Add liabilities',
         to: '/financials',
-        unlocked: true,
-        lockedReason: null,
+        unlocked: noLivePropertyYet ? false : true,
+        lockedReason: noLivePropertyYet ? 'Add a property first' : null,
       },
     }
 
@@ -358,27 +402,38 @@ export default function Dashboard({ session, subscription }) {
         }
       })
       .filter(Boolean)
-  }, [dashboardState?.missingSections])
+  }, [dashboardCompleteness?.hasProperties, dashboardState?.missingSections, usingOnboardingSnapshot])
 
   const workflowSteps = useMemo(() => {
-    const priorityOrder = ['cashflow', 'financials', 'liabilities']
+    const priorityOrder =
+      usingOnboardingSnapshot && !dashboardCompleteness?.hasProperties
+        ? ['properties', 'mortgages', 'cashflow', 'financials', 'liabilities']
+        : ['properties', 'mortgages', 'cashflow', 'financials', 'liabilities']
     const prioritizedSteps = priorityOrder
       .map((id) => incompleteSteps.find((step) => step.id === id))
       .filter(Boolean)
 
     return prioritizedSteps.length > 0 ? prioritizedSteps : incompleteSteps
-  }, [incompleteSteps])
+  }, [dashboardCompleteness?.hasProperties, incompleteSteps, usingOnboardingSnapshot])
 
   const primaryWorkflowStep = workflowSteps[0] ?? null
-  const queuedWorkflowSteps = workflowSteps.slice(1, 3)
-  const primaryWorkflowCtaLabel = primaryWorkflowStep?.id === 'cashflow'
+  const queuedWorkflowSteps = workflowSteps.slice(1, 4)
+  const primaryWorkflowCtaLabel = primaryWorkflowStep?.id === 'properties'
+    ? 'Add property →'
+    : primaryWorkflowStep?.id === 'mortgages'
+    ? 'Complete mortgage details →'
+    : primaryWorkflowStep?.id === 'cashflow'
     ? 'Open cash flow →'
     : primaryWorkflowStep?.id === 'financials'
       ? 'Open financials →'
       : primaryWorkflowStep?.id === 'liabilities'
         ? 'Add liabilities →'
         : 'Continue →'
-  const topUnlockCopy = primaryWorkflowStep?.id === 'cashflow'
+  const topUnlockCopy = primaryWorkflowStep?.id === 'properties'
+    ? 'Add your first property to activate the Command Centre'
+    : primaryWorkflowStep?.id === 'mortgages'
+    ? 'Complete mortgage details to unlock equity and lending insights'
+    : primaryWorkflowStep?.id === 'cashflow'
     ? 'Add cash flow to unlock your true monthly position'
     : primaryWorkflowStep?.id === 'financials'
       ? 'Complete financials to unlock borrowing insights'
@@ -387,6 +442,10 @@ export default function Dashboard({ session, subscription }) {
         : null
   const heroPrimaryCta = primaryWorkflowStep?.unlocked === false
     ? { label: 'Model next acquisition →', route: '/growth-scenarios' }
+    : primaryWorkflowStep?.id === 'properties'
+      ? { label: 'Add your first property', route: '/properties' }
+    : primaryWorkflowStep?.id === 'mortgages'
+      ? { label: 'Complete mortgage details', route: '/mortgages' }
     : primaryWorkflowStep?.id === 'cashflow'
       ? { label: 'Open cash flow', route: '/cashflow' }
       : primaryWorkflowStep?.id === 'financials'
@@ -407,19 +466,35 @@ export default function Dashboard({ session, subscription }) {
     : 'Early stage'
 
   const effectiveDashboardState = useMemo(() => {
-    if (!usingOnboardingSnapshot) return dashboardState
+    if (!usingOnboardingSnapshot) {
+      return {
+        ...dashboardState,
+        canShowNetPosition:
+          dashboardState?.canShowNetPosition || hasLivePropertyValues,
+        showNetPositionPartial: hasLivePropertyValues
+          ? !hasFullLiveMortgageCoverage
+          : dashboardState?.showNetPositionPartial,
+      }
+    }
 
     return {
       ...dashboardState,
       hasProperties: true,
       canShowNetPosition: true,
-      showNetPositionPartial: false,
+      showNetPositionPartial: hasLivePropertyValues
+        ? !hasFullLiveMortgageCoverage
+        : false,
       canShowMonthlyPosition: true,
       canShowPropertyCashFlow: true,
       canShowHouseholdSurplus: true,
       canShowTopActions: true,
     }
-  }, [dashboardState, usingOnboardingSnapshot])
+  }, [
+    dashboardState,
+    hasFullLiveMortgageCoverage,
+    hasLivePropertyValues,
+    usingOnboardingSnapshot,
+  ])
 
   const baseCommandCenter = useMemo(
     () =>
@@ -626,7 +701,7 @@ export default function Dashboard({ session, subscription }) {
         dashboardCompleteness?.loanDataComplete
       ),
       hasLiabilitiesData: Boolean(
-        Array.isArray(liabilities) && liabilities.length > 0
+        dashboardCompleteness?.hasLiabilitiesData
       ),
       setupCompletionPct: Number(
         dashboardCompleteness?.setupCompletionPct ?? 0
@@ -715,10 +790,18 @@ export default function Dashboard({ session, subscription }) {
         ? Math.max(0, snapshotCurrentValue - snapshotLoanBalance)
         : null
     const liveEquityBase =
-      (usingOnboardingSnapshot ? snapshotEquityBase : null) ??
-      commandCenter?.hero?.netPosition?.value ??
-      commandCenter?.totalValue ??
-      0
+      hasLivePropertyValues
+        ? (
+            commandCenter?.hero?.netPosition?.value ??
+            commandCenter?.totalValue ??
+            0
+          )
+        : (
+            (usingOnboardingSnapshot ? snapshotEquityBase : null) ??
+            commandCenter?.hero?.netPosition?.value ??
+            commandCenter?.totalValue ??
+            0
+          )
     const purchasePrice =
       commandCenter?.hero?.purchaseRangeLow ??
       leadScenario?.fallbackPrice ??
@@ -826,7 +909,7 @@ export default function Dashboard({ session, subscription }) {
       isFirstNameResolved,
       monthlyTileEyebrow: isAcquisitionMode ? 'After-tax surplus' : 'Monthly surplus / gap',
       monthlyTileDetail: isAcquisitionMode
-        ? '20% deposit - funded'
+        ? 'Based on active acquisition scenario'
         : effectiveDashboardState.canShowActualMonthlySurplus
           ? 'Live estimate · refine expenses for accuracy'
           : 'Add income, expenses and liabilities to unlock your monthly position.',
@@ -861,6 +944,7 @@ export default function Dashboard({ session, subscription }) {
     commandCenter?.hero?.acquisitionReadiness,
     commandCenter?.totalValue,
     effectiveDashboardState.canShowBorrowing,
+    hasLivePropertyValues,
     stressThreshold,
     fixedRateExpiry,
     latestRateImpact,
@@ -914,7 +998,7 @@ export default function Dashboard({ session, subscription }) {
         }
       `}</style>
       <main className="mx-auto max-w-7xl px-4 py-8">
-        {usingOnboardingSnapshot && !hasLiveHeroInputs && (
+        {usingOnboardingSnapshot && !hasLiveHeroInputs && !dashboardCompleteness?.hasProperties && properties.length === 0 && (
           <div style={{
             background: '#f0fdf7',
             borderBottom: '1px solid #1D9E75',

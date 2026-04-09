@@ -32,7 +32,23 @@ export default function AddPropertyModal({ onClose, onSave, userId }) {
     setLoading(true)
     setError(null)
 
-    const { error: insertError } = await supabase.from('properties').insert([{
+    const {
+      data: { session: liveSession },
+      error: sessionError,
+    } = await supabase.auth.getSession()
+
+    if (sessionError || !liveSession?.user?.id) {
+      console.error('AddPropertyModal live session check failed', {
+        userId,
+        sessionError,
+        liveSession,
+      })
+      setError('Your session has expired. Please sign in again and retry.')
+      setLoading(false)
+      return
+    }
+
+    const payload = {
       address: form.address,
       suburb: form.suburb,
       state: form.state,
@@ -54,10 +70,27 @@ export default function AddPropertyModal({ onClose, onSave, userId }) {
         form.property_use === 'investment' && form.current_rent_amount !== ''
           ? form.current_rent_frequency
           : null,
-      user_id: userId,
-    }])
+      user_id: liveSession.user.id,
+    }
+
+    console.log('AddPropertyModal insert attempt', {
+      userId,
+      payload,
+      payloadUserId: payload.user_id,
+    })
+
+    const { error: insertError } = await supabase.from('properties').insert([payload])
 
     if (insertError) {
+      console.error('AddPropertyModal insert failed', {
+        userId,
+        payload,
+        payloadUserId: payload.user_id,
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+        code: insertError.code,
+      })
       setError(insertError.message)
       setLoading(false)
       return

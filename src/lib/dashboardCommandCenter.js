@@ -573,6 +573,9 @@ export default function buildDashboardCommandCenter({
     (property) => !loans.some((loan) => String(loan.property_id) === String(property.id))
   )
   const hasIncompleteLoanCoverage = properties.length > 0 && propertiesMissingLoanCoverage.length > 0
+  const hasWorkflowLiabilitiesData =
+    Boolean(dashboardCompleteness?.hasLiabilitiesData) ||
+    dashboardCompleteness?.liabilitiesStatus === 'reviewed_empty'
 
   const totalValue = properties.reduce((sum, property) => sum + Number(property.current_value || 0), 0)
   const totalDebt = loans.reduce((sum, loan) => sum + Number(loan.current_balance || 0), 0)
@@ -705,7 +708,10 @@ export default function buildDashboardCommandCenter({
     }))
   }
 
-  if (!dashboardCompleteness?.hasFinancialProfile || !dashboardCompleteness?.financialProfileComplete) {
+  if (
+    dashboardCompleteness?.hasProperties &&
+    (!dashboardCompleteness?.hasFinancialProfile || !dashboardCompleteness?.financialProfileComplete)
+  ) {
     actions.push(
       buildSetupAction({
         id: 'complete-financial-profile',
@@ -717,7 +723,7 @@ export default function buildDashboardCommandCenter({
     )
   }
 
-  if (!dashboardCompleteness?.hasLiabilitiesData) {
+  if (dashboardCompleteness?.hasProperties && !hasWorkflowLiabilitiesData) {
     actions.push(
       buildSetupAction({
         id: 'add-liabilities',

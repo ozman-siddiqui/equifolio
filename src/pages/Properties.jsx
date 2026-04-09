@@ -127,6 +127,11 @@ export default function Properties() {
 
   return (
     <div className="min-h-screen bg-[var(--color-background-tertiary)]">
+      {showAddProperty && session?.user?.id
+        ? console.log('Properties AddPropertyModal session user id', {
+            userId: session.user.id,
+          })
+        : null}
       <main className="mx-auto max-w-7xl px-6 py-6">
         <section className="overflow-hidden rounded-[18px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)]">
           <div className="border-b-[0.5px] border-[rgba(0,0,0,0.06)] p-6 md:p-8">
