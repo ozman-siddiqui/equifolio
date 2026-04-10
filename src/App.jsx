@@ -1,9 +1,12 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { supabase } from './supabase'
 
 import Auth from './pages/Auth'
+import BorrowingPowerExplained from './pages/BorrowingPowerExplained'
 import Dashboard from './pages/Dashboard'
+import AdminBenchmarks from './pages/AdminBenchmarks'
+import PortfolioGrowthScenariosRebuild from './pages/PortfolioGrowthScenariosRebuild'
 import Pricing from './pages/Pricing'
 import Properties from './pages/Properties'
 import PropertyDetail from './pages/PropertyDetail'
@@ -11,6 +14,7 @@ import CashFlow from './pages/CashFlow'
 import Mortgages from './pages/Mortgages'
 import Alerts from './pages/Alerts'
 import Settings from './pages/Settings'
+import Welcome from './pages/Welcome'
 import Layout from './components/Layout'
 
 const Financials = lazy(() => import('./pages/Financials'))
@@ -20,6 +24,17 @@ function FinancialsRouteFallback({ message = 'Loading financials...' }) {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-xl rounded-2xl border border-gray-200 bg-white p-6 text-center">
         <p className="text-lg font-semibold text-gray-900">Financials</p>
+        <p className="mt-2 text-sm text-gray-500">{message}</p>
+      </div>
+    </div>
+  )
+}
+
+function AppRouteFallback({ title, message = 'Something went wrong loading this page. Please refresh or try again.' }) {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="w-full max-w-xl rounded-2xl border border-gray-200 bg-white p-6 text-center">
+        <p className="text-lg font-semibold text-gray-900">{title}</p>
         <p className="mt-2 text-sm text-gray-500">{message}</p>
       </div>
     </div>
@@ -47,11 +62,33 @@ class FinancialsErrorBoundary extends React.Component {
   }
 }
 
+class AppRouteErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <AppRouteFallback title={this.props.title} />
+    }
+
+    return this.props.children
+  }
+}
+
 export default function App() {
+  const location = useLocation()
   const [session, setSession] = useState(null)
   const [subscription, setSubscription] = useState(null)
   const [ready, setReady] = useState(false)
   const [subscriptionReady, setSubscriptionReady] = useState(false)
+  const [welcomeGateReady, setWelcomeGateReady] = useState(false)
+  const [requiresWelcome, setRequiresWelcome] = useState(false)
 
   const signOut = async () => {
     try {
@@ -136,7 +173,113 @@ export default function App() {
     }
   }, [session])
 
-  if (!ready || !subscriptionReady) {
+  const isActive =
+    subscription?.status === 'active' || subscription?.status === 'trialing'
+
+  useEffect(() => {
+    let isMounted = true
+
+    const resolveWelcomeGate = async () => {
+      if (!session?.user?.id || !isActive) {
+        if (!isMounted) return
+        setRequiresWelcome(false)
+        setWelcomeGateReady(true)
+        return
+      }
+
+      setWelcomeGateReady(false)
+
+      try {
+        const [
+          { data: propertyRow, error: propertyError },
+          { data: profileRow, error: profileError },
+        ] = await Promise.all([
+          supabase
+            .from('properties')
+            .select('id')
+            .eq('user_id', session.user.id)
+            .limit(1)
+            .maybeSingle(),
+          supabase
+            .from('user_financial_profiles')
+            .select('user_id')
+            .eq('user_id', session.user.id)
+            .maybeSingle(),
+        ])
+
+        if (propertyError || profileError) {
+          throw propertyError || profileError
+        }
+
+        if (!isMounted) return
+
+        const hasProperty = !!propertyRow?.id
+        const hasProfile = !!profileRow?.user_id
+
+        const hasSnapshot = (() => {
+          try {
+            const snapshotKey = session?.user?.id
+              ? `onboardingSnapshot_${session.user.id}`
+              : 'onboardingSnapshot'
+            return !!sessionStorage.getItem(snapshotKey)
+          } catch {
+            return false
+          }
+        })()
+        const nextRequiresWelcome = !hasProperty && !hasProfile && !hasSnapshot
+
+        console.log('Welcome gate', {
+          userId: session.user.id,
+          propertyRow,
+          profileRow,
+          propertyError,
+          profileError,
+          hasProperty,
+          hasProfile,
+          requiresWelcome: nextRequiresWelcome,
+        })
+
+        setRequiresWelcome(nextRequiresWelcome)
+        setWelcomeGateReady(true)
+      } catch (error) {
+        if (!isMounted) return
+
+        const hasSnapshot = (() => {
+          try {
+            const snapshotKey = session?.user?.id
+              ? `onboardingSnapshot_${session.user.id}`
+              : 'onboardingSnapshot'
+            return !!sessionStorage.getItem(snapshotKey)
+          } catch {
+            return false
+          }
+        })()
+        const nextRequiresWelcome = !hasSnapshot
+
+        console.log('Welcome gate', {
+          userId: session.user.id,
+          propertyRow: null,
+          profileRow: null,
+          propertyError: error,
+          profileError: null,
+          hasProperty: false,
+          hasProfile: false,
+          requiresWelcome: nextRequiresWelcome,
+        })
+
+        setRequiresWelcome(nextRequiresWelcome)
+        setWelcomeGateReady(true)
+      }
+    }
+
+    resolveWelcomeGate()
+
+    return () => {
+      isMounted = false
+    }
+  }, [session?.user?.id, isActive, location.pathname])
+
+  if (!ready || !subscriptionReady || !welcomeGateReady) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -157,40 +300,69 @@ export default function App() {
 
   if (!session) return <Auth />
 
-  const isActive =
-    subscription?.status === 'active' || subscription?.status === 'trialing'
-
   if (!isActive) {
     return <Pricing session={session} existingPlan={null} />
   }
 
+  if (requiresWelcome) {
+    return (
+      <Routes>
+        <Route path="/welcome" element={<Welcome session={session} />} />
+        <Route path="*" element={<Navigate to="/welcome" replace />} />
+      </Routes>
+    )
+  }
+
+  const cachedPages = {
+    dashboard: (
+      <AppRouteErrorBoundary title="Dashboard">
+        <Dashboard session={session} subscription={subscription} />
+      </AppRouteErrorBoundary>
+    ),
+    properties: <Properties />,
+    cashflow: <CashFlow />,
+    mortgages: <Mortgages session={session} />,
+    growthScenarios: (
+      <AppRouteErrorBoundary title="Growth Scenarios">
+        <PortfolioGrowthScenariosRebuild />
+      </AppRouteErrorBoundary>
+    ),
+    financials: (
+      <FinancialsErrorBoundary>
+        <Suspense fallback={<FinancialsRouteFallback />}>
+          <Financials session={session} />
+        </Suspense>
+      </FinancialsErrorBoundary>
+    ),
+  }
+
   return (
     <Routes>
+      <Route path="/welcome" element={<Navigate to="/dashboard" replace />} />
       <Route
         path="/"
-        element={<Layout session={session} subscription={subscription} onSignOut={signOut} />}
+        element={
+          <Layout
+            session={session}
+            subscription={subscription}
+            onSignOut={signOut}
+            cachedPages={cachedPages}
+          />
+        }
       >
-        <Route
-          index
-          element={<Dashboard session={session} subscription={subscription} />}
-        />
-        <Route path="properties" element={<Properties />} />
+        <Route index element={null} />
+        <Route path="dashboard" element={null} />
+        <Route path="properties" element={null} />
         <Route path="property/:id" element={<PropertyDetail />} />
-        <Route path="cashflow" element={<CashFlow />} />
-        <Route path="mortgages" element={<Mortgages session={session} />} />
-        <Route
-          path="financials"
-          element={
-            <FinancialsErrorBoundary>
-              <Suspense fallback={<FinancialsRouteFallback />}>
-                <Financials session={session} />
-              </Suspense>
-            </FinancialsErrorBoundary>
-          }
-        />
+        <Route path="cashflow" element={null} />
+        <Route path="mortgages" element={null} />
+        <Route path="growth-scenarios" element={null} />
+        <Route path="financials" element={null} />
+        <Route path="borrowing-power" element={<BorrowingPowerExplained />} />
         <Route path="alerts" element={<Alerts />} />
         <Route path="pricing" element={<Pricing session={session} existingPlan={subscription?.plan || null} />} />
         <Route path="settings" element={<Settings session={session} subscription={subscription} />} />
+        <Route path="admin/benchmarks" element={<AdminBenchmarks session={session} />} />
       </Route>
     </Routes>
   )

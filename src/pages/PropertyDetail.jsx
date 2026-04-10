@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Bath,
@@ -31,7 +31,7 @@ import RefinanceModal from '../components/RefinanceModal'
 import AIScorePanel from '../components/AIScorePanel'
 import BorrowingPowerCard from '../components/BorrowingPowerCard'
 import OptimisationModal from '../components/OptimisationModal'
-import buildBorrowingPowerAnalysis from '../lib/borrowingPowerEngine'
+import calculateBorrowingPower from '../lib/borrowingPowerEngine'
 import {
   utilityPrimaryButtonClass,
   utilitySecondaryButtonClass,
@@ -68,7 +68,8 @@ const formatCurrency = (amount) =>
 export default function PropertyDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { properties, loans, transactions, loading, fetchData } = usePortfolioData()
+  const [session, setSession] = useState(null)
+  const { properties, loans, transactions, loading, fetchData } = usePortfolioData(session)
   const { financialProfile, liabilities, loading: financialsLoading } = useFinancialData()
 
   const [showAddLoan, setShowAddLoan] = useState(false)
@@ -78,6 +79,49 @@ export default function PropertyDetail() {
   const [editingTransaction, setEditingTransaction] = useState(null)
   const [refinancingLoan, setRefinancingLoan] = useState(null)
   const [showOptimisationModal, setShowOptimisationModal] = useState(false)
+
+  useEffect(() => {
+    let active = true
+
+    supabase.auth
+      .getSession()
+      .then(({ data: { session: currentSession } }) => {
+        if (active) setSession(currentSession || null)
+      })
+      .catch(() => {
+        if (active) setSession(null)
+      })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (active) setSession(nextSession || null)
+    })
+
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  const handlePortfolioSave = (options) => fetchData(options)
+  const handleLoanSave = async (options) => {
+    await fetchData(options)
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
+
+    if (userError) throw userError
+    if (!user?.id) return
+
+    const { error: detectError } = await supabase.functions.invoke('detect-opportunities', {
+      body: { user_id: user.id },
+    })
+
+    if (detectError) throw detectError
+  }
 
   const cashFlowSectionRef = useRef(null)
   const mortgageSectionRef = useRef(null)
@@ -278,20 +322,70 @@ export default function PropertyDetail() {
 
   const borrowingPowerAnalysis = useMemo(
     () =>
-      buildBorrowingPowerAnalysis({
+      calculateBorrowingPower({
         financialProfile,
         liabilities,
-        loans: propertyLoans,
-        transactions: propertyTransactions,
-        propertyId: property?.id ?? null,
+        loans,
+        transactions,
       }),
-      [financialProfile, liabilities, property?.id, propertyLoans, propertyTransactions]
+      [financialProfile, liabilities, loans, transactions]
     )
+
+  useEffect(() => {
+    const propertyBorrowingSnapshot = {
+      scope: 'property',
+      propertyId: property?.id ?? null,
+      inputs: {
+        financialProfilePresent: Boolean(financialProfile),
+        liabilityCount: Array.isArray(liabilities) ? liabilities.length : null,
+        loanCount: Array.isArray(loans) ? loans.length : null,
+        transactionCount: Array.isArray(transactions) ? transactions.length : null,
+      },
+      calculatedSurplus: borrowingPowerAnalysis?.net_monthly_surplus ?? null,
+      borrowingCapacity: borrowingPowerAnalysis?.borrowing_power_estimate ?? null,
+      assessedMortgageCommitments:
+        borrowingPowerAnalysis?.assessed_mortgage_commitments_monthly ?? null,
+    }
+
+    console.debug('Equifolio property borrowing debug', propertyBorrowingSnapshot)
+
+    if (typeof window !== 'undefined') {
+      window.__equifolioBorrowingSnapshots = {
+        ...(window.__equifolioBorrowingSnapshots || {}),
+        [`property:${property?.id ?? 'unknown'}`]: propertyBorrowingSnapshot,
+      }
+
+      const dashboardSnapshot = window.__equifolioBorrowingSnapshots.dashboard
+      if (
+        dashboardSnapshot &&
+        (dashboardSnapshot.borrowingCapacity !== propertyBorrowingSnapshot.borrowingCapacity ||
+          dashboardSnapshot.calculatedSurplus !== propertyBorrowingSnapshot.calculatedSurplus)
+      ) {
+        console.warn('Borrowing calculation mismatch detected', {
+          dashboard: dashboardSnapshot,
+          propertyView: propertyBorrowingSnapshot,
+        })
+      }
+    }
+  }, [
+    property?.id,
+    financialProfile,
+    liabilities,
+    loans,
+    transactions,
+    borrowingPowerAnalysis,
+  ])
 
   const handleDeleteTransaction = async (txnId) => {
     if (!window.confirm('Delete this transaction?')) return
-    await supabase.from('transactions').delete().eq('id', txnId)
-    fetchData()
+    const { error } = await supabase.from('transactions').delete().eq('id', txnId)
+
+    if (error) {
+      window.alert(error.message)
+      return
+    }
+
+    await fetchData({ force: true })
   }
 
   if (loading) {
@@ -689,7 +783,7 @@ export default function PropertyDetail() {
             <BorrowingPowerCard
               analysis={borrowingPowerAnalysis}
               loading={financialsLoading}
-              title="Borrowing Power Contribution"
+              title="Borrowing Power"
               onExplore={() => mortgageSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
               onCompleteFinancials={() => navigate('/financials')}
             />
@@ -702,7 +796,7 @@ export default function PropertyDetail() {
           properties={[property]}
           preselectedPropertyId={property.id}
           onClose={() => setShowAddLoan(false)}
-          onSave={fetchData}
+          onSave={handleLoanSave}
         />
       )}
 
@@ -710,7 +804,7 @@ export default function PropertyDetail() {
         <EditLoanModal
           loan={editingLoan}
           onClose={() => setEditingLoan(null)}
-          onSave={fetchData}
+          onSave={handleLoanSave}
         />
       )}
 
@@ -718,7 +812,7 @@ export default function PropertyDetail() {
         <EditPropertyModal
           property={editingProperty}
           onClose={() => setEditingProperty(null)}
-          onSave={fetchData}
+          onSave={handlePortfolioSave}
         />
       )}
 
@@ -727,7 +821,7 @@ export default function PropertyDetail() {
           propertyId={cashFlowPropertyId}
           properties={[property]}
           onClose={() => setCashFlowPropertyId(null)}
-          onSave={fetchData}
+          onSave={handlePortfolioSave}
         />
       )}
 
@@ -736,7 +830,7 @@ export default function PropertyDetail() {
           transaction={editingTransaction}
           propertyUse={editingTransaction.propertyUse}
           onClose={() => setEditingTransaction(null)}
-          onSave={fetchData}
+          onSave={handlePortfolioSave}
         />
       )}
 
@@ -751,7 +845,7 @@ export default function PropertyDetail() {
       {showOptimisationModal && (
         <OptimisationModal
           title="Property Optimisation Options"
-          subtitle={`Recommended next actions for ${property.address}.`}
+          subtitle={`Suggested next scenarios for ${property.address}.`}
           actions={optimisationActions}
           onClose={() => setShowOptimisationModal(false)}
         />

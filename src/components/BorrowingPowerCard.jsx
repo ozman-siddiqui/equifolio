@@ -1,4 +1,4 @@
-import { ArrowRight, TrendingUp, Wallet } from 'lucide-react'
+import { ArrowRight, TrendingUp } from 'lucide-react'
 
 const formatCurrency = (amount) =>
   new Intl.NumberFormat('en-AU', {
@@ -145,7 +145,10 @@ export default function BorrowingPowerCard({
           </div>
 
           <div className="grid grid-cols-2 gap-3 text-sm text-gray-600">
-            <InlineMetric label="Monthly surplus" value={formatCurrency(analysis.net_monthly_surplus)} />
+            <InlineMetric
+              label="Serviceability surplus"
+              value={formatCurrency(analysis.net_monthly_surplus)}
+            />
             <InlineMetric
               label="Serviceability"
               value={formatStatusLabel(analysis.serviceability_status)}
@@ -181,7 +184,7 @@ export default function BorrowingPowerCard({
           <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
         </div>
         <p className="mt-2 text-sm text-gray-500">
-          Clear borrowing uplift opportunities based on current serviceability signals.
+          Clear borrowing uplift opportunities based on the current lender-view serviceability result.
         </p>
       </div>
 
@@ -196,10 +199,20 @@ export default function BorrowingPowerCard({
           <p className="mt-2 text-sm text-gray-600">
             Conservative estimate using your financial profile and liabilities.
           </p>
+          <p className="mt-2 text-xs text-gray-500">
+            Borrowing capacity estimates may differ from lender assessments.
+          </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3 text-sm text-gray-600">
-          <InlineMetric label="Monthly surplus" value={formatCurrency(analysis.net_monthly_surplus)} />
+          <InlineMetric
+            label="Actual monthly surplus"
+            value={formatMaybeCurrency(analysis.actual_monthly_surplus)}
+          />
+          <InlineMetric
+            label="Serviceability surplus"
+            value={formatCurrency(analysis.net_monthly_surplus)}
+          />
           <InlineMetric
             label="DTI ratio"
             value={
@@ -212,10 +225,7 @@ export default function BorrowingPowerCard({
             label="Serviceability"
             value={formatStatusLabel(analysis.serviceability_status)}
           />
-          <InlineMetric
-            label="Liability repayments"
-            value={formatCurrency(analysis.total_monthly_liability_repayments)}
-          />
+          <InlineMetric label="Liability repayments" value={formatCurrency(analysis.total_monthly_liability_repayments)} />
         </div>
 
         <CalculationBreakdown analysis={analysis} />
@@ -255,6 +265,12 @@ function CalculationBreakdown({ analysis }) {
           <p className="text-xs leading-relaxed text-gray-600">
             Rental income is assessed at 75% of gross rent to account for vacancy,
             property costs, and lender buffers.
+          </p>
+        </div>
+        <div className="rounded-xl border border-gray-100 bg-white px-3 py-3">
+          <p className="text-xs leading-relaxed text-gray-600">
+            Serviceability surplus is a lender-view figure, not a real cash-in-bank number.
+            It uses shaded income, assessed commitments, and lender buffers.
           </p>
         </div>
 
@@ -303,15 +319,16 @@ function CalculationBreakdown({ analysis }) {
         <BreakdownSection
           title="Derived"
           rows={[
-            ['Adjusted income', formatMaybeCurrency(derived.adjusted_income_monthly, '/month')],
+            ['Assessed income', formatMaybeCurrency(derived.adjusted_income_monthly, '/month')],
             ['Rental income (used after shading)', formatMaybeCurrency(derived.usable_rental_income_monthly, '/month')],
             ['Credit card commitment (estimated)', formatMaybeCurrency(derived.estimated_card_commitment_monthly, '/month')],
             ['Mortgage repayments (actual)', formatMaybeCurrency(derived.actual_mortgage_repayments_monthly, '/month')],
             ['Mortgage commitments (assessed)', formatMaybeCurrency(derived.assessed_mortgage_commitments_monthly, '/month')],
             ['Mortgage commitments used', formatMaybeCurrency(derived.mortgage_commitments_used_monthly, '/month')],
+            ['Actual monthly surplus', formatMaybeCurrency(derived.actual_monthly_surplus, '/month')],
             ['Total usable income', formatMaybeCurrency(derived.total_usable_income_monthly, '/month')],
             ['Total outgoings', formatMaybeCurrency(derived.total_monthly_outgoings, '/month')],
-            ['Net monthly surplus', formatMaybeCurrency(derived.net_monthly_surplus, '/month')],
+            ['Serviceability surplus', formatMaybeCurrency(derived.net_monthly_surplus, '/month')],
             ['Borrowing power estimate', formatMaybeCurrency(derived.borrowing_power_estimate)],
             ['Total debt for DTI', formatMaybeCurrency(derived.total_debt_for_dti)],
             ['Gross annual income', formatMaybeCurrency(derived.gross_annual_income, '/year')],

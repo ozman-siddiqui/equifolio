@@ -44,7 +44,7 @@ export default function EditTransactionModal({ transaction, propertyUse, onClose
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.from('transactions').update({
+    const { error: updateError } = await supabase.from('transactions').update({
       type: form.type,
       category: form.category,
       amount: Number(form.amount),
@@ -53,15 +53,47 @@ export default function EditTransactionModal({ transaction, propertyUse, onClose
       description: form.description || null
     }).eq('id', transaction.id)
 
-    if (error) { setError(error.message); setLoading(false) }
-    else { onSave(); onClose() }
+    if (updateError) {
+      setError(updateError.message)
+      setLoading(false)
+      return
+    }
+
+    try {
+      await onSave({ force: true })
+      onClose()
+    } catch (refreshError) {
+      setError(
+        refreshError?.message ||
+          'Transaction was updated, but the latest portfolio data could not be refreshed.'
+      )
+      setLoading(false)
+    }
   }
 
   const handleDelete = async () => {
     if (!window.confirm('Delete this transaction?')) return
-    await supabase.from('transactions').delete().eq('id', transaction.id)
-    onSave()
-    onClose()
+    setLoading(true)
+    setError(null)
+
+    const { error: deleteError } = await supabase.from('transactions').delete().eq('id', transaction.id)
+
+    if (deleteError) {
+      setError(deleteError.message)
+      setLoading(false)
+      return
+    }
+
+    try {
+      await onSave({ force: true })
+      onClose()
+    } catch (refreshError) {
+      setError(
+        refreshError?.message ||
+          'Transaction was deleted, but the latest portfolio data could not be refreshed.'
+      )
+      setLoading(false)
+    }
   }
 
   const isInvestment = propertyUse !== 'owner_occupied'
@@ -157,10 +189,12 @@ export default function EditTransactionModal({ transaction, propertyUse, onClose
 
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={handleDelete}
-              className="px-4 py-2.5 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50">
-              Delete
+              disabled={loading}
+              className="px-4 py-2.5 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 disabled:opacity-50">
+              {loading ? 'Working...' : 'Delete'}
             </button>
             <button type="button" onClick={onClose}
+              disabled={loading}
               className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
               Cancel
             </button>

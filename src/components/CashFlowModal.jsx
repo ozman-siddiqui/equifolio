@@ -155,8 +155,16 @@ export default function CashFlowModal({
       return
     }
 
-    onSave()
-    onClose()
+    try {
+      await onSave({ force: true })
+      onClose()
+    } catch (refreshError) {
+      setError(
+        refreshError?.message ||
+          'Transactions were added, but the latest portfolio data could not be refreshed.'
+      )
+      setLoading(false)
+    }
   }
 
   return (

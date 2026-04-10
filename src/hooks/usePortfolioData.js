@@ -1,36 +1,34 @@
-import { useEffect, useState } from 'react'
-import { supabase } from '../supabase'
+import { useEffect } from 'react'
+import { usePortfolioDataStore } from '../stores/portfolioDataStore'
 
-export default function usePortfolioData() {
-  const [properties, setProperties] = useState([])
-  const [loans, setLoans] = useState([])
-  const [transactions, setTransactions] = useState([])
-  const [loading, setLoading] = useState(true)
-
-  const fetchData = async () => {
-    setLoading(true)
-
-    const [{ data: props }, { data: lns }, { data: txns }] = await Promise.all([
-      supabase.from('properties').select('*').order('created_at', { ascending: false }),
-      supabase.from('loans').select('*'),
-      supabase.from('transactions').select('*').order('date', { ascending: false }),
-    ])
-
-    setProperties(props || [])
-    setLoans(lns || [])
-    setTransactions(txns || [])
-    setLoading(false)
-  }
+export function usePortfolioData(session = null) {
+  const properties = usePortfolioDataStore((state) => state.properties)
+  const loans = usePortfolioDataStore((state) => state.loans)
+  const transactions = usePortfolioDataStore((state) => state.transactions)
+  const loading = usePortfolioDataStore((state) => state.loading)
+  const error = usePortfolioDataStore((state) => state.error)
+  const fetchData = usePortfolioDataStore((state) => state.fetchData)
+  const refreshData = usePortfolioDataStore((state) => state.refreshData)
+  const userId = session?.user?.id ?? null
 
   useEffect(() => {
-    fetchData()
-  }, [])
+    if (!userId) {
+      fetchData({ userId: null, force: true }).catch(() => {})
+      return
+    }
+
+    fetchData({ userId, force: true }).catch(() => {})
+  }, [fetchData, userId])
 
   return {
     properties,
     loans,
     transactions,
     loading,
+    error,
     fetchData,
+    refreshData,
   }
 }
+
+export default usePortfolioData

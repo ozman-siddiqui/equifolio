@@ -197,7 +197,7 @@ export default function AIScorePanel({ property, loans = [], transactions = [] }
 
       {aid.recommendedActions?.length ? (
         <div className="mt-5">
-          <h4 className="text-sm font-semibold text-gray-900 mb-3">Recommended actions</h4>
+          <h4 className="text-sm font-semibold text-gray-900 mb-3">Suggested actions</h4>
           <div className="space-y-3">
             {aid.recommendedActions.map((action) => (
               <ActionRow key={action.label} action={action} />

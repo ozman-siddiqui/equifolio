@@ -94,14 +94,23 @@ export default function AddLoanModal({ onClose, onSave, userId, properties, pres
       benchmark_rate: benchmarkRate,
     }
 
-    const { error } = await supabase.from('loans').insert([loanPayload])
+    const { error: insertError } = await supabase.from('loans').insert([loanPayload])
 
-    if (error) {
-      setError(error.message)
+    if (insertError) {
+      setError(insertError.message)
       setLoading(false)
-    } else {
-      onSave()
+      return
+    }
+
+    try {
+      await onSave({ force: true })
       onClose()
+    } catch (refreshError) {
+      setError(
+        refreshError?.message ||
+          'Mortgage was added, but the latest portfolio data could not be refreshed.'
+      )
+      setLoading(false)
     }
   }
 

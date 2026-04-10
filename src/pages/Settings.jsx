@@ -51,7 +51,7 @@ function defaultSettings() {
 
 export default function Settings({ session = null, subscription = null }) {
   const navigate = useNavigate()
-  const { properties, loans, transactions, loading } = usePortfolioData()
+  const { properties, loans, transactions, loading } = usePortfolioData(session)
 
   const [settings, setSettings] = useState(getInitialSettings)
   const [saveState, setSaveState] = useState('idle')

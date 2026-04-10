@@ -33,47 +33,78 @@ const formatCurrency = (amount) =>
 
 const formatPercent = (value) => `${Number(value || 0).toFixed(2)}%`
 
+const toFiniteNumber = (value) => {
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric : null
+}
+
+const formatConfidenceLabel = (value) => {
+  const normalized = String(value || '').trim().toLowerCase()
+  if (normalized === 'high') return 'High'
+  if (normalized === 'medium') return 'Medium'
+  if (normalized === 'low') return 'Low'
+  return 'Low'
+}
+
 function getRecommendationTone(type) {
   if (type === 'refinance') {
     return {
-      card: 'border-green-200 bg-green-50/40',
-      badge: 'bg-green-100 text-green-700',
-      icon: 'text-green-600',
+      card: 'border-[#b8e8d8] bg-[#E1F5EE]',
+      badge: 'rounded-[20px] bg-[#E1F5EE] px-[10px] py-[3px] text-[10px] font-medium text-[#085041]',
+      icon: 'text-[#0F6E56]',
     }
   }
 
   if (type === 'watch') {
     return {
-      card: 'border-amber-200 bg-amber-50/40',
-      badge: 'bg-amber-100 text-amber-700',
-      icon: 'text-amber-600',
+      card: 'border-[#FAEEDA] bg-[#FAEEDA]',
+      badge: 'rounded-[20px] bg-[#FAEEDA] px-[10px] py-[3px] text-[10px] font-medium text-[#633806]',
+      icon: 'text-[#854F0B]',
     }
   }
 
   if (type === 'insufficient_data') {
     return {
-      card: 'border-red-200 bg-red-50/40',
-      badge: 'bg-red-100 text-red-700',
-      icon: 'text-red-600',
+      card: 'border-[#FCEBEB] bg-[#FCEBEB]',
+      badge: 'rounded-[20px] bg-[#FCEBEB] px-[10px] py-[3px] text-[10px] font-medium text-[#791F1F]',
+      icon: 'text-[#A32D2D]',
     }
   }
 
   return {
     card: 'border-gray-200 bg-white',
-    badge: 'bg-gray-100 text-gray-600',
+    badge: 'rounded-[20px] bg-[#ebebeb] px-[10px] py-[3px] text-[10px] font-medium text-[#333]',
     icon: 'text-gray-500',
   }
 }
 
 function getConfidenceBadgeClass(label) {
-  if (label === 'High') return 'bg-green-100 text-green-700'
-  if (label === 'Medium') return 'bg-amber-100 text-amber-700'
-  return 'bg-gray-100 text-gray-600'
+  if (label === 'High') return 'rounded-[20px] bg-[#E1F5EE] px-[10px] py-[3px] text-[10px] font-medium text-[#085041]'
+  if (label === 'Medium') return 'rounded-[20px] bg-[#FAEEDA] px-[10px] py-[3px] text-[10px] font-medium text-[#633806]'
+  return 'rounded-[20px] bg-[#ebebeb] px-[10px] py-[3px] text-[10px] font-medium text-[#333]'
 }
 
 export default function Mortgages({ session = null }) {
   const navigate = useNavigate()
-  const { properties, loans, loading, fetchData } = usePortfolioData()
+  const { properties, loans, loading, fetchData } = usePortfolioData(session)
+  const handlePortfolioSave = async (options) => fetchData(options)
+  const handleOpenAddLoan = () => {
+    if (properties.length > 0) {
+      setShowAddLoan(true)
+      return
+    }
+
+    navigate('/properties')
+  }
+  const handleLoanSave = async (options = {}) => {
+    await fetchData({
+      ...options,
+      force: true,
+      userId: session?.user?.id ?? null,
+    })
+    await rerunOpportunityDetection()
+    await refreshOpportunities()
+  }
 
   const [showAddLoan, setShowAddLoan] = useState(false)
   const [editingLoan, setEditingLoan] = useState(null)
@@ -81,6 +112,9 @@ export default function Mortgages({ session = null }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [loanTypeFilter, setLoanTypeFilter] = useState('all')
   const [financialPrompt, setFinancialPrompt] = useState(null)
+  const [opportunitiesByLoanId, setOpportunitiesByLoanId] = useState({})
+  const [activeOpportunityId, setActiveOpportunityId] = useState(null)
+  const [opportunityActionError, setOpportunityActionError] = useState('')
 
   useEffect(() => {
     let active = true
@@ -136,6 +170,49 @@ export default function Mortgages({ session = null }) {
     }
 
     loadFinancialPrompt()
+
+    return () => {
+      active = false
+    }
+  }, [session])
+
+  useEffect(() => {
+    let active = true
+
+    const loadOpportunities = async () => {
+      try {
+        if (!session?.user?.id) {
+          if (active) setOpportunitiesByLoanId({})
+          return
+        }
+
+        const { data, error } = await supabase
+          .from('ai_opportunities')
+          .select(
+            'id, loan_id, property_id, title, narrative, annual_value_estimate, monthly_value_estimate, break_even_months, priority_score, confidence_level, status, metadata'
+          )
+          .eq('user_id', session.user.id)
+          .eq('opportunity_type', 'refinance')
+          .in('status', ['active', 'reviewing'])
+          .order('priority_score', { ascending: false })
+
+        if (error) throw error
+        if (!active) return
+
+        const nextByLoanId = {}
+        for (const row of data || []) {
+          const loanId = String(row.loan_id || '')
+          if (!loanId || nextByLoanId[loanId]) continue
+          nextByLoanId[loanId] = row
+        }
+
+        setOpportunitiesByLoanId(nextByLoanId)
+      } catch {
+        if (active) setOpportunitiesByLoanId({})
+      }
+    }
+
+    loadOpportunities()
 
     return () => {
       active = false
@@ -206,31 +283,214 @@ export default function Mortgages({ session = null }) {
     return top?.loanId ?? null
   }, [refinanceAnalyses])
 
+  const refreshOpportunities = async () => {
+    if (!session?.user?.id) {
+      setOpportunitiesByLoanId({})
+      return
+    }
+
+    const { data, error } = await supabase
+      .from('ai_opportunities')
+      .select(
+        'id, loan_id, property_id, title, narrative, annual_value_estimate, monthly_value_estimate, break_even_months, priority_score, confidence_level, status, metadata'
+      )
+      .eq('user_id', session.user.id)
+      .eq('opportunity_type', 'refinance')
+      .in('status', ['active', 'reviewing'])
+      .order('priority_score', { ascending: false })
+
+    if (error) throw error
+
+    const nextByLoanId = {}
+    for (const row of data || []) {
+      const loanId = String(row.loan_id || '')
+      if (!loanId || nextByLoanId[loanId]) continue
+      nextByLoanId[loanId] = row
+    }
+
+    setOpportunitiesByLoanId(nextByLoanId)
+  }
+
+  const rerunOpportunityDetection = async () => {
+    if (!session?.user?.id) return
+
+    const { error } = await supabase.functions.invoke('detect-opportunities', {
+      body: { user_id: session.user.id },
+    })
+
+    if (error) throw error
+  }
+
+  const recalculateValueTracker = async (actedIncrement = 0) => {
+    if (!session?.user?.id) return
+
+    const { data: allRows, error: allRowsError } = await supabase
+      .from('ai_opportunities')
+      .select('annual_value_estimate, status')
+      .eq('user_id', session.user.id)
+
+    if (allRowsError) throw allRowsError
+
+    const cumulativeOpportunityValue = (allRows || [])
+      .filter((item) => ['active', 'reviewing', 'acted'].includes(String(item.status)))
+      .reduce((sum, item) => sum + Number(item.annual_value_estimate || 0), 0)
+
+    const { data: trackerRow, error: trackerRowError } = await supabase
+      .from('ai_value_tracker')
+      .select('user_id, acted_value, total_opportunities_detected')
+      .eq('user_id', session.user.id)
+      .maybeSingle()
+
+    if (trackerRowError) throw trackerRowError
+
+    const nextActedValue = Number(trackerRow?.acted_value || 0) + Number(actedIncrement || 0)
+
+    const { error: upsertError } = await supabase.from('ai_value_tracker').upsert(
+      {
+        user_id: session.user.id,
+        cumulative_opportunity_value: cumulativeOpportunityValue,
+        acted_value: nextActedValue,
+        total_opportunities_detected: Number(trackerRow?.total_opportunities_detected || 0),
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' }
+    )
+
+    if (upsertError) throw upsertError
+  }
+
+  const handleReviewOpportunity = async (opportunityId) => {
+    setActiveOpportunityId(opportunityId)
+    setOpportunityActionError('')
+    try {
+      const { error } = await supabase
+        .from('ai_opportunities')
+        .update({ status: 'reviewing' })
+        .eq('id', opportunityId)
+
+      if (error) throw error
+      await refreshOpportunities()
+    } catch (error) {
+      setOpportunityActionError(error?.message || 'Opportunity status could not be updated.')
+    } finally {
+      setActiveOpportunityId(null)
+    }
+  }
+
+  const handleDismissOpportunity = async (opportunity) => {
+    setActiveOpportunityId(opportunity.id)
+    setOpportunityActionError('')
+    try {
+      const { error } = await supabase
+        .from('ai_opportunities')
+        .update({
+          status: 'dismissed',
+          dismissed_at: new Date().toISOString(),
+        })
+        .eq('id', opportunity.id)
+
+      if (error) throw error
+      await recalculateValueTracker()
+      await refreshOpportunities()
+    } catch (error) {
+      setOpportunityActionError(error?.message || 'Opportunity could not be dismissed.')
+    } finally {
+      setActiveOpportunityId(null)
+    }
+  }
+
+  const handleActedOpportunity = async (opportunity, securedRate) => {
+    setActiveOpportunityId(opportunity.id)
+    setOpportunityActionError('')
+
+    let shouldRollbackOpportunity = false
+    try {
+      const rawRate = String(securedRate || '').trim()
+      const parsedRate = rawRate ? Number(rawRate) : null
+      const nextRate =
+        parsedRate !== null && Number.isFinite(parsedRate) && parsedRate > 0 ? parsedRate : null
+
+      if (rawRate && nextRate === null) {
+        throw new Error('Please enter a valid secured rate greater than 0, or leave it blank.')
+      }
+
+      const { error: updateOpportunityError } = await supabase
+        .from('ai_opportunities')
+        .update({
+          status: 'acted',
+          acted_at: new Date().toISOString(),
+          new_rate_secured: nextRate,
+        })
+        .eq('id', opportunity.id)
+
+      if (updateOpportunityError) throw updateOpportunityError
+      shouldRollbackOpportunity = nextRate !== null
+
+      if (nextRate !== null) {
+        if (!opportunity.loan_id) {
+          throw new Error(
+            'This opportunity is missing a linked loan and could not update the mortgage rate.'
+          )
+        }
+
+        const { error: updateLoanError } = await supabase
+          .from('loans')
+          .update({ interest_rate: nextRate })
+          .eq('id', opportunity.loan_id)
+
+        if (updateLoanError) throw updateLoanError
+        shouldRollbackOpportunity = false
+        await fetchData({ force: true })
+      }
+
+      await rerunOpportunityDetection()
+      await recalculateValueTracker(Number(opportunity.annual_value_estimate || 0))
+      await refreshOpportunities()
+      return true
+    } catch (error) {
+      if (shouldRollbackOpportunity) {
+        await supabase
+          .from('ai_opportunities')
+          .update({
+            status: opportunity.status || 'active',
+            acted_at: null,
+            new_rate_secured: null,
+          })
+          .eq('id', opportunity.id)
+      }
+
+      setOpportunityActionError(error?.message || 'The acted update could not be completed.')
+      return false
+    } finally {
+      setActiveOpportunityId(null)
+    }
+  }
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--color-background-tertiary)] flex items-center justify-center">
         <div className="text-gray-400">Loading mortgages...</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="mx-auto max-w-7xl space-y-6 px-4 py-8">
+    <div className="min-h-screen bg-[var(--color-background-tertiary)]">
+      <main className="mx-auto max-w-7xl space-y-[22px] px-6 py-6">
         {financialPrompt ? (
           <section
             className={`rounded-2xl border p-5 md:p-6 ${
               financialPrompt.tone === 'primary'
-                ? 'border-primary-200 bg-primary-50/70'
-                : 'border-amber-200 bg-amber-50/70'
+                ? 'border-[#b8e8d8] bg-[#E1F5EE]'
+                : 'border-[#FAEEDA] bg-[#FAEEDA]'
             }`}
           >
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <p
                 className={`text-sm font-medium ${
                   financialPrompt.tone === 'primary'
-                    ? 'text-primary-800'
-                    : 'text-amber-800'
+                    ? 'text-[#085041]'
+                    : 'text-[#854F0B]'
                 }`}
               >
                 {financialPrompt.message}
@@ -251,18 +511,18 @@ export default function Mortgages({ session = null }) {
           </section>
         ) : null}
 
-        <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
-          <div className="border-b border-gray-100 p-6 md:p-8">
+        <section className="overflow-hidden rounded-[18px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)]">
+          <div className="border-b-[0.5px] border-[rgba(0,0,0,0.06)] p-6 md:p-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
-                <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700">
+                <div className="mb-4 inline-flex items-center gap-2 rounded-[20px] bg-[#E1F5EE] px-[10px] py-[3px] text-[10px] font-medium text-[#085041]">
                   <Sparkles size={13} />
                   Refinance Engine v2
                 </div>
 
-                <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">Mortgages</h1>
+                <h1 className="text-[28px] font-medium tracking-[-0.3px] text-[var(--color-text-primary)]">Mortgages</h1>
 
-                <p className="mt-2 max-w-3xl text-gray-500">
+                <p className="mt-2 max-w-3xl text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
                   Quantify real refinance impact across the portfolio, rank the best opportunities,
                   and highlight where more data is needed before switching.
                 </p>
@@ -271,7 +531,7 @@ export default function Mortgages({ session = null }) {
               <div className="flex shrink-0 items-start">
                 <button
                   type="button"
-                  onClick={() => setShowAddLoan(true)}
+                  onClick={handleOpenAddLoan}
                   className={utilityPrimaryButtonClass}
                 >
                   <Plus size={15} className="shrink-0" />
@@ -283,25 +543,25 @@ export default function Mortgages({ session = null }) {
 
           <div className="grid grid-cols-1 gap-4 bg-gray-50/70 p-6 md:grid-cols-2 xl:grid-cols-4 md:p-8">
             <TopMetricCard
-              icon={<CreditCard size={16} className="text-primary-600" />}
+              icon={<CreditCard size={16} className="text-[#0F6E56]" />}
               label="Loans"
               value={overview.loanCount}
               helper="Active debt facilities analysed"
             />
             <TopMetricCard
-              icon={<Building2 size={16} className="text-orange-600" />}
+              icon={<Building2 size={16} className="text-[#854F0B]" />}
               label="Total Debt"
               value={formatCurrency(overview.totalDebt)}
               helper="Combined outstanding balances"
             />
             <TopMetricCard
-              icon={<TrendingDown size={16} className="text-green-600" />}
+              icon={<TrendingDown size={16} className="text-[#0F6E56]" />}
               label="Monthly Repayments"
               value={formatCurrency(overview.monthlyRepayments)}
               helper="Current scheduled repayments across loans"
             />
             <TopMetricCard
-              icon={<PiggyBank size={16} className="text-amber-600" />}
+              icon={<PiggyBank size={16} className="text-[#854F0B]" />}
               label="Potential Annual Savings"
               value={formatCurrency(overview.annualSavings)}
               helper={
@@ -316,19 +576,19 @@ export default function Mortgages({ session = null }) {
                   : 'No positive refinance savings detected'
               }
               valueClassName={
-                overview.annualSavings > 0 ? 'text-amber-700' : 'text-gray-900'
+                overview.annualSavings > 0 ? 'text-[#854F0B]' : 'text-gray-900'
               }
             />
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
-          <div className="border-b border-gray-100 p-6">
+        <section className="overflow-hidden rounded-[18px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)]">
+          <div className="border-b-[0.5px] border-[rgba(0,0,0,0.06)] p-6">
             <div className="flex items-center gap-2">
-              <Sparkles size={16} className="text-primary-600" />
-              <h2 className="text-base font-semibold text-gray-900">Portfolio ranking</h2>
+              <Sparkles size={16} className="text-[#0F6E56]" />
+              <h2 className="text-[15px] font-medium text-[var(--color-text-primary)]">Portfolio ranking</h2>
             </div>
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
               Loans are ranked by recommendation strength, savings impact, confidence, and break-even speed.
             </p>
           </div>
@@ -346,10 +606,10 @@ export default function Mortgages({ session = null }) {
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
-          <div className="grid grid-cols-1 gap-4 border-b border-gray-100 p-6 lg:grid-cols-12">
+        <section className="overflow-hidden rounded-[18px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)]">
+          <div className="grid grid-cols-1 gap-4 border-b-[0.5px] border-[rgba(0,0,0,0.06)] p-6 lg:grid-cols-12">
             <div className="lg:col-span-8">
-              <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-400">
+              <label className="mb-2 block text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
                 Search
               </label>
               <div className="relative">
@@ -367,7 +627,7 @@ export default function Mortgages({ session = null }) {
             </div>
 
             <div className="lg:col-span-4">
-              <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-400">
+              <label className="mb-2 block text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
                 Loan Type
               </label>
               <select
@@ -397,7 +657,13 @@ export default function Mortgages({ session = null }) {
                 <MortgageAnalysisCard
                   key={analysis.loanId || `${analysis.propertyId}-${analysis.lender}`}
                   analysis={analysis}
+                  opportunity={opportunitiesByLoanId[String(analysis.loanId)] || null}
+                  activeOpportunityId={activeOpportunityId}
+                  actionError={opportunityActionError}
                   isTopOpportunity={String(analysis.loanId) === String(topOpportunityLoanId)}
+                  onReviewOpportunity={handleReviewOpportunity}
+                  onDismissOpportunity={handleDismissOpportunity}
+                  onActedOpportunity={handleActedOpportunity}
                   onExploreRefinance={() => {
                     const loan = loans.find((item) => String(item.id) === String(analysis.loanId))
                     const property = properties.find(
@@ -426,7 +692,7 @@ export default function Mortgages({ session = null }) {
           userId={session?.user?.id}
           properties={properties}
           onClose={() => setShowAddLoan(false)}
-          onSave={fetchData}
+          onSave={handleLoanSave}
         />
       ) : null}
 
@@ -434,7 +700,7 @@ export default function Mortgages({ session = null }) {
         <EditLoanModal
           loan={editingLoan}
           onClose={() => setEditingLoan(null)}
-          onSave={fetchData}
+          onSave={handleLoanSave}
         />
       ) : null}
 
@@ -451,16 +717,80 @@ export default function Mortgages({ session = null }) {
 
 function MortgageAnalysisCard({
   analysis,
+  opportunity = null,
+  activeOpportunityId = null,
+  actionError = '',
   isTopOpportunity = false,
+  onReviewOpportunity,
+  onDismissOpportunity,
+  onActedOpportunity,
   onExploreRefinance,
   onEdit,
   onViewProperty,
 }) {
-  const tone = getRecommendationTone(analysis.recommendationType)
+  const opportunityMetadata =
+    opportunity?.metadata && typeof opportunity.metadata === 'object' ? opportunity.metadata : {}
+  const opportunityMonthlySavings = toFiniteNumber(opportunity?.monthly_value_estimate)
+  const opportunityAnnualSavings =
+    opportunityMonthlySavings !== null
+      ? opportunityMonthlySavings * 12
+      : toFiniteNumber(opportunity?.annual_value_estimate)
+  const opportunityBreakEvenMonths = toFiniteNumber(opportunity?.break_even_months)
+  const opportunityBenchmarkRate = toFiniteNumber(opportunityMetadata?.benchmark_rate)
+  const opportunityRateGapPct = toFiniteNumber(opportunityMetadata?.rate_gap_pct)
+  const opportunityConfidenceLabel = formatConfidenceLabel(opportunity?.confidence_level)
+  const hasLiveOpportunity = Boolean(opportunity)
+  const tone = getRecommendationTone(
+    hasLiveOpportunity ? 'refinance' : analysis.recommendationType
+  )
+  const primaryDecisionTitle = hasLiveOpportunity
+    ? `Potential refinance value ~${formatCurrency(opportunityAnnualSavings)}/year`
+    : analysis.heroText
+  const primaryDecisionSummary = hasLiveOpportunity
+    ? opportunity?.status === 'reviewing'
+      ? 'This refinance opportunity is currently marked for review.'
+      : 'This refinance opportunity is active against the stored benchmark comparison.'
+    : analysis.refinanceRecommendation
+  const primaryDecisionMeta = hasLiveOpportunity
+    ? 'Source: active AI opportunity'
+    : `${analysis.estimateQualityLabel} | Benchmark: ${
+        analysis.benchmarkFallbackUsed ? 'Fallback estimate' : 'Market-sourced'
+      }`
+  const displayConfidenceLabel = hasLiveOpportunity
+    ? opportunityConfidenceLabel
+    : analysis.confidenceLabel
+  const benchmarkMetricValue = hasLiveOpportunity
+    ? opportunityBenchmarkRate !== null
+      ? formatPercent(opportunityBenchmarkRate)
+      : 'n/a'
+    : formatPercent(analysis.targetRate)
+  const rateGapMetricValue = hasLiveOpportunity
+    ? opportunityRateGapPct !== null
+      ? `${Math.round(opportunityRateGapPct * 100)} bps`
+      : 'n/a'
+    : `${analysis.rateDeltaBps} bps`
+  const monthlyMetricValue = hasLiveOpportunity
+    ? formatCurrency(opportunityMonthlySavings)
+    : formatCurrency(analysis.monthlySavings)
+  const breakEvenMetricValue = hasLiveOpportunity
+    ? Number.isFinite(opportunityBreakEvenMonths)
+      ? `${opportunityBreakEvenMonths} mo`
+      : 'n/a'
+    : Number.isFinite(analysis.breakEvenMonths)
+      ? `${analysis.breakEvenMonths} mo`
+      : 'n/a'
+  const recommendationBadgeLabel = hasLiveOpportunity
+    ? opportunity?.status === 'reviewing'
+      ? 'Reviewing opportunity'
+      : 'Refinance opportunity'
+    : analysis.refinanceRecommendation
+  const [showOpportunityDetails, setShowOpportunityDetails] = useState(false)
+  const [showActedForm, setShowActedForm] = useState(false)
+  const [securedRate, setSecuredRate] = useState('')
 
   return (
     <article
-      className={`flex h-full flex-col rounded-2xl border p-5 shadow-sm md:p-6 ${tone.card}`}
+      className={`flex h-full flex-col rounded-[16px] border border-[rgba(0,0,0,0.08)] px-[22px] py-[18px] transition-[transform,box-shadow,border-color] duration-150 ease-[ease] will-change-transform hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.07)] md:px-[22px] md:py-[18px] ${tone.card}`}
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
         <div className="min-w-0 space-y-2">
@@ -468,14 +798,14 @@ function MortgageAnalysisCard({
             <h2 className="text-lg font-semibold text-gray-900">
               {analysis.lender || 'Unnamed lender'}
             </h2>
-            <span className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-600">
+            <span className="rounded-[20px] bg-[#ebebeb] px-[10px] py-[3px] text-[10px] font-medium text-[#333]">
               {analysis.fixedVariable || 'Loan'}
             </span>
-            <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${tone.badge}`}>
-              {analysis.refinanceRecommendation}
+            <span className={tone.badge}>
+              {recommendationBadgeLabel}
             </span>
             {isTopOpportunity ? (
-              <span className="rounded-full bg-primary-100 px-2.5 py-1 text-xs font-medium text-primary-700">
+              <span className="rounded-[20px] bg-[#E1F5EE] px-[10px] py-[3px] text-[10px] font-medium text-[#085041]">
                 Top opportunity
               </span>
             ) : null}
@@ -499,60 +829,149 @@ function MortgageAnalysisCard({
         </div>
       </div>
 
-      <section className="mt-5 rounded-2xl border border-gray-100 bg-white p-5">
+      <section className="mt-5 rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[22px] py-[18px]">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
               Primary decision
             </p>
             <p className="mt-2 text-xl font-bold text-gray-900">
-              {analysis.heroText}
+              {primaryDecisionTitle}
             </p>
             <p className="mt-2 text-sm text-gray-500">
-              {analysis.refinanceRecommendation}
+              {primaryDecisionSummary}
             </p>
             <p className="mt-2 text-xs text-gray-400">
-              {analysis.estimateQualityLabel} | Benchmark:{' '}
-              {analysis.benchmarkFallbackUsed ? 'Fallback estimate' : 'Market-sourced'}
+              {primaryDecisionMeta}
             </p>
           </div>
 
           <span
-            className={`rounded-full px-2.5 py-1 text-xs font-medium ${getConfidenceBadgeClass(
-              analysis.confidenceLabel
-            )}`}
+            className={getConfidenceBadgeClass(
+              displayConfidenceLabel
+            )}
           >
-            Confidence {analysis.confidenceLabel}
+            Confidence {displayConfidenceLabel}
           </span>
         </div>
       </section>
 
+      {opportunity ? (
+        <section
+          className="mt-4 rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[22px] py-[18px]"
+          style={{ borderLeftWidth: 3, borderLeftColor: '#f59e0b' }}
+        >
+          <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+            Opportunity Detected
+          </p>
+          <p className="mt-2 text-sm font-semibold text-gray-900">
+            {formatCurrency(opportunityMonthlySavings)}/month estimated saving
+          </p>
+
+          <button
+            type="button"
+            onClick={() => setShowOpportunityDetails((current) => !current)}
+            className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-primary-600 transition-colors hover:text-primary-700"
+          >
+            {showOpportunityDetails ? 'Hide ↑' : 'View details →'}
+          </button>
+
+          {showOpportunityDetails ? (
+            <p className="mt-3 text-sm leading-6 text-gray-600">{opportunity.narrative}</p>
+          ) : null}
+
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => onReviewOpportunity?.(opportunity.id)}
+              disabled={activeOpportunityId === opportunity.id}
+              className={utilitySecondaryButtonClass}
+            >
+              Reviewing
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowActedForm((current) => !current)}
+              disabled={activeOpportunityId === opportunity.id}
+              className={utilityInlinePrimaryButtonClass}
+            >
+              I&apos;ve acted on this
+            </button>
+            <button
+              type="button"
+              onClick={() => onDismissOpportunity?.(opportunity)}
+              disabled={activeOpportunityId === opportunity.id}
+              className={utilitySecondaryButtonClass}
+            >
+              Dismiss
+            </button>
+          </div>
+
+          {actionError ? (
+            <div className="mt-4 rounded-xl border border-[#FCEBEB] bg-[#FCEBEB] px-4 py-3 text-sm text-[#791F1F]">
+              {actionError}
+            </div>
+          ) : null}
+
+          {showActedForm ? (
+            <div className="mt-4 rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-gray-50/70 px-[22px] py-[18px]">
+              <label className="block text-sm font-medium text-gray-700">
+                What rate did you secure? (optional)
+              </label>
+              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <input
+                  type="number"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={securedRate}
+                  onChange={(event) => setSecuredRate(event.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-primary-400 sm:max-w-[220px]"
+                  placeholder="e.g. 5.89"
+                />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const wasSuccessful = await onActedOpportunity?.(opportunity, securedRate)
+                    if (!wasSuccessful) return
+                    setShowActedForm(false)
+                    setSecuredRate('')
+                  }}
+                  disabled={activeOpportunityId === opportunity.id}
+                  className={utilityInlinePrimaryButtonClass}
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
       <div className="mt-5 grid grid-cols-2 gap-3 text-sm text-gray-600 lg:grid-cols-5">
         <InlineMetric label="Current" value={formatPercent(analysis.currentRate)} />
-        <InlineMetric label="Benchmark" value={formatPercent(analysis.targetRate)} />
-        <InlineMetric label="Rate gap" value={`${analysis.rateDeltaBps} bps`} />
-        <InlineMetric label="Monthly" value={formatCurrency(analysis.monthlySavings)} />
-        <InlineMetric
-          label="Break-even"
-          value={
-            Number.isFinite(analysis.breakEvenMonths)
-              ? `${analysis.breakEvenMonths} mo`
-              : 'n/a'
-          }
-        />
+        <InlineMetric label="Benchmark" value={benchmarkMetricValue} />
+        <InlineMetric label="Rate gap" value={rateGapMetricValue} />
+        <InlineMetric label="Monthly" value={monthlyMetricValue} />
+        <InlineMetric label="Break-even" value={breakEvenMetricValue} />
       </div>
 
       <section className="mt-5 space-y-2">
-        <p className="text-sm text-gray-600">{analysis.reasons[0] || analysis.summary}</p>
-        <p className="text-sm text-gray-500">
-          Annual interest ~{formatCurrency(analysis.annualInterestPaid)} | Avoidable interest ~
-          {formatCurrency(analysis.avoidableInterest)}/year
-        </p>
-        {analysis.confidenceDrivers?.length > 0 ? (
-          <p className="text-xs text-gray-400">
-            Confidence drivers: {analysis.confidenceDrivers.join(' | ')}
-          </p>
-        ) : null}
+        {hasLiveOpportunity ? (
+          <p className="text-sm text-gray-600">{opportunity.narrative}</p>
+        ) : (
+          <>
+            <p className="text-sm text-gray-600">{analysis.reasons[0] || analysis.summary}</p>
+            <p className="text-sm text-gray-500">
+              Annual interest ~{formatCurrency(analysis.annualInterestPaid)} | Avoidable interest ~
+              {formatCurrency(analysis.avoidableInterest)}/year
+            </p>
+            {analysis.confidenceDrivers?.length > 0 ? (
+              <p className="text-xs text-gray-400">
+                Confidence drivers: {analysis.confidenceDrivers.join(' | ')}
+              </p>
+            ) : null}
+          </>
+        )}
       </section>
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -568,7 +987,7 @@ function MortgageAnalysisCard({
         {Number.isFinite(analysis.daysUntilFixedExpiry) &&
         analysis.daysUntilFixedExpiry > 0 &&
         analysis.daysUntilFixedExpiry <= 120 ? (
-          <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-medium text-amber-700">
+          <span className="inline-flex items-center gap-2 rounded-[20px] bg-[#FAEEDA] px-[10px] py-[3px] text-[10px] font-medium text-[#633806]">
             <CalendarClock size={13} />
             Fixed rate expires in {analysis.daysUntilFixedExpiry} days
           </span>
@@ -580,9 +999,9 @@ function MortgageAnalysisCard({
 
 function InlineMetric({ label, value }) {
   return (
-    <div className="min-w-0 rounded-xl border border-gray-100 bg-gray-50/70 px-3 py-2">
-      <p className="text-[11px] uppercase tracking-wide text-gray-400">{label}</p>
-      <p className="mt-1 truncate font-semibold text-gray-900">{value}</p>
+    <div className="min-w-0 rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-gray-50/70 px-[22px] py-[18px]">
+      <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">{label}</p>
+      <p className="mt-1 truncate text-[13px] font-normal leading-[1.6] text-[var(--color-text-primary)]">{value}</p>
     </div>
   )
 }
@@ -624,15 +1043,15 @@ function RankingRow({ analysis, rank }) {
 
 function TopMetricCard({ icon, label, value, helper, valueClassName = 'text-gray-900' }) {
   return (
-    <div className="rounded-xl border border-gray-100 bg-white p-5">
+    <div className="rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[22px] py-[18px]">
       <div className="flex items-center gap-2 text-gray-500">
         {icon}
-        <p className="text-xs font-medium uppercase tracking-wide">{label}</p>
+        <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">{label}</p>
       </div>
-      <p className={`mt-3 whitespace-nowrap text-2xl font-bold md:text-3xl ${valueClassName}`}>
+      <p className={`mt-3 whitespace-nowrap text-[26px] font-medium tracking-[-0.5px] ${valueClassName}`}>
         {value}
       </p>
-      <p className="mt-2 text-sm text-gray-400">{helper}</p>
+      <p className="mt-2 text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]">{helper}</p>
     </div>
   )
 }

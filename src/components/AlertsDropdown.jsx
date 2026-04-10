@@ -1,11 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Bell, X, AlertTriangle, Clock, Home } from 'lucide-react'
-
-const getDaysUntil = (dateStr) => {
-  if (!dateStr) return null
-  const diff = new Date(dateStr) - new Date()
-  return Math.ceil(diff / (1000 * 60 * 60 * 24))
-}
+import { getDaysUntil } from '../lib/dateUtils.js'
 
 const getUrgency = (days) => {
   if (days <= 30) return { color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200', badge: 'bg-red-500', label: 'Urgent' }
