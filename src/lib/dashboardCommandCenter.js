@@ -1057,7 +1057,10 @@ export default function buildDashboardCommandCenter({
     financialProfile,
     taxSettings: growthScenarioTaxSettings,
     usableEquity,
-    availableCash: 0,
+    availableCash: Math.max(
+      0,
+      Number(financialProfile?.cash_available_for_investment || 0)
+    ),
     config: {
       depositRatio: selectedDepositStrategy.depositRatio,
       interestRatePct: effectiveInterestRate,

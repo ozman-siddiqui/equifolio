@@ -1482,7 +1482,10 @@ export default function PortfolioGrowthScenariosRebuild() {
         transactions,
         borrowingAnalysis,
         usableEquity,
-        availableCash: 0,
+        availableCash: Math.max(
+          0,
+          Number(financialProfile?.cash_available_for_investment || 0)
+        ),
         config: {
           depositRatio: selectedDepositStrategy.depositRatio,
           interestRatePct: effectiveInterestRate,
@@ -1494,6 +1497,7 @@ export default function PortfolioGrowthScenariosRebuild() {
       loans,
       transactions,
       borrowingAnalysis,
+      financialProfile?.cash_available_for_investment,
       usableEquity,
       selectedDepositStrategy.depositRatio,
       effectiveInterestRate,
@@ -1868,7 +1872,7 @@ export default function PortfolioGrowthScenariosRebuild() {
   const recommendedTotalRequiredCapital =
     Number(recommendedScenario?.depositRequired || 0) +
     Number(recommendedScenario?.estimatedAcquisitionCosts || 0)
-  const recommendedAvailableCapital = Number(scenarioModel.inputs?.usableEquityAfterBuffer || 0)
+  const recommendedAvailableCapital = Number(scenarioModel.inputs?.totalDeployableCapital || 0)
   const remainingCapitalGap = Math.max(
     0,
     recommendedTotalRequiredCapital - recommendedAvailableCapital
@@ -1890,7 +1894,7 @@ export default function PortfolioGrowthScenariosRebuild() {
 
       return {
         availableCapital:
-          recommendedScenario?.capitalBreakdown?.usableEquityAfterBuffer ??
+          recommendedScenario?.capitalBreakdown?.totalDeployableCapital ??
           formatCurrency(recommendedAvailableCapital),
         totalEquityAvailable: formatCurrency(totalEquityAvailable),
         bufferRetained: formatCurrency(bufferRetainedAmount),
@@ -2464,11 +2468,11 @@ export default function PortfolioGrowthScenariosRebuild() {
   }, [assessmentRateValue, financialProfile, isDeferredAnalysisReady, liabilities, loans, transactions])
 
   // Chart 3 fallback: purchase power across deposit % 10–30% in 2% steps
-  // Uses usableEquity (portfolio-derived) as deployable capital — no scenario needed
+  // Uses total deployable capital from the current scenario model.
   const portfolioFallbackDepositData = useMemo(() => {
     if (!isDeferredAnalysisReady) return []
     if (!Number.isFinite(centralBorrowingCapacity) || centralBorrowingCapacity <= 0) return []
-    const deployable = usableEquity
+    const deployable = Number(scenarioModel.inputs?.totalDeployableCapital || 0)
     if (deployable <= 0) return []
     const ACQ_COST_RATE = 0.05
     const selectedDepositPct = Math.round(selectedDepositStrategy.depositRatio * 100)
@@ -2486,7 +2490,12 @@ export default function PortfolioGrowthScenariosRebuild() {
         currentSelectionMarker: depositPct === selectedDepositPct ? Math.round(maxPurchasePrice) : null,
       }
     })
-  }, [centralBorrowingCapacity, isDeferredAnalysisReady, selectedDepositStrategy.depositRatio, usableEquity])
+  }, [
+    centralBorrowingCapacity,
+    isDeferredAnalysisReady,
+    scenarioModel.inputs?.totalDeployableCapital,
+    selectedDepositStrategy.depositRatio,
+  ])
 
   // ── End portfolio-level fallback chart data ──────────────────────────────
 

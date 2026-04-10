@@ -756,28 +756,41 @@ export default function Dashboard({ session, subscription }) {
     [commandCenter?.growthScenarios]
   )
 
-  const equityLeadScenario = useMemo(
-    () =>
-      hasLiveEquityInputs
-        ? (
-            baseCommandCenter?.growthScenarios?.feasibleStrategies?.[0] ??
-            baseCommandCenter?.growthScenarios?.nearViableStrategies?.[0] ??
-            baseCommandCenter?.growthScenarios?.bestBlockedStrategy ??
-            null
-          )
-        : null,
-    [hasLiveEquityInputs, baseCommandCenter?.growthScenarios]
-  )
-
-  const equityProjectionData = useMemo(
-    () => (hasLiveEquityInputs ? baseCommandCenter?.equityProjectionData ?? null : null),
-    [hasLiveEquityInputs, baseCommandCenter?.equityProjectionData]
-  )
-
   const isAcquisitionMode =
     Boolean(leadScenario) &&
     Number(borrowingPowerAnalysis?.borrowing_power_estimate ?? 0) > 0 &&
     incompleteSteps.length === 0
+
+  const baselineEquitySeries = useMemo(
+    () => (hasLiveEquityInputs ? commandCenter?.equityProjectionData ?? null : null),
+    [commandCenter?.equityProjectionData, hasLiveEquityInputs]
+  )
+
+  const scenarioSeries = useMemo(
+    () => (isAcquisitionMode ? leadScenario?.projectionData ?? null : null),
+    [isAcquisitionMode, leadScenario?.projectionData]
+  )
+
+  const combinedEquitySeries = useMemo(
+    () =>
+      Array.isArray(baselineEquitySeries)
+        ? baselineEquitySeries.map((basePoint) => {
+            const scenarioPoint = Array.isArray(scenarioSeries)
+              ? scenarioSeries.find(
+                  (point) => Number(point.year) === Number(basePoint.year)
+                )
+              : null
+
+            return {
+              year: basePoint.year,
+              netEquity:
+                Number(basePoint.netEquity || 0) +
+                Number(scenarioPoint?.netEquity || 0),
+            }
+          })
+        : null,
+    [baselineEquitySeries, scenarioSeries]
+  )
 
   async function handleDismissRateImpact() {
     if (!latestRateImpact?.id) return
@@ -873,26 +886,20 @@ export default function Dashboard({ session, subscription }) {
         leadScenario?.estimatedGrossYield ??
         leadScenario?.expectedRentalYield ??
         null,
+      baselineEquitySeries,
+      acquisitionEquitySeries:
+        isAcquisitionMode ? combinedEquitySeries : null,
       currentEquity: liveEquityBase,
       year3Equity:
-        equityProjectionData?.find(
-          (point) => Number(point.year) === 3
-        )?.netEquity ??
-        equityLeadScenario?.projectionData?.find(
+        (isAcquisitionMode ? combinedEquitySeries : baselineEquitySeries)?.find(
           (point) => Number(point.year) === 3
         )?.netEquity ?? null,
       year5Equity:
-        equityProjectionData?.find(
-          (point) => Number(point.year) === 5
-        )?.netEquity ??
-        equityLeadScenario?.projectionData?.find(
+        (isAcquisitionMode ? combinedEquitySeries : baselineEquitySeries)?.find(
           (point) => Number(point.year) === 5
         )?.netEquity ?? null,
       year10Equity:
-        equityProjectionData?.find(
-          (point) => Number(point.year) === 10
-        )?.netEquity ??
-        equityLeadScenario?.projectionData?.find(
+        (isAcquisitionMode ? combinedEquitySeries : baselineEquitySeries)?.find(
           (point) => Number(point.year) === 10
         )?.netEquity ?? null,
       unlockValue: usingOnboardingSnapshot || effectiveDashboardState.canShowBorrowing
@@ -944,8 +951,8 @@ export default function Dashboard({ session, subscription }) {
       ),
     }
   }, [
-    equityProjectionData,
-    equityLeadScenario,
+    baselineEquitySeries,
+    combinedEquitySeries,
     leadScenario,
     commandCenter?.hero?.netPosition?.value,
     commandCenter?.hero?.purchaseRangeLow,

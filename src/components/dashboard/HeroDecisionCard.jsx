@@ -159,6 +159,8 @@ export default function HeroDecisionCard({
   monthlyTileEyebrow = null,
   monthlyTileDetail = null,
   grossYield = 5.5,
+  baselineEquitySeries = null,
+  acquisitionEquitySeries = null,
   currentEquity = 576500,
   year3Equity = 720000,
   year5Equity = 875138,
@@ -234,6 +236,46 @@ export default function HeroDecisionCard({
   const grossYieldDisplay = grossYieldNumber != null ? `${grossYieldNumber.toFixed(1)}%` : '--'
   const currentEquityDisplay =
     currentEquityNumber != null ? formatCurrency(currentEquityNumber) : '--'
+  const normalizeEquitySeries = (series) =>
+    Array.isArray(series)
+      ? series
+          .map((point) => ({
+            year: Number(point?.year),
+            netEquity: toFiniteNumber(point?.netEquity),
+          }))
+          .filter(
+            (point) => Number.isFinite(point.year) && point.netEquity != null
+          )
+          .sort((a, b) => a.year - b.year)
+      : []
+  const normalizedBaselineSeries = normalizeEquitySeries(baselineEquitySeries)
+  const normalizedAcquisitionSeries = normalizeEquitySeries(acquisitionEquitySeries)
+  const fallbackSingleSeries = [
+    { year: 0, netEquity: currentEquityNumber },
+    { year: 3, netEquity: year3EquityNumber },
+    { year: 5, netEquity: year5EquityNumber },
+    { year: 10, netEquity: year10EquityNumber },
+  ].filter((point) => point.netEquity != null)
+  const hasBaselineSeries = normalizedBaselineSeries.length > 1
+  const hasAcquisitionSeries = normalizedAcquisitionSeries.length > 1
+  const hasDualSeries =
+    isAcquisitionMode && hasBaselineSeries && hasAcquisitionSeries
+  const primarySeries = hasDualSeries
+    ? normalizedAcquisitionSeries
+    : hasBaselineSeries
+      ? normalizedBaselineSeries
+      : hasAcquisitionSeries
+        ? normalizedAcquisitionSeries
+        : fallbackSingleSeries
+  const comparisonBaselineSeries = hasDualSeries
+    ? normalizedBaselineSeries
+    : null
+  const primarySeriesPoint = (year) =>
+    primarySeries.find((point) => Number(point.year) === Number(year)) ?? null
+  const comparisonSeriesPoint = (year) =>
+    comparisonBaselineSeries?.find(
+      (point) => Number(point.year) === Number(year)
+    ) ?? null
   const resolvedMonthlyTileEyebrow =
     monthlyTileEyebrow ?? (isAcquisitionMode ? 'After-tax surplus' : 'Monthly surplus / gap')
   const resolvedMonthlyTileDetail =
@@ -344,19 +386,11 @@ export default function HeroDecisionCard({
   ].filter((row) => row.value != null)
   const hasLimitedReadinessDrivers = acquisitionBreakdownRows.length <= 1
 
-  const baselineYear0 = currentEquityNumber ?? 0
-  const baselineYear3 = year3EquityNumber ?? null
-  const baselineYear5 = year5EquityNumber ?? null
-  const baselineYear10 = year10EquityNumber ?? null
   const hasProjectionData =
-    baselineYear3 != null &&
-    baselineYear5 != null
-  const hasYear10Point = baselineYear10 != null
-  const acquisitionYear0 = baselineYear0
-  const acquisitionYear3 = hasProjectionData ? baselineYear3 : null
-  const acquisitionYear5 = hasProjectionData ? baselineYear5 : null
-  const acquisitionYear10 = hasYear10Point ? baselineYear10 : null
-  const hasComparisonBaseline = false
+    primarySeriesPoint(3)?.netEquity != null &&
+    primarySeriesPoint(5)?.netEquity != null
+  const hasYear10Point = primarySeriesPoint(10)?.netEquity != null
+  const hasComparisonBaseline = hasDualSeries
 
   const chartFloorY = 182
   const chartHasFuturePoints = hasProjectionData
@@ -365,82 +399,61 @@ export default function HeroDecisionCard({
     : chartHasFuturePoints
       ? [36, 262, 484]
       : [36]
-  const visibleValues = hasProjectionData
+  const chartYears = chartHasFuturePoints
     ? hasYear10Point
-      ? [
-          baselineYear0,
-          baselineYear3,
-          baselineYear5,
-          baselineYear10,
-          acquisitionYear0,
-          acquisitionYear3,
-          acquisitionYear5,
-          acquisitionYear10,
-        ]
-      : [baselineYear0, baselineYear3, baselineYear5, acquisitionYear0, acquisitionYear3, acquisitionYear5]
-    : [currentEquityNumber ?? 0]
+      ? [0, 3, 5, 10]
+      : [0, 3, 5]
+    : [0]
+  const visibleValues = [
+    ...primarySeries
+      .filter((point) => chartYears.includes(Number(point.year)))
+      .map((point) => Number(point.netEquity || 0)),
+    ...(comparisonBaselineSeries
+      ? comparisonBaselineSeries
+          .filter((point) => chartYears.includes(Number(point.year)))
+          .map((point) => Number(point.netEquity || 0))
+      : []),
+  ]
   const minVal = Math.min(...visibleValues) * 0.98
   const maxVal = Math.max(...visibleValues) * 1.02
   const toChartY = (value) => scaleY(Number(value || 0), minVal, maxVal, chartFloorY)
 
-  const baselinePoints = chartHasFuturePoints && hasYear10Point
-    ? [
-        { x: chartXPositions[0], y: toChartY(baselineYear0), label: 'Today' },
-        { x: chartXPositions[1], y: toChartY(baselineYear3), label: 'Year 3' },
-        { x: chartXPositions[2], y: toChartY(baselineYear5), label: 'Year 5' },
-        { x: chartXPositions[3], y: toChartY(baselineYear10), label: 'Year 10' },
-      ]
-    : chartHasFuturePoints
-      ? [
-        { x: chartXPositions[0], y: toChartY(baselineYear0), label: 'Today' },
-        { x: chartXPositions[1], y: toChartY(baselineYear3), label: 'Year 3' },
-        { x: chartXPositions[2], y: toChartY(baselineYear5), label: 'Year 5' },
-      ]
-      : [
-        { x: chartXPositions[0], y: toChartY(baselineYear0), label: 'Today' },
-      ]
-  const acquisitionPoints = chartHasFuturePoints && hasYear10Point
-    ? [
-        { x: chartXPositions[0], y: toChartY(acquisitionYear0), label: 'Today' },
-        { x: chartXPositions[1], y: toChartY(acquisitionYear3), label: 'Year 3' },
-        { x: chartXPositions[2], y: toChartY(acquisitionYear5), label: 'Year 5' },
-        { x: chartXPositions[3], y: toChartY(acquisitionYear10), label: 'Year 10' },
-      ]
-    : chartHasFuturePoints
-      ? [
-        { x: chartXPositions[0], y: toChartY(acquisitionYear0), label: 'Today' },
-        { x: chartXPositions[1], y: toChartY(acquisitionYear3), label: 'Year 3' },
-        { x: chartXPositions[2], y: toChartY(acquisitionYear5), label: 'Year 5' },
-      ]
-      : [
-        { x: chartXPositions[0], y: toChartY(acquisitionYear0), label: 'Today' },
-      ]
-  const primaryChartPoints = isAcquisitionMode ? acquisitionPoints : baselinePoints
+  const buildChartPoints = (series) =>
+    chartYears.map((year, index) => ({
+      x: chartXPositions[index],
+      y: toChartY(
+        series.find((point) => Number(point.year) === Number(year))?.netEquity ?? 0
+      ),
+      label: year === 0 ? 'Today' : `Year ${year}`,
+    }))
+  const baselinePoints =
+    comparisonBaselineSeries &&
+    chartYears.every((year) => comparisonSeriesPoint(year)?.netEquity != null)
+      ? buildChartPoints(comparisonBaselineSeries)
+      : []
+  const acquisitionPoints = buildChartPoints(primarySeries)
+  const primaryChartPoints = acquisitionPoints
   const baselinePath = baselinePoints.length > 1 ? buildSubtleMonotonicPath(baselinePoints) : ''
   const primaryPath = primaryChartPoints.length > 1 ? buildSubtleMonotonicPath(primaryChartPoints) : ''
   const areaPath =
     primaryChartPoints.length > 1 ? buildAreaPath(primaryChartPoints, chartFloorY) : ''
   const chartYear3Display =
-    isAcquisitionMode && acquisitionYear3 != null
-      ? `~${formatCompactCurrency(acquisitionYear3)}`
-      : !isAcquisitionMode && baselineYear3 != null
-        ? `~${formatCompactCurrency(baselineYear3)}`
-        : '--'
+    primarySeriesPoint(3)?.netEquity != null
+      ? `~${formatCompactCurrency(primarySeriesPoint(3).netEquity)}`
+      : '--'
   const chartYear5Display =
-    isAcquisitionMode && acquisitionYear5 != null
-      ? `~${formatCurrency(acquisitionYear5)}`
-      : !isAcquisitionMode && baselineYear5 != null
-        ? `~${formatCurrency(baselineYear5)}`
-        : '--'
+    primarySeriesPoint(5)?.netEquity != null
+      ? `~${formatCurrency(primarySeriesPoint(5).netEquity)}`
+      : '--'
   const chartYear10Display =
-    hasYear10Point && isAcquisitionMode && acquisitionYear10 != null
-      ? `~${formatCurrency(acquisitionYear10)}`
-      : hasYear10Point && !isAcquisitionMode && baselineYear10 != null
-        ? `~${formatCurrency(baselineYear10)}`
-        : '--'
+    hasYear10Point && primarySeriesPoint(10)?.netEquity != null
+      ? `~${formatCurrency(primarySeriesPoint(10).netEquity)}`
+      : '--'
   const acquisitionDifference =
-    acquisitionYear5 != null && baselineYear5 != null
-      ? acquisitionYear5 - baselineYear5
+    hasComparisonBaseline &&
+    primarySeriesPoint(5)?.netEquity != null &&
+    comparisonSeriesPoint(5)?.netEquity != null
+      ? primarySeriesPoint(5).netEquity - comparisonSeriesPoint(5).netEquity
       : null
   const acquisitionDifferenceDisplay = isAcquisitionMode
     && hasComparisonBaseline
@@ -798,23 +811,27 @@ export default function HeroDecisionCard({
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-                  {isAcquisitionMode
+                  {hasDualSeries
                     ? 'Portfolio equity with vs without acquisition'
                     : 'Current portfolio trajectory'}
                 </p>
-                {isAcquisitionMode ? (
+                {hasDualSeries ? (
                   <>
                     {hasProjectionData ? (
                       <>
                         <p className="mt-2 text-sm leading-6 text-slate-500">
-                          Canonical forward equity path from the
+                          Compare your current portfolio trajectory
                           <br />
-                          current lead acquisition scenario.
+                          against the portfolio after acquisition.
                         </p>
                         <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-slate-500">
                           <span className="inline-flex items-center gap-2">
+                            <span className="h-0.5 w-6 rounded-full bg-[#b8e8d8]" />
+                            Without acquisition
+                          </span>
+                          <span className="inline-flex items-center gap-2">
                             <span className="h-0.5 w-6 rounded-full bg-[#1D9E75]" />
-                            Scenario trajectory
+                            With acquisition
                           </span>
                         </div>
                       </>
@@ -872,10 +889,10 @@ export default function HeroDecisionCard({
                   </linearGradient>
                 </defs>
 
-                {isAcquisitionMode && areaPath ? (
+                {hasDualSeries && areaPath ? (
                   <path ref={fillPathRef} d={areaPath} fill="url(#heroDecisionFill)" style={{ opacity: 0 }} />
                 ) : null}
-                {isAcquisitionMode && hasComparisonBaseline && baselinePath ? (
+                {hasComparisonBaseline && baselinePath ? (
                   <path
                     d={baselinePath}
                     fill="none"
@@ -890,8 +907,8 @@ export default function HeroDecisionCard({
                     ref={strokePathRef}
                     d={primaryPath}
                     fill="none"
-                    stroke={isAcquisitionMode ? 'url(#heroDecisionStroke)' : '#1D9E75'}
-                    strokeWidth={isAcquisitionMode ? '2.5' : '3.5'}
+                    stroke={hasDualSeries ? 'url(#heroDecisionStroke)' : '#1D9E75'}
+                    strokeWidth={hasDualSeries ? '2.5' : '3.5'}
                     strokeLinecap="round"
                     style={{
                       strokeDasharray: 1,
