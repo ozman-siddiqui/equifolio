@@ -233,6 +233,10 @@ export default function HeroDecisionCard({
     fiveYearEquityUpliftNumber != null ? `+${formatCurrency(fiveYearEquityUpliftNumber)}` : '--'
   const monthlyHoldingCostDisplay =
     monthlyHoldingCostNumber != null ? `${formatCurrency(monthlyHoldingCostNumber)}/mo` : '--'
+  const postAcquisitionSurplusDisplay =
+    postAcquisitionSurplusNumber != null
+      ? `${formatCurrency(postAcquisitionSurplusNumber)}/mo`
+      : '--'
   const grossYieldDisplay = grossYieldNumber != null ? `${grossYieldNumber.toFixed(1)}%` : '--'
   const currentEquityDisplay =
     currentEquityNumber != null ? formatCurrency(currentEquityNumber) : '--'
@@ -277,7 +281,7 @@ export default function HeroDecisionCard({
       (point) => Number(point.year) === Number(year)
     ) ?? null
   const resolvedMonthlyTileEyebrow =
-    monthlyTileEyebrow ?? (isAcquisitionMode ? 'After-tax surplus' : 'Monthly surplus / gap')
+    monthlyTileEyebrow ?? (isAcquisitionMode ? 'Surplus after acquisition' : 'Monthly surplus / gap')
   const resolvedMonthlyTileDetail =
     monthlyTileDetail ??
     (isAcquisitionMode
@@ -288,21 +292,32 @@ export default function HeroDecisionCard({
       : 'Live estimate · refine expenses for accuracy')
   const postAcquisitionBreakdownRows =
     isAcquisitionMode &&
-    currentHouseholdSurplusNumber != null &&
-    afterTaxAcquisitionImpactNumber != null &&
-    postAcquisitionSurplusNumber != null
+    (
+      currentHouseholdSurplusNumber != null ||
+      afterTaxAcquisitionImpactNumber != null ||
+      postAcquisitionSurplusNumber != null
+    )
       ? [
           {
-            label: 'Current household surplus',
-            value: `${currentHouseholdSurplusNumber >= 0 ? '+' : '-'}${formatCurrency(Math.abs(currentHouseholdSurplusNumber))}`,
+            label: 'Current surplus',
+            value:
+              currentHouseholdSurplusNumber != null
+                ? `${currentHouseholdSurplusNumber >= 0 ? '+' : '-'}${formatCurrency(Math.abs(currentHouseholdSurplusNumber))}/mo`
+                : '--',
           },
           {
-            label: 'After-tax acquisition impact',
-            value: `${afterTaxAcquisitionImpactNumber >= 0 ? '+' : '-'}${formatCurrency(Math.abs(afterTaxAcquisitionImpactNumber))}`,
+            label: 'Acquisition impact',
+            value:
+              afterTaxAcquisitionImpactNumber != null
+                ? `${afterTaxAcquisitionImpactNumber >= 0 ? '+' : '-'}${formatCurrency(Math.abs(afterTaxAcquisitionImpactNumber))}/mo`
+                : '--',
           },
           {
-            label: 'Resulting post-acquisition surplus',
-            value: `${postAcquisitionSurplusNumber >= 0 ? '+' : '-'}${formatCurrency(Math.abs(postAcquisitionSurplusNumber))}`,
+            label: 'Surplus after acquisition',
+            value:
+              postAcquisitionSurplusNumber != null
+                ? `${postAcquisitionSurplusNumber >= 0 ? '+' : '-'}${formatCurrency(Math.abs(postAcquisitionSurplusNumber))}/mo`
+                : '--',
           },
         ]
       : null
@@ -580,7 +595,7 @@ export default function HeroDecisionCard({
           </div>
 
           {isAcquisitionMode && hasScenarioData ? (
-            <div className="mt-8 grid gap-3 min-[481px]:grid-cols-1 md:grid-cols-2 xl:grid-cols-4 max-[480px]:grid-cols-1">
+            <div className="mt-8 grid gap-3 min-[481px]:grid-cols-1 md:grid-cols-2 xl:grid-cols-3 max-[480px]:grid-cols-1">
               <StatTile
                 eyebrow="Executable range"
                 value={executableRangeDisplay}
@@ -596,39 +611,33 @@ export default function HeroDecisionCard({
               />
               <StatTile
                 eyebrow={resolvedMonthlyTileEyebrow}
-                value={monthlyHoldingCostDisplay}
+                value={
+                  isAcquisitionMode
+                    ? postAcquisitionSurplusDisplay
+                    : monthlyHoldingCostDisplay
+                }
                 detail={resolvedMonthlyTileDetail}
                 tooltip="Projected monthly position after acquiring the target property, including estimated rental income minus loan repayments and holding costs."
-              />
-              <StatTile
-                eyebrow="Gross yield est."
-                value={grossYieldDisplay}
-                detail="Regional market"
-                tooltip="Estimated annual rental income as a percentage of purchase price. Based on regional market assumptions where actual rent is not yet known."
               />
             </div>
           ) : null}
 
           {isAcquisitionMode && postAcquisitionBreakdownRows ? (
-            <div className="mt-4 rounded-[1.25rem] border border-slate-200/80 bg-white/70 px-4 py-3">
-              <div className="grid gap-2 md:grid-cols-3 md:gap-4">
+            <div className="mt-4 rounded-[1.25rem] border border-slate-200/80 bg-white/70 px-4 py-3 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.22)]">
+              <div className="grid gap-2 md:grid-cols-3 md:gap-3">
                 {postAcquisitionBreakdownRows.map((row, index) => (
                   <div
                     key={row.label}
-                    className={`flex items-center justify-between gap-3 text-[11px] leading-5 ${
+                    className={`rounded-[1rem] border border-slate-200/70 bg-slate-50/70 px-3 py-2 text-[11px] leading-5 ${
                       index === postAcquisitionBreakdownRows.length - 1
                         ? 'font-medium text-slate-900'
                         : 'text-slate-600'
                     } md:block`}
                   >
-                    <span className="block">
-                      {index === 0
-                        ? 'Current monthly surplus'
-                        : index === 1
-                          ? 'After-tax acquisition impact'
-                          : 'Resulting after-tax surplus'}
+                    <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                      {row.label}
                     </span>
-                    <span className="block md:mt-1">{row.value}</span>
+                    <span className="mt-1 block text-[13px] font-medium text-slate-900">{row.value}</span>
                   </div>
                 ))}
               </div>

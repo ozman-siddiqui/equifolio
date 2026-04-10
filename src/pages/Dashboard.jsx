@@ -848,13 +848,18 @@ export default function Dashboard({ session, subscription }) {
         (leadScenario ? Math.round(purchasePrice * 1.1) : null) ??
         (liveEquityBase > 0 ? Math.round(liveEquityBase * 1.2) : null),
       fiveYearEquityUplift: leadScenario?.fiveYearEquityProjection ?? null,
-      currentHouseholdSurplus: borrowingPowerAnalysis?.actual_monthly_surplus ?? null,
+      currentHouseholdSurplus:
+        borrowingPowerAnalysis?.actual_monthly_surplus ??
+        commandCenter?.hero?.monthlyPosition?.householdSurplus ??
+        0,
       afterTaxAcquisitionImpact: leadScenario?.afterTaxMonthlyImpact ?? null,
       monthlyHoldingCost:
         isAcquisitionMode && leadScenario
           ? (
               (
-                borrowingPowerAnalysis?.actual_monthly_surplus ?? 0
+                borrowingPowerAnalysis?.actual_monthly_surplus ??
+                commandCenter?.hero?.monthlyPosition?.householdSurplus ??
+                0
               ) +
               (
                 leadScenario?.afterTaxMonthlyImpact ??
@@ -874,7 +879,9 @@ export default function Dashboard({ session, subscription }) {
         isAcquisitionMode && leadScenario
           ? (
               (
-                borrowingPowerAnalysis?.actual_monthly_surplus ?? 0
+                borrowingPowerAnalysis?.actual_monthly_surplus ??
+                commandCenter?.hero?.monthlyPosition?.householdSurplus ??
+                0
               ) +
               (
                 leadScenario?.afterTaxMonthlyImpact ??
@@ -929,7 +936,7 @@ export default function Dashboard({ session, subscription }) {
         ? 'Based on current inputs, this pathway appears viable and illustrative - subject to lender assessment and market conditions.'
         : 'Your existing portfolio is compounding. Focus on the top actions below to unlock your next acquisition move.',
       isFirstNameResolved,
-      monthlyTileEyebrow: isAcquisitionMode ? 'After-tax surplus' : 'Monthly surplus / gap',
+      monthlyTileEyebrow: isAcquisitionMode ? 'Surplus after acquisition' : 'Monthly surplus / gap',
       monthlyTileDetail: isAcquisitionMode
         ? 'Based on active acquisition scenario'
         : effectiveDashboardState.canShowActualMonthlySurplus
