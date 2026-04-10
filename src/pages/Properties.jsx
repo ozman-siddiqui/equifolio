@@ -148,6 +148,9 @@ export default function Properties() {
                   Browse your portfolio at a glance. Open any property to manage cash flow,
                   mortgages, refinance options, and AI insights.
                 </p>
+                <p className="mt-3 max-w-3xl text-[12px] font-normal leading-[1.6] text-[var(--color-text-tertiary)]">
+                  Select the correct property use carefully — owner-occupied and investment properties are assessed differently across borrowing, equity, tax, and portfolio insights.
+                </p>
               </div>
 
               <button

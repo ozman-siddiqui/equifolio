@@ -324,8 +324,8 @@ export default function Dashboard({ session, subscription }) {
   )
 
   const usingOnboardingSnapshot = useMemo(
-    () => Boolean(onboardingSnapshot) && !dashboardState?.setupComplete,
-    [onboardingSnapshot, dashboardState?.setupComplete]
+    () => Boolean(onboardingSnapshot) && !dashboardState?.canShowBorrowing,
+    [onboardingSnapshot, dashboardState?.canShowBorrowing]
   )
 
   const hasLivePropertyValues = useMemo(
@@ -1273,10 +1273,10 @@ export default function Dashboard({ session, subscription }) {
               {effectiveDashboardState.canShowNetPosition ? (
                 <CommandCentreCard
                   eyebrow="Net Position"
-                  title={effectiveDashboardState.showNetPositionPartial ? 'Asset Value' : 'Net Equity'}
+                  title={effectiveDashboardState.showNetPositionPartial ? 'Net Equity (Partial)' : 'Net Equity'}
                   value={
                     effectiveDashboardState.showNetPositionPartial
-                      ? totalPropertyValue
+                      ? commandCenter.hero.netPosition.value ?? totalPropertyValue
                       : commandCenter.hero.netPosition.value
                   }
                   valueTone={
@@ -1287,7 +1287,7 @@ export default function Dashboard({ session, subscription }) {
                   }
                   helper={
                     effectiveDashboardState.showNetPositionPartial
-                      ? 'Asset-only view until all mortgages are recorded'
+                      ? commandCenter.hero.netPosition.helper
                       : 'Assets minus total debt'
                   }
                   statusBadge={
@@ -1301,11 +1301,11 @@ export default function Dashboard({ session, subscription }) {
                       : null
                   }
                   detailRows={
-                    effectiveDashboardState.showNetPositionPartial ? [] : netEquityDetailRows
+                    netEquityDetailRows
                   }
                   detailEmptyState={
                     effectiveDashboardState.showNetPositionPartial
-                      ? null
+                      ? 'Add mortgage details to any remaining properties to complete portfolio equity.'
                       : 'No properties recorded yet'
                   }
                   progressInfo={
@@ -1326,19 +1326,13 @@ export default function Dashboard({ session, subscription }) {
                         }
                   }
                   subtitle={
-                    effectiveDashboardState.showNetPositionPartial
-                      ? 'Add mortgage details for every property to calculate true net equity, leverage, and LVR.'
-                      : commandCenter.hero.netPosition.subtitle
+                    commandCenter.hero.netPosition.subtitle
                   }
                   cta={{
-                    label: effectiveDashboardState.showNetPositionPartial ? 'Add Mortgage' : commandCenter.hero.netPosition.cta.label,
+                    label: commandCenter.hero.netPosition.cta.label,
                   }}
                   onClick={() =>
-                    navigate(
-                      effectiveDashboardState.showNetPositionPartial
-                        ? '/mortgages'
-                        : commandCenter.hero.netPosition.cta.route
-                    )
+                    navigate(commandCenter.hero.netPosition.cta.route)
                   }
                 />
               ) : (

@@ -272,6 +272,9 @@ export default function CashFlow() {
                   Start with the portfolio picture, compare property-level performance,
                   then drill into filtered transaction detail only when you need it.
                 </p>
+                <p className="mt-3 max-w-3xl text-[12px] font-normal leading-[1.6] text-[var(--color-text-tertiary)]">
+                  Cash flow should be recorded only for investment properties. Owner-occupied properties should not include rental income, management fees, or operating expenses.
+                </p>
               </div>
 
               <div className="shrink-0 flex items-start">

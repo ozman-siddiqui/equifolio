@@ -955,26 +955,44 @@ export default function Financials({ session = null }) {
               >
                 <div className="space-y-4">
                   <p className="text-sm text-gray-500">
-                    Include only personal and household living costs such as groceries, utilities,
-                    transport, insurance, childcare, and lifestyle expenses.
+                    Enter your total monthly personal, household, and owner-occupied home living costs.
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Include:
+                    <br />
+                    - groceries and household shopping
+                    <br />
+                    - utilities (electricity, gas, water, internet, phone)
+                    <br />
+                    - home insurance
+                    <br />
+                    - health and car insurance
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    - strata / body corporate fees
+                    <br />
+                    - council rates and water charges for your home
+                    <br />
+                    - home maintenance and lawn / garden upkeep
+                    <br />
+                    - transport, childcare, medical, and lifestyle costs
                   </p>
                   <p className="text-sm text-gray-500">
                     Do NOT include:
                     <br />
                     - mortgage repayments
                     <br />
-                    - personal loans or car loans
-                    <br />
                     - credit card repayments
                     <br />
-                    - investment property expenses
+                    - personal loan or car loan repayments
+                    <br />
+                    - expenses related to investment properties
+                    <br />
+                    &nbsp;&nbsp;(for example: rental property insurance, strata, rates, repairs, agent fees, maintenance)
                   </p>
                   <p className="text-sm text-gray-500">
-                    Equifolio accounts for debts and investment property costs separately.
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    Do not include investment property costs here - they are already accounted for
-                    in rental income adjustments.
+                    Investment property income and expenses must be recorded separately in the Cash Flow section.
+                    Debt repayments are accounted for separately in Liabilities and Mortgages.
                   </p>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1058,6 +1076,29 @@ export default function Financials({ session = null }) {
           description="Track personal debts separately from property loans."
         >
           <div className="space-y-4">
+            <div className="space-y-3">
+              <p className="text-sm text-gray-500">
+                Record all personal debts and credit facilities here, including:
+                <br />
+                - credit cards and credit limits
+                <br />
+                - personal loans
+                <br />
+                - car loans
+                <br />
+                - buy-now-pay-later balances
+                <br />
+                - other non-property debts
+              </p>
+              <p className="text-sm text-gray-500">
+                Do NOT include mortgages or investment property loans here —
+                those must be recorded in the Mortgages section.
+              </p>
+              <p className="text-sm text-gray-500">
+                These liabilities directly impact borrowing capacity and serviceability calculations.
+              </p>
+            </div>
+
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
               <TopMetricCard
                 icon={<CreditCard size={16} className="text-[#0F6E56]" />}

@@ -579,15 +579,34 @@ export default function buildDashboardCommandCenter({
 
   const totalValue = properties.reduce((sum, property) => sum + Number(property.current_value || 0), 0)
   const totalDebt = loans.reduce((sum, loan) => sum + Number(loan.current_balance || 0), 0)
-  const netEquity = hasIncompleteLoanCoverage ? null : Math.round(totalValue - totalDebt)
-  const usableEquity =
-    hasIncompleteLoanCoverage ? null : Math.round(Math.max(totalValue * 0.8 - totalDebt, 0))
+  const coveredProperties = properties.filter((property) =>
+    loans.some((loan) => String(loan.property_id) === String(property.id))
+  )
+  const coveredPortfolioValue = coveredProperties.reduce(
+    (sum, property) => sum + Number(property.current_value || 0),
+    0
+  )
+  const coveredPropertyIds = new Set(coveredProperties.map((property) => String(property.id)))
+  const coveredPortfolioDebt = loans.reduce(
+    (sum, loan) =>
+      coveredPropertyIds.has(String(loan.property_id))
+        ? sum + Number(loan.current_balance || 0)
+        : sum,
+    0
+  )
+  const hasCoveredPortfolio = coveredProperties.length > 0 && coveredPortfolioValue > 0
+  const netEquity = hasCoveredPortfolio
+    ? Math.round(coveredPortfolioValue - coveredPortfolioDebt)
+    : null
+  const usableEquity = hasCoveredPortfolio
+    ? Math.round(Math.max(coveredPortfolioValue * 0.8 - coveredPortfolioDebt, 0))
+    : null
   const equityProjectionData =
-    hasIncompleteLoanCoverage || totalValue <= 0 || totalDebt < 0
+    !hasCoveredPortfolio || coveredPortfolioDebt < 0
       ? []
       : generateScenarioProjectionData({
-          purchasePrice: totalValue,
-          loanSize: totalDebt,
+          purchasePrice: coveredPortfolioValue,
+          loanSize: coveredPortfolioDebt,
           interestRatePct: getPortfolioProjectionInterestRate(loans),
           annualGrowthRatePct: getPortfolioProjectionGrowthRatePct(properties),
           loanTermYears: 30,
@@ -978,14 +997,18 @@ export default function buildDashboardCommandCenter({
       value: netEquity,
       subtitle:
         netEquity == null
-          ? 'Add mortgage details for all properties to reveal net portfolio equity.'
+          ? 'Add at least one mortgage to reveal portfolio equity.'
+          : hasIncompleteLoanCoverage
+            ? 'Partial equity view based on properties with recorded mortgage coverage.'
           : 'Assets minus debt across your current portfolio.',
       helper:
         netEquity == null
-          ? 'Mortgage coverage incomplete'
+          ? 'Mortgage coverage missing'
+          : hasIncompleteLoanCoverage
+            ? 'Partial portfolio equity'
           : 'Equity available for optimisation',
       cta:
-        netEquity == null
+        netEquity == null || hasIncompleteLoanCoverage
           ? { label: 'Add Mortgage', route: '/mortgages' }
           : { label: 'Review portfolio', route: '/properties' },
     },
