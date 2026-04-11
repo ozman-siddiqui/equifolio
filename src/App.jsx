@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard'
 import AdminBenchmarks from './pages/AdminBenchmarks'
 import PortfolioGrowthScenariosRebuild from './pages/PortfolioGrowthScenariosRebuild'
 import Pricing from './pages/Pricing'
+import Landing from './pages/Landing'
 import Properties from './pages/Properties'
 import PropertyDetail from './pages/PropertyDetail'
 import CashFlow from './pages/CashFlow'
@@ -298,7 +299,14 @@ export default function App() {
     )
   }
 
-  if (!session) return <Auth />
+  if (!session) {
+    return (
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="*" element={<Auth />} />
+      </Routes>
+    )
+  }
 
   if (!isActive) {
     return <Pricing session={session} existingPlan={null} />
@@ -339,8 +347,9 @@ export default function App() {
   return (
     <Routes>
       <Route path="/welcome" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={session ? <Navigate to="/dashboard" replace /> : <Landing />} />
       <Route
-        path="/"
+        path="/*"
         element={
           <Layout
             session={session}
