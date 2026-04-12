@@ -84,6 +84,18 @@ function getConfidenceBadgeClass(label) {
   return 'rounded-[20px] bg-[#ebebeb] px-[10px] py-[3px] text-[10px] font-medium text-[#333]'
 }
 
+function patchNarrativeLenderName(narrative, lender) {
+  if (!narrative) return narrative
+
+  const safeLender = String(lender || '').trim()
+  if (!safeLender) return narrative
+
+  return String(narrative).replace(
+    /\b(?:Westpac|ANZ|NAB|Commonwealth Bank|CBA|Macquarie|Suncorp|St George|Bankwest)\b/gi,
+    safeLender
+  )
+}
+
 export default function Mortgages({ session = null }) {
   const navigate = useNavigate()
   const { properties, loans, loading, fetchData } = usePortfolioData(session)
@@ -756,6 +768,7 @@ function MortgageAnalysisCard({
     : `${analysis.estimateQualityLabel} | Benchmark: ${
         analysis.benchmarkFallbackUsed ? 'Fallback estimate' : 'Market-sourced'
       }`
+  const safeOpportunityNarrative = patchNarrativeLenderName(opportunity?.narrative, analysis.lender)
   const displayConfidenceLabel = hasLiveOpportunity
     ? opportunityConfidenceLabel
     : analysis.confidenceLabel
@@ -877,7 +890,7 @@ function MortgageAnalysisCard({
           </button>
 
           {showOpportunityDetails ? (
-            <p className="mt-3 text-sm leading-6 text-gray-600">{opportunity.narrative}</p>
+            <p className="mt-3 text-sm leading-6 text-gray-600">{safeOpportunityNarrative}</p>
           ) : null}
 
           <div className="mt-4 flex flex-wrap gap-3">
@@ -957,7 +970,7 @@ function MortgageAnalysisCard({
 
       <section className="mt-5 space-y-2">
         {hasLiveOpportunity ? (
-          <p className="text-sm text-gray-600">{opportunity.narrative}</p>
+          <p className="text-sm text-gray-600">{safeOpportunityNarrative}</p>
         ) : (
           <>
             <p className="text-sm text-gray-600">{analysis.reasons[0] || analysis.summary}</p>

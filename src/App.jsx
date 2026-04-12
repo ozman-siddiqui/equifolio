@@ -346,6 +346,7 @@ export default function App() {
 
   return (
     <Routes>
+      <Route path="/auth" element={<Navigate to="/dashboard" replace />} />
       <Route path="/welcome" element={<Navigate to="/dashboard" replace />} />
       <Route path="/" element={session ? <Navigate to="/dashboard" replace /> : <Landing />} />
       <Route

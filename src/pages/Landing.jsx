@@ -54,6 +54,50 @@ const investorFeatures = [
   'Unlimited properties',
 ]
 
+const pricingPlans = [
+  {
+    id: 'starter',
+    name: 'Starter',
+    price: '$49',
+    interval: '/month AUD',
+    description:
+      'Perfect for investors starting out.',
+    features: starterFeatures,
+    cta: 'Start 14-day free trial',
+    featured: false,
+  },
+  {
+    id: 'investor',
+    name: 'Investor',
+    price: '$99',
+    interval: '/month AUD',
+    description:
+      'For serious investors building wealth.',
+    features: investorFeatures,
+    cta: 'Start 14-day free trial →',
+    featured: true,
+  },
+  {
+    id: 'premium',
+    name: 'Premium',
+    price: '$149',
+    interval: '/month AUD',
+    description:
+      'For high-net-worth investors and SMSFs.',
+    features: [
+      'Everything in Investor',
+      'SMSF compliance flags',
+      'White-label reports',
+      'Multi-portfolio support',
+      'Natural language Q&A',
+      'Weekly AI digest',
+      'Dedicated support',
+    ],
+    cta: 'Start 14-day free trial',
+    featured: false,
+  },
+]
+
 const navLinks = [
   ['Features', '#features'],
   ['How it works', '#how-it-works'],
@@ -96,13 +140,22 @@ function Landing() {
             </a>
           ))}
         </div>
-        <a
-          href="#pricing"
-          className="rounded-lg px-4 py-2 text-sm font-extrabold no-underline md:px-5 md:py-2.5"
-          style={{ background: '#19C37D', color: '#071C17' }}
-        >
-          Start free trial
-        </a>
+        <div className="flex items-center gap-4">
+          <a
+            href="/auth"
+            className="text-sm font-medium no-underline"
+            style={{ color: 'rgba(255,255,255,0.6)' }}
+          >
+            Log in
+          </a>
+          <a
+            href="/auth"
+            className="rounded-lg px-4 py-2 text-sm font-extrabold no-underline md:px-5 md:py-2.5"
+            style={{ background: '#19C37D', color: '#071C17' }}
+          >
+            Start free trial
+          </a>
+        </div>
       </nav>
 
       <section
@@ -128,12 +181,19 @@ function Landing() {
           AI-powered RBA intelligence, live now
         </div>
 
-        <h1 className="mx-auto mb-6 max-w-3xl text-4xl font-extrabold leading-tight tracking-tight text-white md:text-5xl lg:text-6xl">
-          See exactly how your portfolio
-          <br />
-          is performing. And{' '}
+        <h1
+          className="font-extrabold text-white text-center mx-auto mb-6"
+          style={{
+            fontSize: 'clamp(36px, 5vw, 58px)',
+            lineHeight: '1.05',
+            letterSpacing: '-1.5px',
+            maxWidth: '820px'
+          }}
+        >
+          See exactly how your portfolio<br />
+          is performing. And where<br />
           <em style={{ color: '#19C37D', fontStyle: 'normal' }}>
-            where you&apos;re losing money.
+            you&apos;re losing money.
           </em>
         </h1>
 
@@ -144,7 +204,7 @@ function Landing() {
 
         <div className="mb-5 flex flex-col justify-center gap-3 sm:flex-row">
           <a
-            href="#pricing"
+            href="/auth"
             className="rounded-xl px-9 py-4 text-base font-extrabold no-underline"
             style={{ background: '#19C37D', color: '#071C17' }}
           >
@@ -257,9 +317,9 @@ function Landing() {
             </p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               {[
-                ['Your monthly impact', '+$103/mo', '#EF4444'],
+                ['Your monthly impact', '+$257/mo', '#EF4444'],
                 ['Properties monitored', '2 properties', '#FFFFFF'],
-                ['Rate change tracked', '3.9% to 4.0%', '#FFFFFF'],
+                ['Rate change tracked', '4% to 4.25%', '#FFFFFF'],
               ].map(([label, value, color]) => (
                 <div
                   key={label}
@@ -289,24 +349,24 @@ function Landing() {
                 MARKET UPDATE
               </div>
               <h3 className="mb-1 text-lg font-bold text-slate-900">
-                RBA move may increase your repayments by $103 per month
+                RBA move may increase your repayments by $257 per month
               </h3>
-              <p className="mb-4 text-sm text-slate-400">Cash rate moved from 3.9% to 4.0%</p>
+              <p className="mb-4 text-sm text-slate-400">Cash rate moved from 4% to 4.25%</p>
               <p
                 className="border-l-4 pl-4 text-sm italic leading-7 text-slate-700"
                 style={{ borderColor: '#19C37D' }}
               >
-                Your variable loan repayments will increase by approximately $103 per month across
-                both properties, with 19 Barley Street now costing around $3,617 monthly and 54
-                Ingleburn Gardens Drive approximately $4,633 monthly. You should review refinance
-                opportunities immediately. Switching could save you $200 to $400 monthly even
-                after this rate increase.
+                Your monthly repayments will increase by approximately $257 across both properties,
+                with the Ingleburn Gardens Drive loan now costing around $4,680 per month and the
+                Barley Street interest-only loan approximately $3,610 per month. You should
+                immediately review refinancing opportunities for both loans to secure better rates,
+                particularly for the Barley Street property which is paying 5.99% interest-only.
               </p>
               <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
                 {[
-                  ['Monthly impact', '+$103/mo', '#EF4444'],
-                  ['19 Barley St', '$3,617/mo', '#0F172A'],
-                  ['54 Ingleburn', '$4,633/mo', '#0F172A'],
+                  ['Monthly impact', '+$257/mo', '#EF4444'],
+                  ['Barley Street', '$3,610/mo', '#0F172A'],
+                  ['Ingleburn Gardens Drive', '$4,680/mo', '#0F172A'],
                 ].map(([label, value, color]) => (
                   <div key={label} className="rounded-xl px-4 py-3" style={{ background: '#F8FAFC' }}>
                     <div className="mb-1 text-xs font-semibold text-slate-400">{label}</div>
@@ -318,7 +378,7 @@ function Landing() {
               </div>
             </div>
             <img
-              src="/screenshots/rba-intelligence.webp"
+              src="/screenshots/rba-intelligence-updated.webp"
               alt="Vaulta RBA intelligence card showing personalised rate impact by property address"
               loading="lazy"
               className="mt-5 w-full rounded-2xl"
@@ -337,13 +397,6 @@ function Landing() {
             Ranked, dollar-quantified actions from your real portfolio. Every recommendation is
             specific and immediately actionable.
           </p>
-
-          <img
-            src="/screenshots/action-cards.webp"
-            alt="Vaulta ranked action cards showing borrowing unlock and cash flow improvement"
-            loading="lazy"
-            className="mb-5 w-full rounded-2xl"
-          />
 
           <div className="mb-5 grid grid-cols-1 gap-5 md:grid-cols-2">
             <div className="rounded-3xl border-[1.5px] p-7" style={{ borderColor: '#19C37D', background: '#F0FDF8' }}>
@@ -408,7 +461,7 @@ function Landing() {
           </div>
 
           <img
-            src="/screenshots/refinance-card.webp"
+            src="/screenshots/refinance-card-updated.webp"
             alt="Vaulta refinance opportunity showing $3,540 annual saving"
             loading="lazy"
             className="mb-5 w-full rounded-xl"
@@ -595,13 +648,6 @@ function Landing() {
           </p>
         </div>
 
-        <img
-          src="/screenshots/portfolio-cards.webp"
-          alt="Vaulta portfolio command centre showing net equity, monthly surplus, and borrowing capacity"
-          loading="lazy"
-          className="mx-auto mb-5 block w-full max-w-5xl rounded-2xl"
-        />
-
         <div className="mx-auto mb-4 grid max-w-5xl grid-cols-1 gap-4 lg:grid-cols-3">
           <div className="rounded-2xl bg-slate-50 p-6">
             <div className="text-xs font-bold uppercase tracking-widest text-slate-400">NET POSITION</div>
@@ -682,26 +728,6 @@ function Landing() {
         <div className="mx-auto mb-4 grid max-w-5xl grid-cols-1 gap-3 md:grid-cols-2">
           <div
             className="flex flex-col gap-3 rounded-xl border p-5 sm:flex-row sm:items-center sm:justify-between"
-            style={{ background: '#FFFBEB', borderColor: '#FDE68A' }}
-          >
-            <div>
-              <div className="mb-1 text-xs font-bold uppercase tracking-wide" style={{ color: '#D97706' }}>
-                FIXED RATE EXPIRING
-              </div>
-              <div className="text-sm font-bold text-slate-900">
-                Westpac loan at 19 Barley Street expires in 19 days
-              </div>
-              <div className="mt-1 text-xs text-slate-500">
-                Time to decide. Compare refinancing versus reverting to variable.
-              </div>
-            </div>
-            <div className="ml-0 text-3xl font-extrabold sm:ml-4" style={{ color: '#D97706' }}>
-              19d
-            </div>
-          </div>
-
-          <div
-            className="flex flex-col gap-3 rounded-xl border p-5 sm:flex-row sm:items-center sm:justify-between"
             style={{ background: '#F0FDF8', borderColor: '#BBF7D0' }}
           >
             <div>
@@ -728,7 +754,7 @@ function Landing() {
           className="mx-auto mt-0 block w-full max-w-5xl rounded-2xl"
         />
         <img
-          src="/screenshots/fixed-rate-alert.webp"
+          src="/screenshots/fixed-rate-alert-updated.webp"
           alt="Vaulta fixed rate expiry alert strip"
           loading="lazy"
           className="mx-auto mt-3 block w-full max-w-5xl rounded-xl"
@@ -742,84 +768,67 @@ function Landing() {
             Simple, transparent pricing
           </h2>
           <p className="mb-13 text-lg leading-relaxed text-slate-500 md:text-xl">
-            Built for Australian property investors. No lock-in. Cancel anytime.
+            Built for Australian property investors. 14-day free trial on all plans. No lock-in.
+            Cancel anytime.
           </p>
-          <div className="grid grid-cols-1 gap-6 text-left md:grid-cols-2">
-            <div className="rounded-3xl bg-white p-10">
-              <div className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-400">STARTER</div>
-              <div className="flex items-end gap-2">
-                <div className="text-6xl font-extrabold tracking-tight" style={{ color: '#0F172A' }}>
-                  $29
-                </div>
-                <div className="text-2xl font-normal text-slate-400">/mo</div>
-              </div>
-              <p className="mb-7 mt-5 text-sm leading-relaxed text-slate-500">
-                Track your portfolio, understand your borrowing position, and receive personalised
-                RBA alerts.
-              </p>
-              <div className="flex flex-col gap-3.5">
-                {starterFeatures.map((feature) => (
-                  <div key={feature} className="flex items-center gap-3 text-sm text-slate-700">
-                    <span
-                      className="flex h-5 w-5 items-center justify-center rounded-full text-xs font-extrabold"
-                      style={{ background: '#E8F6EF', color: '#19C37D' }}
-                    >
-                      ✓
-                    </span>
-                    {feature}
-                  </div>
-                ))}
-              </div>
-              <a
-                href="#"
-                className="mt-8 block w-full rounded-xl border-2 py-4 text-center text-sm font-extrabold no-underline"
-                style={{ borderColor: '#19C37D', color: '#19C37D' }}
+          <div className="grid grid-cols-1 gap-6 text-left md:grid-cols-2 lg:grid-cols-3">
+            {pricingPlans.map((plan) => (
+              <div
+                key={plan.id}
+                className={`rounded-3xl p-10 ${plan.featured ? 'outline outline-2' : ''}`}
+                style={{
+                  background: plan.featured ? '#FAFFFC' : '#FFFFFF',
+                  outlineColor: plan.featured ? '#19C37D' : 'transparent',
+                }}
               >
-                Start free trial
-              </a>
-            </div>
-
-            <div className="rounded-3xl p-10 outline outline-2" style={{ background: '#FAFFFC', outlineColor: '#19C37D' }}>
-              <div className="mb-3 flex items-start justify-between gap-3">
-                <div className="text-xs font-bold uppercase tracking-wide text-slate-400">INVESTOR</div>
-                <div
-                  className="rounded-full px-3.5 py-1.5 text-xs font-extrabold"
-                  style={{ background: '#19C37D', color: '#071C17' }}
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                    {plan.name.toUpperCase()}
+                  </div>
+                  {plan.featured ? (
+                    <div
+                      className="rounded-full px-3.5 py-1.5 text-xs font-extrabold"
+                      style={{ background: '#19C37D', color: '#071C17' }}
+                    >
+                      Most popular
+                    </div>
+                  ) : null}
+                </div>
+                <div className="flex items-end gap-2">
+                  <div className="text-6xl font-extrabold tracking-tight" style={{ color: '#0F172A' }}>
+                    {plan.price}
+                  </div>
+                  <div className="text-2xl font-normal text-slate-400">{plan.interval}</div>
+                </div>
+                <p className="mb-7 mt-5 text-sm leading-relaxed text-slate-500">{plan.description}</p>
+                <div className="flex flex-col gap-3.5">
+                  {plan.features.map((feature) => (
+                    <div key={feature} className="flex items-center gap-3 text-sm text-slate-700">
+                      <span
+                        className="flex h-5 w-5 items-center justify-center rounded-full text-xs font-extrabold"
+                        style={{ background: '#E8F6EF', color: '#19C37D' }}
+                      >
+                        ✓
+                      </span>
+                      {feature}
+                    </div>
+                  ))}
+                </div>
+                <a
+                  href={`/auth?plan=${plan.id}`}
+                  className={`mt-8 block w-full rounded-xl py-4 text-center text-sm font-extrabold no-underline ${
+                    plan.featured ? '' : 'border-2'
+                  }`}
+                  style={{
+                    background: plan.featured ? '#19C37D' : 'transparent',
+                    color: plan.featured ? '#071C17' : '#19C37D',
+                    borderColor: plan.featured ? 'transparent' : '#19C37D',
+                  }}
                 >
-                  Most popular
-                </div>
+                  {plan.cta}
+                </a>
               </div>
-              <div className="flex items-end gap-2">
-                <div className="text-6xl font-extrabold tracking-tight" style={{ color: '#0F172A' }}>
-                  $49
-                </div>
-                <div className="text-2xl font-normal text-slate-400">/mo</div>
-              </div>
-              <p className="mb-7 mt-5 text-sm leading-relaxed text-slate-500">
-                Full acquisition feasibility, 30-year wealth projection, AI-powered narratives,
-                and automated refinancing intelligence.
-              </p>
-              <div className="flex flex-col gap-3.5">
-                {investorFeatures.map((feature) => (
-                  <div key={feature} className="flex items-center gap-3 text-sm text-slate-700">
-                    <span
-                      className="flex h-5 w-5 items-center justify-center rounded-full text-xs font-extrabold"
-                      style={{ background: '#E8F6EF', color: '#19C37D' }}
-                    >
-                      ✓
-                    </span>
-                    {feature}
-                  </div>
-                ))}
-              </div>
-              <a
-                href="#"
-                className="mt-8 block w-full rounded-xl py-4 text-center text-sm font-extrabold no-underline"
-                style={{ background: '#19C37D', color: '#071C17' }}
-              >
-                Start free trial →
-              </a>
-            </div>
+            ))}
           </div>
         </div>
       </section>
