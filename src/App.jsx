@@ -9,6 +9,10 @@ import AdminBenchmarks from './pages/AdminBenchmarks'
 import PortfolioGrowthScenariosRebuild from './pages/PortfolioGrowthScenariosRebuild'
 import Pricing from './pages/Pricing'
 import Landing from './pages/Landing'
+import HowItWorks from './pages/HowItWorks'
+import PrivacyPolicy from './pages/PrivacyPolicy'
+import Terms from './pages/Terms'
+import Contact from './pages/Contact'
 import Properties from './pages/Properties'
 import PropertyDetail from './pages/PropertyDetail'
 import CashFlow from './pages/CashFlow'
@@ -306,6 +310,10 @@ export default function App() {
     return (
       <Routes>
         <Route path="/" element={<Landing />} />
+        <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/contact" element={<Contact />} />
         <Route path="*" element={<Auth />} />
       </Routes>
     )
@@ -352,6 +360,10 @@ export default function App() {
       <Route path="/auth" element={<Navigate to="/dashboard" replace />} />
       <Route path="/welcome" element={<Navigate to="/dashboard" replace />} />
       <Route path="/" element={session ? <Navigate to="/dashboard" replace /> : <Landing />} />
+      <Route path="/how-it-works" element={<HowItWorks />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/terms" element={<Terms />} />
+      <Route path="/contact" element={<Contact />} />
       <Route
         path="/*"
         element={

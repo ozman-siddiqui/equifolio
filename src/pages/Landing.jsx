@@ -100,7 +100,7 @@ const pricingPlans = [
 
 const navLinks = [
   ['Features', '#features'],
-  ['How it works', '#how-it-works'],
+  ['How it works', '/how-it-works'],
   ['Pricing', '#pricing'],
 ]
 
@@ -969,7 +969,33 @@ function Landing() {
                   {links.map((link) => (
                     <a
                       key={link}
-                      href="#"
+                      href={
+                        link === 'How it works'
+                          ? '/how-it-works'
+                          : link === 'Features'
+                            ? '#features'
+                            : link === 'Pricing'
+                              ? '#pricing'
+                              : link === 'FAQ'
+                                ? '#faq'
+                                : link === 'Start free trial'
+                                  ? '/auth'
+                                  : link === 'Privacy Policy'
+                                    ? '/privacy'
+                                    : link === 'Terms of Use'
+                                      ? '/terms'
+                                      : link === 'Disclaimer'
+                                        ? '/terms'
+                                        : link === 'Cookie Policy'
+                                          ? '/privacy'
+                                          : link === 'Contact us'
+                                            ? '/contact'
+                                            : link === 'support@vaulta.com.au'
+                                              ? 'mailto:support@vaulta.com.au'
+                                              : link === 'Report an issue'
+                                                ? '/contact'
+                                                : '#'
+                      }
                       className="text-sm no-underline"
                       style={{ color: 'rgba(255,255,255,0.45)' }}
                     >
@@ -991,7 +1017,12 @@ function Landing() {
             </div>
             <div className="flex gap-5">
               {['Privacy', 'Terms', 'Disclaimer'].map((link) => (
-                <a key={link} href="#" className="no-underline" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                <a
+                  key={link}
+                  href={link === 'Privacy' ? '/privacy' : '/terms'}
+                  className="no-underline"
+                  style={{ color: 'rgba(255,255,255,0.2)' }}
+                >
                   {link}
                 </a>
               ))}

@@ -132,7 +132,13 @@ function formatCurrency(amount) {
 }
 
 export default function Financials({ session = null }) {
-  const { financialProfile, loading, error, fetchFinancialData } = useFinancialData()
+  const {
+    financialProfile,
+    loading,
+    error,
+    fetchFinancialData,
+    refreshFinancialData,
+  } = useFinancialData()
   const { fetchData: fetchPortfolioData } = usePortfolioData(session)
 
   const [profileForm, setProfileForm] = useState(defaultProfileForm)
@@ -641,8 +647,8 @@ export default function Financials({ session = null }) {
       return
     }
 
-    await fetchFinancialData({ force: true })
-    console.log('[Financials] shared store after fetchFinancialData', {
+    await refreshFinancialData()
+    console.log('[Financials] shared store after refreshFinancialData', {
       financialProfile: useFinancialDataStore.getState().financialProfile,
       liabilities: useFinancialDataStore.getState().liabilities,
     })
