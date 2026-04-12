@@ -347,15 +347,15 @@ export default function PropertyDetail() {
         borrowingPowerAnalysis?.assessed_mortgage_commitments_monthly ?? null,
     }
 
-    console.debug('Equifolio property borrowing debug', propertyBorrowingSnapshot)
+    console.debug('Vaulta property borrowing debug', propertyBorrowingSnapshot)
 
     if (typeof window !== 'undefined') {
-      window.__equifolioBorrowingSnapshots = {
-        ...(window.__equifolioBorrowingSnapshots || {}),
+      window.__vaultaBorrowingSnapshots = {
+        ...(window.__vaultaBorrowingSnapshots || {}),
         [`property:${property?.id ?? 'unknown'}`]: propertyBorrowingSnapshot,
       }
 
-      const dashboardSnapshot = window.__equifolioBorrowingSnapshots.dashboard
+      const dashboardSnapshot = window.__vaultaBorrowingSnapshots.dashboard
       if (
         dashboardSnapshot &&
         (dashboardSnapshot.borrowingCapacity !== propertyBorrowingSnapshot.borrowingCapacity ||

@@ -89,7 +89,7 @@ export const useGrowthScenariosUiStore = create(
       reset: () => set(DEFAULT_STATE),
     }),
     {
-      name: 'equifolio-growth-scenarios-ui',
+      name: 'vaulta-growth-scenarios-ui',
       storage: createJSONStorage(() => localStorage),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true)

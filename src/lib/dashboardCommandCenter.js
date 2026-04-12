@@ -544,7 +544,7 @@ function buildSetupAction({ id, title, impact, route, priority }) {
     effort: 'Low',
     confidence: 'High',
     problem: 'Key data is still missing from the decision layer.',
-    whyItMatters: 'Without it, Equifolio cannot show a lender-grade or portfolio-grade recommendation.',
+    whyItMatters: 'Without it, Vaulta cannot show a lender-grade or portfolio-grade recommendation.',
     impactLabel: impact,
     kind: 'setup',
     actionClass: 'INDIRECT',

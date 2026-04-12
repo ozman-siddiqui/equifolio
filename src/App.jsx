@@ -284,8 +284,11 @@ export default function App() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center mx-auto mb-4">
-            <span className="text-white text-sm font-bold">E</span>
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-4"
+            style={{ background: '#19C37D' }}
+          >
+            <span className="text-sm font-bold" style={{ color: '#071C17' }}>V</span>
           </div>
           <div className="text-gray-400 text-sm">Loading...</div>
           <button

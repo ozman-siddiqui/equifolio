@@ -557,10 +557,10 @@ export default function PortfolioGrowthScenarios() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      window.__equifolioScenarioDebug = scenarioDebug
+      window.__vaultaScenarioDebug = scenarioDebug
     }
 
-    console.debug('Equifolio growth capital gap debug', {
+    console.debug('Vaulta growth capital gap debug', {
       rawEquity: scenarioDebug.rawEquity,
       totalPortfolioValue,
       totalPortfolioDebt,
@@ -1994,7 +1994,7 @@ export default function PortfolioGrowthScenarios() {
         eyebrow: 'Growth scenarios',
         title: 'Portfolio Growth Scenarios',
         description:
-          'These scenarios show how current borrowing headroom and deployable equity can be deployed into the next acquisition path using only the data already stored in Equifolio.',
+          'These scenarios show how current borrowing headroom and deployable equity can be deployed into the next acquisition path using only the data already stored in Vaulta.',
         kpis: [
           {
             label: 'Borrowing capacity',
@@ -2124,7 +2124,7 @@ export default function PortfolioGrowthScenarios() {
         description:
           scenarioModel.recommendedStrategy && recommendedScenario
             ? 'Based on your current position, borrowing capacity, and selected assumptions'
-            : 'Current purchase capacity based on the inputs already available in Equifolio.',
+            : 'Current purchase capacity based on the inputs already available in Vaulta.',
         metrics:
           scenarioModel.recommendedStrategy && recommendedScenario
             ? [

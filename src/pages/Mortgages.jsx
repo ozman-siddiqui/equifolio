@@ -109,13 +109,18 @@ export default function Mortgages({ session = null }) {
     navigate('/properties')
   }
   const handleLoanSave = async (options = {}) => {
-    await fetchData({
-      ...options,
-      force: true,
-      userId: session?.user?.id ?? null,
-    })
-    await rerunOpportunityDetection()
-    await refreshOpportunities()
+    setIsSaving(true)
+    try {
+      await fetchData({
+        ...options,
+        force: true,
+        userId: session?.user?.id ?? null,
+      })
+      await rerunOpportunityDetection()
+      await refreshOpportunities()
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const [showAddLoan, setShowAddLoan] = useState(false)
@@ -123,6 +128,7 @@ export default function Mortgages({ session = null }) {
   const [refinancingLoan, setRefinancingLoan] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [loanTypeFilter, setLoanTypeFilter] = useState('all')
+  const [isSaving, setIsSaving] = useState(false)
   const [financialPrompt, setFinancialPrompt] = useState(null)
   const [opportunitiesByLoanId, setOpportunitiesByLoanId] = useState({})
   const [activeOpportunityId, setActiveOpportunityId] = useState(null)
@@ -478,7 +484,7 @@ export default function Mortgages({ session = null }) {
     }
   }
 
-  if (loading) {
+  if (loading || isSaving) {
     return (
       <div className="min-h-screen bg-[var(--color-background-tertiary)] flex items-center justify-center">
         <div className="text-gray-400">Loading mortgages...</div>
@@ -665,9 +671,11 @@ export default function Mortgages({ session = null }) {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-5 p-6 xl:grid-cols-2">
-              {filteredAnalyses.map((analysis) => (
+              {filteredAnalyses
+                .filter((analysis) => analysis?.loanId && analysis?.lender)
+                .map((analysis) => (
                 <MortgageAnalysisCard
-                  key={analysis.loanId || `${analysis.propertyId}-${analysis.lender}`}
+                  key={analysis.loanId}
                   analysis={analysis}
                   opportunity={opportunitiesByLoanId[String(analysis.loanId)] || null}
                   activeOpportunityId={activeOpportunityId}

@@ -25,28 +25,30 @@ export default function ActionCard({
   const accentClasses = featured
     ? {
         article:
-          'border-[0.5px] border-[rgba(29,158,117,0.22)] bg-[linear-gradient(180deg,rgba(240,253,248,0.86),rgba(255,255,255,1))] before:bg-[#1D9E75] hover:border-[rgba(29,158,117,0.36)] hover:before:bg-[#0F6E56]',
-        badge: 'bg-[#d4f0e6] text-[#063d2e]',
-        priority: 'bg-[#d4f0e6] text-[#063d2e]',
+          'border-[1.5px] border-[#19C37D] bg-[#F0FDF8] before:bg-[#19C37D] hover:border-[#19C37D]',
+        badge: 'bg-[#DCEFE5] text-[#085041]',
+        priority: 'bg-[#DCEFE5] text-[#085041] font-semibold',
         chip: 'border border-emerald-200 bg-emerald-50/90 text-emerald-800',
-        chipFill: 'bg-[#d4f0e6] text-[#063d2e]',
+        chipFill: 'bg-[#DCEFE5] text-[#085041] font-bold',
+        explore: 'text-[#19C37D] hover:text-[#0F6E56]',
       }
     : {
         article:
-          'border-[0.5px] border-[rgba(239,159,39,0.24)] bg-[linear-gradient(180deg,rgba(255,251,235,0.78),rgba(255,255,255,1))] before:bg-[#EF9F27] hover:border-[rgba(239,159,39,0.38)] hover:before:bg-[#BA7517]',
-        badge: 'bg-[#fce8ce] text-[#5a3005]',
-        priority: 'bg-[#fce8ce] text-[#5a3005]',
+          'border-[1.5px] border-[#F59E0B] bg-[#FFFBEB] before:bg-[#F59E0B] hover:border-[#F59E0B]',
+        badge: 'bg-[#FEF3C7] text-[#92400E]',
+        priority: 'bg-[#FEF3C7] text-[#92400E] font-semibold',
         chip: 'border border-amber-200 bg-amber-50/90 text-amber-800',
-        chipFill: 'bg-[#fce8ce] text-[#5a3005]',
+        chipFill: 'bg-[#FEF3C7] text-[#92400E] font-bold',
+        explore: 'text-[#D97706] hover:text-[#B45309]',
       }
 
   return (
     <article
-      className={`relative flex min-h-[264px] flex-col overflow-hidden rounded-r-[16px] rounded-l-none p-6 shadow-[0_12px_28px_rgba(15,23,42,0.05)] transition-[transform,border-color,box-shadow] duration-150 ease-out will-change-transform hover:-translate-y-[2px] hover:shadow-[0_4px_16px_rgba(0,0,0,0.07)] before:absolute before:bottom-0 before:left-0 before:top-0 before:w-1 ${accentClasses.article}`}
+      className={`relative flex min-h-[264px] flex-col overflow-hidden rounded-[20px] p-7 shadow-[0_12px_28px_rgba(15,23,42,0.05)] transition-[transform,border-color,box-shadow] duration-150 ease-out will-change-transform hover:-translate-y-[2px] hover:shadow-[0_4px_16px_rgba(0,0,0,0.07)] before:absolute before:bottom-0 before:left-0 before:top-0 before:w-1 ${accentClasses.article}`}
     >
       <div className="relative grid min-h-[32px] grid-cols-[auto,minmax(0,1fr)] items-start gap-4">
         <div
-          className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-[11px] font-semibold ${accentClasses.badge}`}
+          className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-[11px] font-bold ${accentClasses.badge}`}
         >
           #{rank}
         </div>
@@ -59,7 +61,7 @@ export default function ActionCard({
 
       <div className="relative mt-4 flex min-h-[76px] flex-col justify-start">
         <h3
-          className="text-[19px] font-semibold leading-7 tracking-[-0.02em] text-gray-900 break-words"
+          className="text-[16px] font-bold leading-6 tracking-[-0.01em] text-slate-900 break-words"
           style={clamp(2)}
         >
           {title}
@@ -76,7 +78,7 @@ export default function ActionCard({
           </p>
         ) : null}
         <p
-          className={`${rankReason ? 'mt-2' : ''} text-sm leading-6 text-gray-600 break-words`}
+          className={`${rankReason ? 'mt-2' : ''} text-[13px] leading-relaxed text-slate-500 break-words`}
           style={clamp(2)}
         >
           {explanation}
@@ -121,7 +123,7 @@ export default function ActionCard({
         <button
           type="button"
           onClick={onExplore}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-primary-600 transition-colors hover:text-primary-700"
+          className={`inline-flex items-center gap-2 text-sm font-semibold transition-colors ${accentClasses.explore}`}
         >
           Explore
           <ArrowRight size={15} />

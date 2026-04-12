@@ -32,10 +32,13 @@ export default function Auth() {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-primary-600 rounded-2xl mb-4">
-            <span className="text-white text-2xl font-bold">E</span>
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto"
+            style={{ background: '#19C37D' }}
+          >
+            <span className="text-sm font-bold" style={{ color: '#071C17' }}>V</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Equifolio</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Vaulta</h1>
           <p className="text-gray-500 text-sm mt-1">Property Investment Portfolio Intelligence</p>
         </div>
 
@@ -67,7 +70,8 @@ export default function Auth() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:border-transparent"
+                style={{ '--tw-ring-color': '#19C37D' }}
                 placeholder="you@example.com"
               />
             </div>
@@ -81,7 +85,8 @@ export default function Auth() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:border-transparent"
+                style={{ '--tw-ring-color': '#19C37D' }}
                 placeholder="••••••••"
               />
             </div>
@@ -89,7 +94,7 @@ export default function Auth() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[#19C37D] hover:bg-[#15a86a] text-[#071C17] font-medium py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Please wait...' : isLogin ? 'Sign in' : 'Create account'}
             </button>
@@ -98,7 +103,7 @@ export default function Auth() {
           <div className="mt-6 text-center">
             <button
               onClick={() => { setIsLogin(!isLogin); setError(null); setMessage(null) }}
-              className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+              className="text-sm text-[#19C37D] hover:text-[#15a86a] font-medium"
             >
               {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
             </button>

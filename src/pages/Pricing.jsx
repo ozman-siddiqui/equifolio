@@ -131,7 +131,7 @@ export default function Pricing({ session, existingPlan }) {
             <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
               <span className="text-white text-sm font-bold">E</span>
             </div>
-            <span className="font-bold text-gray-900 text-lg">Equifolio</span>
+            <span className="font-bold text-gray-900 text-lg">Vaulta</span>
           </div>
           {session && (
            <button

@@ -99,7 +99,7 @@ export default function BorrowingPowerExplained() {
         <SectionCard
           eyebrow="Borrowing Power"
           title="Borrowing Power Explained"
-          description="See how Equifolio translated your recorded income, living costs, liabilities, and mortgage commitments into a lender-style borrowing view."
+          description="See how Vaulta translated your recorded income, living costs, liabilities, and mortgage commitments into a lender-style borrowing view."
         >
           <p className="mb-4 text-xs text-gray-500">
             Borrowing capacity estimates may differ from lender assessments.

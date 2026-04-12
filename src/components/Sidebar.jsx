@@ -52,12 +52,15 @@ export default function Sidebar({ mobile = false, onNavigate }) {
     <aside className="w-64 xl:w-72 bg-white border-r border-gray-100 min-h-screen">
       <div className="px-6 py-5 border-b border-gray-100">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center shrink-0">
-            <span className="text-white text-sm font-bold">E</span>
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: '#19C37D' }}
+          >
+            <span className="text-sm font-bold" style={{ color: '#071C17' }}>V</span>
           </div>
           <div className="min-w-0">
             <p className="font-semibold text-gray-900 text-lg leading-tight">
-              Equifolio
+              Vaulta
             </p>
             <p className="text-sm text-gray-500 leading-tight">
               Portfolio Intelligence
