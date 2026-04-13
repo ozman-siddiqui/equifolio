@@ -570,7 +570,9 @@ export default function buildDashboardCommandCenter({
   liabilities = [],
 }) {
   const propertiesMissingLoanCoverage = properties.filter(
-    (property) => !loans.some((loan) => String(loan.property_id) === String(property.id))
+    (property) =>
+      property?.is_debt_free !== true &&
+      !loans.some((loan) => String(loan.property_id) === String(property.id))
   )
   const hasIncompleteLoanCoverage = properties.length > 0 && propertiesMissingLoanCoverage.length > 0
   const hasWorkflowLiabilitiesData =
@@ -579,8 +581,10 @@ export default function buildDashboardCommandCenter({
 
   const totalValue = properties.reduce((sum, property) => sum + Number(property.current_value || 0), 0)
   const totalDebt = loans.reduce((sum, loan) => sum + Number(loan.current_balance || 0), 0)
-  const coveredProperties = properties.filter((property) =>
-    loans.some((loan) => String(loan.property_id) === String(property.id))
+  const coveredProperties = properties.filter(
+    (property) =>
+      property?.is_debt_free === true ||
+      loans.some((loan) => String(loan.property_id) === String(property.id))
   )
   const coveredPortfolioValue = coveredProperties.reduce(
     (sum, property) => sum + Number(property.current_value || 0),

@@ -13,6 +13,7 @@ export default function EditPropertyModal({ property, onClose, onSave }) {
     state: property.state || 'NSW',
     property_type: property.property_type || 'House',
     property_use: property.property_use || 'investment',
+    is_debt_free: property.is_debt_free === true,
     purchase_price: property.purchase_price || '',
     current_value: property.current_value || '',
     purchase_date: property.purchase_date || '',
@@ -25,7 +26,8 @@ export default function EditPropertyModal({ property, onClose, onSave }) {
     current_rent_frequency: property.current_rent_frequency || 'weekly',
   })
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
+  const handleFieldChange = (field, value) => setForm((prev) => ({ ...prev, [field]: value }))
+  const handleChange = (e) => handleFieldChange(e.target.name, e.target.value)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -38,6 +40,7 @@ export default function EditPropertyModal({ property, onClose, onSave }) {
       state: form.state,
       property_type: form.property_type,
       property_use: form.property_use,
+      is_debt_free: form.is_debt_free === true,
       purchase_price: Number(form.purchase_price),
       current_value: Number(form.current_value),
       purchase_date: form.purchase_date,
@@ -172,6 +175,32 @@ export default function EditPropertyModal({ property, onClose, onSave }) {
               <input name="current_value" value={form.current_value} onChange={handleChange} required type="number" min="0"
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
             </div>
+          </div>
+
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">
+                Owned outright
+              </p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                This property has no mortgage or outstanding debt
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleFieldChange('is_debt_free', !form.is_debt_free)}
+              className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200"
+              style={{
+                background: form.is_debt_free ? '#19C37D' : '#E2E8F0'
+              }}
+            >
+              <span
+                className="inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200"
+                style={{
+                  transform: form.is_debt_free ? 'translateX(22px)' : 'translateX(2px)'
+                }}
+              />
+            </button>
           </div>
 
           <div>
