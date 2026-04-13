@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 const faqItems = [
   {
@@ -99,7 +99,7 @@ const pricingPlans = [
 ]
 
 const navLinks = [
-  ['Features', '#features'],
+  ['Features', '/features'],
   ['How it works', '/how-it-works'],
   ['Pricing', '#pricing'],
 ]
@@ -118,6 +118,20 @@ function SectionBadge({ children }) {
 function Landing() {
   const [openIndex, setOpenIndex] = useState(null)
   const toggle = (index) => setOpenIndex(openIndex === index ? null : index)
+
+  useEffect(() => {
+    if (window.location.hash === '#faq') {
+      const scrollToFaq = () => {
+        const el = document.getElementById('faq')
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }
+
+      setTimeout(scrollToFaq, 0)
+      setTimeout(scrollToFaq, 300)
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-white" style={{ color: '#0F172A' }}>
@@ -251,6 +265,34 @@ function Landing() {
         </div>
       </section>
 
+      <div
+        className="py-6 px-8 text-center"
+        style={{
+          background: '#0B2B23',
+          borderTop: '1px solid rgba(25,195,125,0.12)',
+          borderBottom: '1px solid rgba(25,195,125,0.12)',
+        }}
+      >
+        <p
+          className="text-sm font-medium tracking-wide max-w-3xl mx-auto mb-2"
+          style={{ color: 'rgba(255,255,255,0.6)' }}
+        >
+          Trusted across growing 2-property portfolios through to complex{' '}
+          <span style={{ color: '#19C37D', fontWeight: '600' }}>8-property</span>
+          {' '}investment books with{' '}
+          <span style={{ color: '#19C37D', fontWeight: '600' }}>$13M+</span>
+          {' '}in assets and{' '}
+          <span style={{ color: '#19C37D', fontWeight: '600' }}>$9M+</span>
+          {' '}in equity.
+        </p>
+        <p
+          className="text-xs tracking-wide"
+          style={{ color: 'rgba(255,255,255,0.35)' }}
+        >
+          Built to scale from first investment property to sophisticated multi-asset portfolios.
+        </p>
+      </div>
+
       <section
         className="flex flex-wrap items-center justify-center gap-4 border-t px-6 py-5 md:px-10 lg:gap-9 lg:px-14"
         style={{ background: '#071C17', borderColor: 'rgba(255,255,255,0.04)' }}
@@ -273,10 +315,10 @@ function Landing() {
       <section className="px-6 py-11 md:px-10 lg:px-14" style={{ background: '#F0FAF5' }}>
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 text-center sm:grid-cols-2 lg:grid-cols-4 lg:gap-16">
           {[
-            ['$3.5m+', 'Portfolio equity tracked', '#0F172A'],
-            ['$7,090', 'Average opportunities identified', '#0F172A'],
-            ['96%', 'Peak acquisition readiness', '#19C37D'],
-            ['30yr', 'Wealth projection horizon', '#0F172A'],
+            ['$13M+', 'Largest portfolio analysed', '#0F172A'],
+            ['8', 'Properties managed in one view', '#0F172A'],
+            ['$9M+', 'Net equity tracked in real time', '#19C37D'],
+            ['$589/mo', 'RBA impact calculated instantly', '#0F172A'],
           ].map(([value, label, color]) => (
             <div key={label}>
               <div className="text-5xl font-extrabold tracking-tight" style={{ color }}>
@@ -287,6 +329,113 @@ function Landing() {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section style={{ background: '#F6FBF8' }} className="py-20 px-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <h2
+              className="text-4xl font-extrabold tracking-tight mb-4"
+              style={{ color: '#0F172A' }}
+            >
+              Make better property decisions with real numbers
+            </h2>
+            <p
+              className="text-xl leading-relaxed max-w-2xl mx-auto"
+              style={{ color: '#475569' }}
+            >
+              Everything you need to understand your current position, your next move, and the
+              risks before you act.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div
+              className="rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1 shadow-[0_8px_30px_rgba(7,28,23,0.06)] hover:shadow-[0_14px_40px_rgba(7,28,23,0.10)]"
+              style={{ background: 'white', border: '1px solid #E8F2EC' }}
+            >
+              <div
+                className="w-10 h-10 rounded-2xl flex items-center justify-center mb-4 text-lg"
+                style={{ background: '#E8F6EF', color: '#085041' }}
+              >
+                ◈
+              </div>
+              <h3 className="text-base font-bold mb-2" style={{ color: '#0F172A' }}>
+                True equity position
+              </h3>
+              <p className="text-sm leading-relaxed mb-5" style={{ color: '#475569' }}>
+                See your real net equity across every property, debt position, and live LVR ratio.
+              </p>
+              <p className="text-xs font-bold" style={{ color: '#19C37D' }}>
+                $576k tracked live
+              </p>
+            </div>
+
+            <div
+              className="rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1 shadow-[0_8px_30px_rgba(7,28,23,0.06)] hover:shadow-[0_14px_40px_rgba(7,28,23,0.10)]"
+              style={{ background: 'white', border: '1px solid #E8F2EC' }}
+            >
+              <div
+                className="w-10 h-10 rounded-2xl flex items-center justify-center mb-4 text-lg"
+                style={{ background: '#E8F6EF', color: '#085041' }}
+              >
+                ⊕
+              </div>
+              <h3 className="text-base font-bold mb-2" style={{ color: '#0F172A' }}>
+                Next acquisition range
+              </h3>
+              <p className="text-sm leading-relaxed mb-5" style={{ color: '#475569' }}>
+                Know what you can realistically buy next using lender-grade serviceability rules.
+              </p>
+              <p className="text-xs font-bold" style={{ color: '#19C37D' }}>
+                $523k to $605k executable
+              </p>
+            </div>
+
+            <div
+              className="rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1 shadow-[0_8px_30px_rgba(7,28,23,0.06)] hover:shadow-[0_14px_40px_rgba(7,28,23,0.10)]"
+              style={{ background: 'white', border: '1px solid #E8F2EC' }}
+            >
+              <div
+                className="w-10 h-10 rounded-2xl flex items-center justify-center mb-4 text-lg"
+                style={{ background: '#E8F6EF', color: '#085041' }}
+              >
+                ◎
+              </div>
+              <h3 className="text-base font-bold mb-2" style={{ color: '#0F172A' }}>
+                Money leak detection
+              </h3>
+              <p className="text-sm leading-relaxed mb-5" style={{ color: '#475569' }}>
+                Spot refinancing gaps, rate risk, and unused credit limit drag before it costs you
+                money.
+              </p>
+              <p className="text-xs font-bold" style={{ color: '#19C37D' }}>
+                $7,090 identified on average
+              </p>
+            </div>
+
+            <div
+              className="rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1 shadow-[0_8px_30px_rgba(7,28,23,0.06)] hover:shadow-[0_14px_40px_rgba(7,28,23,0.10)]"
+              style={{ background: 'white', border: '1px solid #E8F2EC' }}
+            >
+              <div
+                className="w-10 h-10 rounded-2xl flex items-center justify-center mb-4 text-lg"
+                style={{ background: '#E8F6EF', color: '#085041' }}
+              >
+                ◬
+              </div>
+              <h3 className="text-base font-bold mb-2" style={{ color: '#0F172A' }}>
+                Long-term wealth path
+              </h3>
+              <p className="text-sm leading-relaxed mb-5" style={{ color: '#475569' }}>
+                Compare 5, 10, and 30-year outcomes before committing to your next move.
+              </p>
+              <p className="text-xs font-bold" style={{ color: '#19C37D' }}>
+                30-year projection engine
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -312,8 +461,8 @@ function Landing() {
               portfolio
             </h2>
             <p className="mb-7 text-lg leading-relaxed md:text-xl" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              Before the market noise settles, Vaulta calculates the exact dollar impact on each
-              of your loans, property by property. Delivered to your inbox the same day.
+              Before the market noise settles, Vaulta shows the exact dollar impact on each of your
+              loans, property by property, delivered to your inbox the same day.
             </p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               {[
@@ -356,11 +505,10 @@ function Landing() {
                 className="border-l-4 pl-4 text-sm italic leading-7 text-slate-700"
                 style={{ borderColor: '#19C37D' }}
               >
-                Your monthly repayments will increase by approximately $257 across both properties,
-                with the Ingleburn Gardens Drive loan now costing around $4,680 per month and the
-                Barley Street interest-only loan approximately $3,610 per month. You should
-                immediately review refinancing opportunities for both loans to secure better rates,
-                particularly for the Barley Street property which is paying 5.99% interest-only.
+                Your variable loan repayments will increase by approximately $257 per month across
+                both properties, with Ingleburn Gardens Drive now costing around $4,680 monthly and
+                Barley Street approximately $3,610 monthly. Review refinancing opportunities
+                immediately.
               </p>
               <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
                 {[
@@ -413,8 +561,8 @@ function Landing() {
                 Unlock $39,016 in borrowing capacity by reducing credit card limits
               </h3>
               <p className="text-sm leading-relaxed text-slate-500">
-                Even unused limits reduce your borrowing capacity. Lenders shade the full limit
-                into serviceability calculations regardless of actual balance.
+                Even unused limits reduce your borrowing capacity. Lenders count the full limit
+                regardless of actual balance.
               </p>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {['+$39,016 borrowing', '+$300 per month', '+$3,600 per year'].map((chip) => (
@@ -444,7 +592,7 @@ function Landing() {
               </h3>
               <p className="text-sm leading-relaxed text-slate-500">
                 Restoring this monthly cash flow strengthens portfolio resilience and creates
-                surplus to redeploy toward your next acquisition.
+                surplus for your next acquisition.
               </p>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {['+$12,672 per year', '+$1,056 per month'].map((chip) => (
@@ -523,7 +671,7 @@ function Landing() {
               {[
                 ['💡', 'Can I buy now?', 'A clear yes or no, with the exact price range you can safely target today.'],
                 ['💰', 'What deposit do I need?', 'Available capital versus required. See whether you clear the upfront hurdle.'],
-                ['📈', 'What happens after I buy?', 'Cash flow, surplus impact, and 10-year equity trajectory modelled in advance.'],
+                ['📈', 'What happens after I buy?', 'Cash flow, surplus impact, and 10-year equity trajectory modelled before you commit.'],
               ].map(([icon, title, body]) => (
                 <div key={title} className="flex items-start gap-4">
                   <div
@@ -636,7 +784,7 @@ function Landing() {
         </div>
       </section>
 
-      <section className="bg-white px-6 py-20 md:px-10 lg:px-14">
+      <section id="faq" className="bg-white px-6 py-20 md:px-10 lg:px-14 scroll-mt-6">
         <div className="mx-auto mb-11 max-w-5xl text-center">
           <SectionBadge>Portfolio Command Centre</SectionBadge>
           <h2 className="mb-4 mt-5 text-4xl font-extrabold leading-tight tracking-tight md:text-5xl">
@@ -762,7 +910,7 @@ function Landing() {
       </section>
 
       <section id="pricing" className="px-6 py-20 md:px-10 lg:px-14" style={{ background: '#F6FBF8' }}>
-        <div className="mx-auto max-w-3xl text-center">
+        <div className="max-w-7xl mx-auto px-6 text-center">
           <SectionBadge>Pricing</SectionBadge>
           <h2 className="mb-4 mt-5 text-4xl font-extrabold tracking-tight md:text-5xl">
             Simple, transparent pricing
@@ -771,64 +919,192 @@ function Landing() {
             Built for Australian property investors. 14-day free trial on all plans. No lock-in.
             Cancel anytime.
           </p>
-          <div className="grid grid-cols-1 gap-6 text-left md:grid-cols-2 lg:grid-cols-3">
-            {pricingPlans.map((plan) => (
-              <div
-                key={plan.id}
-                className={`rounded-3xl p-10 ${plan.featured ? 'outline outline-2' : ''}`}
-                style={{
-                  background: plan.featured ? '#FAFFFC' : '#FFFFFF',
-                  outlineColor: plan.featured ? '#19C37D' : 'transparent',
-                }}
-              >
-                <div className="mb-3 flex items-start justify-between gap-3">
-                  <div className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                    {plan.name.toUpperCase()}
-                  </div>
-                  {plan.featured ? (
-                    <div
-                      className="rounded-full px-3.5 py-1.5 text-xs font-extrabold"
-                      style={{ background: '#19C37D', color: '#071C17' }}
-                    >
-                      Most popular
-                    </div>
-                  ) : null}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 mt-12">
+            <div
+              className="rounded-3xl p-10 flex flex-col min-w-0"
+              style={{ background: 'white', border: '1px solid #E8F2EC', boxShadow: '0 8px 30px rgba(7,28,23,0.06)' }}
+            >
+              <div className="mb-6">
+                <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#085041' }}>
+                  Starter
+                </p>
+                <div className="flex items-end gap-1 mb-1">
+                  <span className="text-5xl font-extrabold tracking-tight" style={{ color: '#0F172A' }}>
+                    $49
+                  </span>
+                  <span className="text-base mb-2" style={{ color: '#94A3B8' }}>
+                    /mo AUD
+                  </span>
                 </div>
-                <div className="flex items-end gap-2">
-                  <div className="text-6xl font-extrabold tracking-tight" style={{ color: '#0F172A' }}>
-                    {plan.price}
-                  </div>
-                  <div className="text-2xl font-normal text-slate-400">{plan.interval}</div>
-                </div>
-                <p className="mb-7 mt-5 text-sm leading-relaxed text-slate-500">{plan.description}</p>
-                <div className="flex flex-col gap-3.5">
-                  {plan.features.map((feature) => (
-                    <div key={feature} className="flex items-center gap-3 text-sm text-slate-700">
-                      <span
-                        className="flex h-5 w-5 items-center justify-center rounded-full text-xs font-extrabold"
-                        style={{ background: '#E8F6EF', color: '#19C37D' }}
-                      >
-                        ✓
-                      </span>
-                      {feature}
-                    </div>
-                  ))}
-                </div>
-                <a
-                  href={`/auth?plan=${plan.id}`}
-                  className={`mt-8 block w-full rounded-xl py-4 text-center text-sm font-extrabold no-underline ${
-                    plan.featured ? '' : 'border-2'
-                  }`}
-                  style={{
-                    background: plan.featured ? '#19C37D' : 'transparent',
-                    color: plan.featured ? '#071C17' : '#19C37D',
-                    borderColor: plan.featured ? 'transparent' : '#19C37D',
-                  }}
-                >
-                  {plan.cta}
-                </a>
+                <p className="text-sm mt-3" style={{ color: '#475569' }}>
+                  For growing investors building their first portfolio.
+                </p>
               </div>
-            ))}
+
+              <div
+                className="text-sm font-semibold mb-5 py-2 px-3 rounded-xl text-center"
+                style={{ background: '#E8F6EF', color: '#085041' }}
+              >
+                Up to 3 properties
+              </div>
+
+              <ul className="flex flex-col gap-4 mb-10 flex-1">
+                {[
+                  'Full portfolio dashboard',
+                  'Net equity and debt tracking',
+                  'Monthly cash flow and tax modelling',
+                  'Borrowing power estimate',
+                  'Acquisition scenario modelling',
+                  'Refinance opportunity alerts',
+                  'RBA impact notifications',
+                  'Fixed rate expiry alerts',
+                  '30-year wealth projection',
+                  'Stress testing and resilience score',
+                ].map((feature) => (
+                  <li key={feature} className="flex items-start gap-3 text-sm" style={{ color: '#475569' }}>
+                    <span
+                      className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-extrabold"
+                      style={{ background: '#E8F6EF', color: '#19C37D' }}
+                    >
+                      ✓
+                    </span>
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+
+              <a
+                href="/auth"
+                className="w-full rounded-2xl py-4 text-sm font-extrabold text-center no-underline block"
+                style={{ border: '2px solid #19C37D', color: '#19C37D' }}
+              >
+                Start 14-day free trial
+              </a>
+            </div>
+
+            <div
+              className="rounded-3xl p-10 flex flex-col min-w-0 scale-[1.02]"
+              style={{ background: '#FAFFFC', border: '2px solid #19C37D', boxShadow: '0 16px 48px rgba(7,28,23,0.12)' }}
+            >
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#085041' }}>
+                    Investor
+                  </p>
+                  <span
+                    className="text-xs font-extrabold px-3 py-1 rounded-full"
+                    style={{ background: '#19C37D', color: '#071C17' }}
+                  >
+                    Most popular
+                  </span>
+                </div>
+                <div className="flex items-end gap-1 mb-1">
+                  <span className="text-5xl font-extrabold tracking-tight" style={{ color: '#0F172A' }}>
+                    $99
+                  </span>
+                  <span className="text-base mb-2" style={{ color: '#94A3B8' }}>
+                    /mo AUD
+                  </span>
+                </div>
+                <p className="text-sm mt-3" style={{ color: '#475569' }}>
+                  For active portfolio builders managing multiple properties.
+                </p>
+              </div>
+
+              <div
+                className="text-sm font-semibold mb-5 py-2 px-3 rounded-xl text-center"
+                style={{ background: '#E8F6EF', color: '#085041' }}
+              >
+                Up to 10 properties
+              </div>
+
+              <ul className="flex flex-col gap-4 mb-10 flex-1">
+                {[
+                  'Everything in Starter',
+                  'Advanced portfolio scale support',
+                  'Larger multi-property books',
+                  'Higher scenario modelling limits',
+                  'Priority processing for AI analysis',
+                  'Best for active portfolio builders',
+                ].map((feature) => (
+                  <li key={feature} className="flex items-start gap-3 text-sm" style={{ color: '#475569' }}>
+                    <span
+                      className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-extrabold"
+                      style={{ background: '#E8F6EF', color: '#19C37D' }}
+                    >
+                      ✓
+                    </span>
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+
+              <a
+                href="/auth"
+                className="w-full rounded-2xl py-4 text-sm font-extrabold text-center no-underline block"
+                style={{ background: '#19C37D', color: '#071C17' }}
+              >
+                Start 14-day free trial
+              </a>
+            </div>
+
+            <div
+              className="rounded-3xl p-10 flex flex-col min-w-0"
+              style={{ background: 'white', border: '1px solid #E8F2EC', boxShadow: '0 8px 30px rgba(7,28,23,0.06)' }}
+            >
+              <div className="mb-6">
+                <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#085041' }}>
+                  Premium
+                </p>
+                <div className="flex items-end gap-1 mb-1">
+                  <span className="text-5xl font-extrabold tracking-tight" style={{ color: '#0F172A' }}>
+                    $149
+                  </span>
+                  <span className="text-base mb-2" style={{ color: '#94A3B8' }}>
+                    /mo AUD
+                  </span>
+                </div>
+                <p className="text-sm mt-3" style={{ color: '#475569' }}>
+                  For sophisticated investors and SMSFs at scale.
+                </p>
+              </div>
+
+              <div
+                className="text-sm font-semibold mb-5 py-2 px-3 rounded-xl text-center"
+                style={{ background: '#E8F6EF', color: '#085041' }}
+              >
+                Unlimited properties
+              </div>
+
+              <ul className="flex flex-col gap-4 mb-10 flex-1">
+                {[
+                  'Everything in Investor',
+                  'Unlimited portfolio scale',
+                  'Multi-entity and future SMSF ready',
+                  'Concierge onboarding support',
+                  'Priority customer support',
+                  'Premium investor workflows',
+                ].map((feature) => (
+                  <li key={feature} className="flex items-start gap-3 text-sm" style={{ color: '#475569' }}>
+                    <span
+                      className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-extrabold"
+                      style={{ background: '#E8F6EF', color: '#19C37D' }}
+                    >
+                      ✓
+                    </span>
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+
+              <a
+                href="/auth"
+                className="w-full rounded-2xl py-4 text-sm font-extrabold text-center no-underline block"
+                style={{ border: '2px solid #19C37D', color: '#19C37D' }}
+              >
+                Start 14-day free trial
+              </a>
+            </div>
           </div>
         </div>
       </section>
@@ -972,12 +1248,12 @@ function Landing() {
                       href={
                         link === 'How it works'
                           ? '/how-it-works'
-                          : link === 'Features'
-                            ? '#features'
+                              : link === 'Features'
+                                ? '/features'
                             : link === 'Pricing'
                               ? '#pricing'
                               : link === 'FAQ'
-                                ? '#faq'
+                                ? '/#faq'
                                 : link === 'Start free trial'
                                   ? '/auth'
                                   : link === 'Privacy Policy'
@@ -1035,3 +1311,12 @@ function Landing() {
 }
 
 export default Landing
+
+
+
+
+
+
+
+
+

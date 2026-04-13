@@ -10,6 +10,7 @@ import PortfolioGrowthScenariosRebuild from './pages/PortfolioGrowthScenariosReb
 import Pricing from './pages/Pricing'
 import Landing from './pages/Landing'
 import HowItWorks from './pages/HowItWorks'
+import Features from './pages/Features'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import Terms from './pages/Terms'
 import Contact from './pages/Contact'
@@ -103,7 +104,7 @@ export default function App() {
     }
     localStorage.clear()
     sessionStorage.clear()
-    window.location.reload()
+    window.location.href = '/'
   }
 
   const fetchSubscription = (userId) => {
@@ -311,6 +312,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="/features" element={<Features />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/contact" element={<Contact />} />
@@ -361,6 +363,7 @@ export default function App() {
       <Route path="/welcome" element={<Navigate to="/dashboard" replace />} />
       <Route path="/" element={session ? <Navigate to="/dashboard" replace /> : <Landing />} />
       <Route path="/how-it-works" element={<HowItWorks />} />
+      <Route path="/features" element={<Features />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/terms" element={<Terms />} />
       <Route path="/contact" element={<Contact />} />
