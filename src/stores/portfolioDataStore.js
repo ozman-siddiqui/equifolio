@@ -58,7 +58,7 @@ export const usePortfolioDataStore = create((set, get) => ({
     portfolioFetchPromise = Promise.all([
       supabase
         .from('properties')
-        .select('*')
+        .select('*, is_debt_free')
         .eq('user_id', userId)
         .order('created_at', { ascending: false }),
       supabase

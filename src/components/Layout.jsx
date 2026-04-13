@@ -8,8 +8,8 @@ import {
 import { supabase } from '../supabase'
 import Sidebar from './Sidebar'
 
-const LAST_AUTHENTICATED_ROUTE_STORAGE_KEY = 'equifolio:last-authenticated-route'
-const CACHED_ROUTE_SCROLL_STORAGE_KEY = 'equifolio:cached-route-scroll-positions'
+const LAST_AUTHENTICATED_ROUTE_STORAGE_KEY = 'vaulta:last-authenticated-route'
+const CACHED_ROUTE_SCROLL_STORAGE_KEY = 'vaulta:cached-route-scroll-positions'
 
 function getCachedPageKey(pathname) {
   if (pathname === '/') return 'dashboard'
@@ -207,13 +207,16 @@ export default function Layout({ session, onSignOut, cachedPages = {} }) {
       <header className="lg:hidden sticky top-0 z-40 bg-white border-b border-gray-100">
         <div className="px-4 py-3 flex items-center justify-between gap-3">
           <div className="min-w-0 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-primary-600 text-white flex items-center justify-center font-bold text-lg shrink-0">
-              E
+            <div
+              className="w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-lg shrink-0"
+              style={{ background: '#19C37D', color: '#071C17' }}
+            >
+              V
             </div>
 
             <div className="min-w-0">
               <p className="text-xl font-bold text-gray-900 leading-tight">
-                Equifolio
+                Vaulta
               </p>
               <p className="text-sm text-gray-500 leading-tight truncate">
                 Portfolio Intelligence
@@ -251,13 +254,16 @@ export default function Layout({ session, onSignOut, cachedPages = {} }) {
             <div className="absolute inset-y-0 left-0 w-[86vw] max-w-[340px] bg-white shadow-2xl flex flex-col">
               <div className="px-4 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
                 <div className="min-w-0 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-primary-600 text-white flex items-center justify-center font-bold text-lg shrink-0">
-                    E
+                  <div
+                    className="w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-lg shrink-0"
+                    style={{ background: '#19C37D', color: '#071C17' }}
+                  >
+                    V
                   </div>
 
                   <div className="min-w-0">
                     <p className="text-xl font-bold text-gray-900 leading-tight">
-                      Equifolio
+                      Vaulta
                     </p>
                     <p className="text-sm text-gray-500 leading-tight truncate">
                       Portfolio Intelligence

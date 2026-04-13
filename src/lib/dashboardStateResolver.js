@@ -83,9 +83,10 @@ export default function buildDashboardStateResolver({
   const investmentProperties = properties.filter((property) => property?.property_use === 'investment')
   const hasFullMortgageCoverage =
     hasProperties &&
-    hasMortgages &&
-    properties.every((property) =>
-      loans.some((loan) => String(loan?.property_id) === String(property?.id))
+    properties.every(
+      (property) =>
+        property?.is_debt_free === true ||
+        loans.some((loan) => String(loan?.property_id) === String(property?.id))
     )
   const hasFinancials = Boolean(dashboardCompleteness?.financialProfileComplete)
   const hasLiabilities =

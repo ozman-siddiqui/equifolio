@@ -132,7 +132,13 @@ function formatCurrency(amount) {
 }
 
 export default function Financials({ session = null }) {
-  const { financialProfile, loading, error, fetchFinancialData } = useFinancialData()
+  const {
+    financialProfile,
+    loading,
+    error,
+    fetchFinancialData,
+    refreshFinancialData,
+  } = useFinancialData()
   const { fetchData: fetchPortfolioData } = usePortfolioData(session)
 
   const [profileForm, setProfileForm] = useState(defaultProfileForm)
@@ -641,8 +647,8 @@ export default function Financials({ session = null }) {
       return
     }
 
-    await fetchFinancialData({ force: true })
-    console.log('[Financials] shared store after fetchFinancialData', {
+    await refreshFinancialData()
+    console.log('[Financials] shared store after refreshFinancialData', {
       financialProfile: useFinancialDataStore.getState().financialProfile,
       liabilities: useFinancialDataStore.getState().liabilities,
     })
@@ -727,7 +733,7 @@ export default function Financials({ session = null }) {
 
                 <h1 className="text-[28px] font-medium tracking-[-0.3px] text-[var(--color-text-primary)]">Financials</h1>
                 <p className="mt-2 max-w-2xl text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
-                  Add borrower income and living expenses so Equifolio can build a
+                  Add borrower income and living expenses so Vaulta can build a
                   reliable financial profile for future serviceability and borrowing decisions.
                 </p>
               </div>
@@ -774,12 +780,12 @@ export default function Financials({ session = null }) {
             description="This is the only active section in this rollout step."
           >
             <form onSubmit={handleSaveProfile} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                 <Field label="Income ($ / year)">
                   <input
                     type="number"
                     min="0"
-                    step="0.01"
+                    step="1"
                     value={profileForm.employment_income_annual}
                     onChange={(event) =>
                       handleProfileChange('employment_income_annual', event.target.value)
@@ -792,7 +798,7 @@ export default function Financials({ session = null }) {
                   <input
                     type="number"
                     min="0"
-                    step="0.01"
+                    step="1"
                     value={profileForm.partner_income_annual}
                     onChange={(event) =>
                       handleProfileChange('partner_income_annual', event.target.value)
@@ -803,12 +809,13 @@ export default function Financials({ session = null }) {
 
                 <Field
                   label="Other income ($ / year)"
-                  helper="Include non-salary income such as bonuses, dividends, trust distributions, or side income. Do not include rent from investment properties already tracked in Equifolio, so it is not counted twice."
+                  helper="Include non-salary income such as bonuses, dividends, trust distributions, or side income. Do not include rent from investment properties already tracked in Vaulta, so it is not counted twice."
+                  helperClassName="min-h-[50px]"
                 >
                   <input
                     type="number"
                     min="0"
-                    step="0.01"
+                    step="1"
                     value={profileForm.other_income_annual}
                     onChange={(event) =>
                       handleProfileChange('other_income_annual', event.target.value)
@@ -821,11 +828,12 @@ export default function Financials({ session = null }) {
                 <Field
                   label="Cash available for investment ($)"
                   helper="Liquid cash you are willing to deploy toward deposits and acquisition costs."
+                  helperClassName="min-h-[50px]"
                 >
                   <input
                     type="number"
                     min="0"
-                    step="0.01"
+                    step="1"
                     value={profileForm.cash_available_for_investment}
                     onChange={(event) =>
                       handleProfileChange(
@@ -1326,11 +1334,17 @@ function FinancialCard({ title, description, children, className = '', nested = 
   )
 }
 
-function Field({ label, helper = '', children }) {
+function Field({ label, helper = '', helperClassName = '', children }) {
   return (
     <div>
       <p className="mb-2 text-[15px] font-medium text-[var(--color-text-primary)]">{label}</p>
-      {helper ? <p className="mb-2 text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]">{helper}</p> : null}
+      {helper ? (
+        <p
+          className={`mb-2 text-[11px] leading-[1.5] text-[var(--color-text-tertiary)] ${helperClassName}`.trim()}
+        >
+          {helper}
+        </p>
+      ) : null}
       {children}
     </div>
   )

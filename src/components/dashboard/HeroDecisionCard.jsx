@@ -119,31 +119,37 @@ function StatTile({
 
   return (
     <div
-      className={`relative rounded-[1.6rem] border p-4 transition-[transform,box-shadow,border-color] duration-[120ms] ease-out will-change-transform hover:-translate-y-px hover:shadow-[0_2px_10px_rgba(0,0,0,0.04)] md:p-5 ${toneClasses}`}
+      className={`relative flex h-full min-h-[172px] flex-col rounded-[1.6rem] border p-4 transition-[transform,box-shadow,border-color] duration-[120ms] ease-out will-change-transform hover:-translate-y-px hover:shadow-[0_2px_10px_rgba(0,0,0,0.04)] md:min-h-[180px] md:p-5 ${toneClasses}`}
     >
-      <p className="flex items-center text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-        {eyebrow}
-        {tooltip && (
-          <span
-            title={tooltip}
-            style={{ cursor: 'help', marginLeft: 4, opacity: 0.5 }}
-            className="inline-flex h-4 w-4 flex-shrink-0 items-center justify-center text-slate-400"
-            aria-label={`Explain ${eyebrow}`}
-          >
-              <Info size={10} />
-          </span>
-        )}
-      </p>
-      <p className="mt-3 text-[1.8rem] font-semibold tracking-tight text-slate-950">{value}</p>
-      <p className="mt-2 text-sm leading-6 text-slate-600">
-        {Array.isArray(detail)
-          ? detail.map((line) => (
-              <span key={line} className="block">
-                {line}
-              </span>
-            ))
-          : detail}
-      </p>
+      <div className="min-h-[34px]">
+        <p className="flex items-center text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+          {eyebrow}
+          {tooltip && (
+            <span
+              title={tooltip}
+              style={{ cursor: 'help', marginLeft: 4, opacity: 0.5 }}
+              className="inline-flex h-4 w-4 flex-shrink-0 items-center justify-center text-slate-400"
+              aria-label={`Explain ${eyebrow}`}
+            >
+                <Info size={10} />
+            </span>
+          )}
+        </p>
+      </div>
+      <div className="mt-3 flex min-h-[48px] items-start md:min-h-[52px]">
+        <p className="text-[1.8rem] font-semibold tracking-tight text-slate-950">{value}</p>
+      </div>
+      <div className="mt-2 min-h-[48px]">
+        <p className="text-sm leading-6 text-slate-600">
+          {Array.isArray(detail)
+            ? detail.map((line) => (
+                <span key={line} className="block">
+                  {line}
+                </span>
+              ))
+            : detail}
+        </p>
+      </div>
     </div>
   )
 }

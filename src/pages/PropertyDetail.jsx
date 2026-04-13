@@ -104,7 +104,12 @@ export default function PropertyDetail() {
     }
   }, [])
 
-  const handlePortfolioSave = (options) => fetchData(options)
+  const handlePortfolioSave = (options = {}) =>
+    fetchData({
+      ...options,
+      force: true,
+      userId: session?.user?.id ?? null,
+    })
   const handleLoanSave = async (options) => {
     await fetchData(options)
 
@@ -126,7 +131,19 @@ export default function PropertyDetail() {
   const cashFlowSectionRef = useRef(null)
   const mortgageSectionRef = useRef(null)
 
-  const property = properties.find((p) => String(p.id) === String(id))
+  const foundProperty = properties.find(
+    (p) => String(p.id) === String(id)
+  )
+
+  const propertyRef = useRef(null)
+
+  useEffect(() => {
+    if (foundProperty) {
+      propertyRef.current = foundProperty
+    }
+  }, [foundProperty])
+
+  const property = foundProperty ?? propertyRef.current
 
   const propertyLoans = useMemo(() => {
     return loans.filter((l) => String(l.property_id) === String(id))
@@ -347,15 +364,15 @@ export default function PropertyDetail() {
         borrowingPowerAnalysis?.assessed_mortgage_commitments_monthly ?? null,
     }
 
-    console.debug('Equifolio property borrowing debug', propertyBorrowingSnapshot)
+    console.debug('Vaulta property borrowing debug', propertyBorrowingSnapshot)
 
     if (typeof window !== 'undefined') {
-      window.__equifolioBorrowingSnapshots = {
-        ...(window.__equifolioBorrowingSnapshots || {}),
+      window.__vaultaBorrowingSnapshots = {
+        ...(window.__vaultaBorrowingSnapshots || {}),
         [`property:${property?.id ?? 'unknown'}`]: propertyBorrowingSnapshot,
       }
 
-      const dashboardSnapshot = window.__equifolioBorrowingSnapshots.dashboard
+      const dashboardSnapshot = window.__vaultaBorrowingSnapshots.dashboard
       if (
         dashboardSnapshot &&
         (dashboardSnapshot.borrowingCapacity !== propertyBorrowingSnapshot.borrowingCapacity ||
@@ -388,23 +405,31 @@ export default function PropertyDetail() {
     await fetchData({ force: true })
   }
 
-  if (loading) {
+  if (loading && !property) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-400">Loading property...</div>
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: 'var(--color-background-tertiary)' }}
+      >
+        <div className="text-gray-400 text-sm">Loading property...</div>
       </div>
     )
   }
 
   if (!property || !metrics) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="bg-white border border-gray-100 rounded-2xl p-8 text-center max-w-md w-full">
-          <Home className="mx-auto text-gray-300 mb-4" size={28} />
-          <h2 className="text-xl font-semibold text-gray-900">Property not found</h2>
-          <p className="text-sm text-gray-500 mt-2">
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: 'var(--color-background-tertiary)' }}
+      >
+        <div className="text-center">
+          <div className="text-4xl mb-4">🏠</div>
+          <div className="text-base font-semibold text-gray-700 mb-2">
+            Property not found
+          </div>
+          <div className="text-sm text-gray-400">
             This property does not exist or could not be loaded.
-          </p>
+          </div>
         </div>
       </div>
     )

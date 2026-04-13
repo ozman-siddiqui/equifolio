@@ -41,6 +41,17 @@ function getConfidenceBadgeClass(confidenceLevel) {
   return 'bg-[#ebebeb] text-[#333333]'
 }
 
+function patchNarrativeLenderName(narrative, lender) {
+  if (!narrative) return narrative
+
+  const safeLender = String(lender || '').trim() || 'Harbourline Bank'
+
+  return String(narrative).replace(
+    /\b(?:Westpac|ANZ|NAB|Commonwealth Bank|CBA|Macquarie|Suncorp|St George|Bankwest)\b/gi,
+    safeLender
+  )
+}
+
 async function fetchOpportunityRows(userId) {
   const { data, error } = await supabase
     .from('ai_opportunities')
@@ -477,6 +488,13 @@ export default function AIOpportunityCard({ currentUserId, loans = [] }) {
                     monthlySaving !== null
                       ? monthlySaving * 12
                       : Number(opportunity.annual_value_estimate || 0)
+                  const liveLenderName =
+                    loans.find((loan) => String(loan?.id) === String(opportunity.loan_id))?.lender ||
+                    'Harbourline Bank'
+                  const safeOpportunityNarrative = patchNarrativeLenderName(
+                    opportunity.narrative,
+                    liveLenderName
+                  )
 
                   return (
                     <>
@@ -501,7 +519,7 @@ export default function AIOpportunityCard({ currentUserId, loans = [] }) {
                       </div>
 
                       <p className="mt-4 text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
-                        {opportunity.narrative}
+                        {safeOpportunityNarrative}
                       </p>
 
                       <div className="mt-4 flex flex-wrap gap-3">

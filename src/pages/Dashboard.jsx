@@ -1351,13 +1351,12 @@ export default function Dashboard({ session, subscription }) {
                   title="Current monthly surplus"
                   value={
                     effectiveDashboardState.canShowActualMonthlySurplus
-                      ? borrowingPowerAnalysis?.actual_monthly_surplus ??
-                        commandCenter.hero.monthlyPosition.householdSurplus
+                      ? borrowingPowerAnalysis?.actual_monthly_surplus
                       : null
                   }
                   helper={
                     effectiveDashboardState.canShowActualMonthlySurplus
-                      ? 'After-tax household surplus'
+                      ? 'After-tax household income plus investment property operating cash flow'
                       : 'Complete cash flow to unlock'
                   }
                   detailRows={[
@@ -1374,7 +1373,7 @@ export default function Dashboard({ session, subscription }) {
                   ]}
                   subtitle={
                     effectiveDashboardState.canShowActualMonthlySurplus
-                      ? 'Your current household position and portfolio property cash flow are shown separately.'
+                      ? 'This number reflects after-tax household income, investment property operating cash flow, mortgages, liabilities, and living expenses.'
                       : 'Add income, expenses and liabilities to unlock your monthly position.'
                   }
                   cta={{

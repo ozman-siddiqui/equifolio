@@ -8,6 +8,12 @@ import Dashboard from './pages/Dashboard'
 import AdminBenchmarks from './pages/AdminBenchmarks'
 import PortfolioGrowthScenariosRebuild from './pages/PortfolioGrowthScenariosRebuild'
 import Pricing from './pages/Pricing'
+import Landing from './pages/Landing'
+import HowItWorks from './pages/HowItWorks'
+import Features from './pages/Features'
+import PrivacyPolicy from './pages/PrivacyPolicy'
+import Terms from './pages/Terms'
+import Contact from './pages/Contact'
 import Properties from './pages/Properties'
 import PropertyDetail from './pages/PropertyDetail'
 import CashFlow from './pages/CashFlow'
@@ -98,7 +104,7 @@ export default function App() {
     }
     localStorage.clear()
     sessionStorage.clear()
-    window.location.reload()
+    window.location.href = '/'
   }
 
   const fetchSubscription = (userId) => {
@@ -283,8 +289,11 @@ export default function App() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center mx-auto mb-4">
-            <span className="text-white text-sm font-bold">E</span>
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-4"
+            style={{ background: '#19C37D' }}
+          >
+            <span className="text-sm font-bold" style={{ color: '#071C17' }}>V</span>
           </div>
           <div className="text-gray-400 text-sm">Loading...</div>
           <button
@@ -298,7 +307,19 @@ export default function App() {
     )
   }
 
-  if (!session) return <Auth />
+  if (!session) {
+    return (
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="/features" element={<Features />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="*" element={<Auth />} />
+      </Routes>
+    )
+  }
 
   if (!isActive) {
     return <Pricing session={session} existingPlan={null} />
@@ -338,9 +359,16 @@ export default function App() {
 
   return (
     <Routes>
+      <Route path="/auth" element={<Navigate to="/dashboard" replace />} />
       <Route path="/welcome" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={session ? <Navigate to="/dashboard" replace /> : <Landing />} />
+      <Route path="/how-it-works" element={<HowItWorks />} />
+      <Route path="/features" element={<Features />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/terms" element={<Terms />} />
+      <Route path="/contact" element={<Contact />} />
       <Route
-        path="/"
+        path="/*"
         element={
           <Layout
             session={session}

@@ -1,5 +1,5 @@
 export const utilityPrimaryButtonClass =
-  'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap leading-none min-w-fit h-10 px-4 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold shadow-sm shadow-primary-100/80 transition-colors'
+  'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap leading-none min-w-fit h-10 px-4 rounded-xl bg-[#19C37D] hover:bg-[#15a86a] text-[#071C17] text-sm font-semibold shadow-sm shadow-primary-100/80 transition-colors'
 
 export const utilityInlinePrimaryButtonClass =
   'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap leading-none min-w-fit h-9 px-3.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold shadow-sm shadow-primary-100/70 transition-colors'

@@ -31,6 +31,34 @@ function annualToMonthly(amount) {
   return safeAmount / 12
 }
 
+function calculateAustralianResidentAnnualTax(annualIncome) {
+  const taxableIncome = Math.max(0, Number(annualIncome || 0))
+  if (!Number.isFinite(taxableIncome) || taxableIncome <= 0) return 0
+
+  if (taxableIncome <= 18200) return 0
+  if (taxableIncome <= 45000) {
+    return (taxableIncome - 18200) * 0.16
+  }
+  if (taxableIncome <= 135000) {
+    return 4288 + (taxableIncome - 45000) * 0.3
+  }
+  if (taxableIncome <= 190000) {
+    return 31288 + (taxableIncome - 135000) * 0.37
+  }
+
+  return 51638 + (taxableIncome - 190000) * 0.45
+}
+
+function calculateNetAnnualIncomeAfterTax(annualIncome) {
+  const normalizedAnnualIncome = Math.max(0, Number(annualIncome || 0))
+  if (!Number.isFinite(normalizedAnnualIncome) || normalizedAnnualIncome <= 0) return 0
+
+  const annualTax = calculateAustralianResidentAnnualTax(normalizedAnnualIncome)
+  const medicareLevy = normalizedAnnualIncome * 0.02
+
+  return Math.max(0, normalizedAnnualIncome - annualTax - medicareLevy)
+}
+
 function resolvePartnerIncomeAnnual(financialProfile) {
   const explicitPartnerIncome = Number(financialProfile?.partner_income_annual)
   if (Number.isFinite(explicitPartnerIncome) && explicitPartnerIncome >= 0) {
@@ -74,6 +102,20 @@ function transactionToMonthly(amount, frequency) {
     default:
       return safeAmount
   }
+}
+
+function isExcludedDebtExpenseCategory(category) {
+  const normalizedCategory = String(category || '').trim().toLowerCase()
+  return new Set([
+    'mortgage repayment',
+    'mortgage repayments',
+    'loan repayment',
+    'loan repayments',
+    'principal & interest',
+    'principal and interest',
+    'interest only',
+    'interest-only',
+  ]).has(normalizedCategory)
 }
 
 function getProtectedLivingExpenses({
@@ -468,9 +510,31 @@ export function calculateBorrowingPower({
   const usableMonthlyRentalIncome = roundCurrency(
     grossMonthlyRentalIncome * BORROWING_POWER_CONFIG.rentalIncomeShadingFactor
   )
+  const investmentOperatingCashFlowMonthly = roundCurrency(
+    normalizedTransactions.reduce((sum, transaction) => {
+      const monthlyAmount = transactionToMonthly(transaction?.amount, transaction?.frequency)
+
+      if (transaction?.type === 'income') {
+        return sum + monthlyAmount
+      }
+
+      if (
+        transaction?.type === 'expense' &&
+        !isExcludedDebtExpenseCategory(transaction?.category)
+      ) {
+        return sum - monthlyAmount
+      }
+
+      return sum
+    }, 0)
+  )
   const actualMonthlyPropertyExpenses = roundCurrency(
     normalizedTransactions
-      .filter((transaction) => transaction?.type === 'expense')
+      .filter(
+        (transaction) =>
+          transaction?.type === 'expense' &&
+          !isExcludedDebtExpenseCategory(transaction?.category)
+      )
       .reduce(
         (sum, transaction) => sum + transactionToMonthly(transaction?.amount, transaction?.frequency),
         0
@@ -575,9 +639,41 @@ export function calculateBorrowingPower({
   const grossTotalMonthlyIncome = roundCurrency(
     Math.max(0, Number(monthlyHouseholdIncome || 0) + Number(monthlyOtherIncome || 0))
   )
-  const actualAfterTaxIncomeMonthly = roundCurrency(
-    grossTotalMonthlyIncome * runtimeConfig.incomeAdjustmentFactor
+  const primaryEmploymentIncomeAnnual = Number(financialProfile?.employment_income_annual)
+  const primaryOtherIncomeAnnual = Number(financialProfile?.other_income_annual)
+  const partnerTaxableIncomeAnnual = Number.isFinite(annualPartnerIncome) && annualPartnerIncome >= 0
+    ? annualPartnerIncome
+    : 0
+  const primaryTaxableIncomeAnnual =
+    Math.max(Number.isFinite(primaryEmploymentIncomeAnnual) ? primaryEmploymentIncomeAnnual : 0, 0) +
+    Math.max(Number.isFinite(primaryOtherIncomeAnnual) ? primaryOtherIncomeAnnual : 0, 0)
+  const canonicalNetHouseholdIncomeMonthly =
+    Number.isFinite(primaryEmploymentIncomeAnnual) && primaryEmploymentIncomeAnnual >= 0
+      ? roundCurrency(
+          (
+            calculateNetAnnualIncomeAfterTax(primaryTaxableIncomeAnnual) +
+            calculateNetAnnualIncomeAfterTax(partnerTaxableIncomeAnnual)
+          ) / 12
+        )
+      : null
+  const canonicalMortgageRepaymentsMonthly = roundCurrency(
+    normalizedLoans.reduce((sum, loan) => {
+      const repayment = Number(loan?.monthly_repayment)
+      return Number.isFinite(repayment) && repayment >= 0 ? sum + repayment : sum
+    }, 0)
   )
+  const canonicalLiabilityRepaymentsMonthly = roundCurrency(
+    normalizedLiabilities.reduce((sum, liability) => {
+      const repayment = Number(liability?.monthly_repayment)
+      return Number.isFinite(repayment) && repayment >= 0 ? sum + repayment : sum
+    }, 0)
+  )
+  const canonicalLivingExpensesMonthly = Number.isFinite(
+    Number(financialProfile?.living_expenses_monthly)
+  )
+    ? roundCurrency(financialProfile?.living_expenses_monthly)
+    : null
+  const actualAfterTaxIncomeMonthly = canonicalNetHouseholdIncomeMonthly
   const adjustedIncomeAnnual = roundCurrency(
     grossTotalMonthlyIncome * 12 * runtimeConfig.incomeAdjustmentFactor
   )
@@ -608,36 +704,28 @@ export function calculateBorrowingPower({
     )
   )
   const netMonthlySurplus = roundCurrency(totalUsableMonthlyIncome - totalMonthlyExpenses)
-  const actualTotalMonthlyIncome = roundCurrency(
-    actualAfterTaxIncomeMonthly + grossMonthlyRentalIncome
-  )
-  const actualLivingExpensesMonthly =
-    userLivingExpenses == null ? null : roundCurrency(userLivingExpenses)
-  const hasActualIncomeData = grossTotalMonthlyIncome > 0
-  const hasActualLivingExpensesData = actualLivingExpensesMonthly != null
-  const hasActualLiabilityData = liabilitiesProvided && hasLiabilities
-  const hasActualMortgageRepaymentData =
-    hasLoans &&
-    normalizedLoans.every((loan) => {
-      const repayment = Number(loan?.monthly_repayment)
-      return Number.isFinite(repayment) && repayment >= 0
-    })
-  const hasPropertyRentData = normalizedTransactions.some(
-    (transaction) => transaction?.type === 'income'
-  )
-  const hasPropertyExpenseData = normalizedTransactions.some(
-    (transaction) => transaction?.type === 'expense'
-  )
+  const actualTotalMonthlyIncome =
+    canonicalNetHouseholdIncomeMonthly == null
+      ? null
+      : roundCurrency(
+          canonicalNetHouseholdIncomeMonthly + investmentOperatingCashFlowMonthly
+        )
+  const actualLivingExpensesMonthly = canonicalLivingExpensesMonthly
+  const hasActualIncomeData = canonicalNetHouseholdIncomeMonthly != null
+  const hasActualLivingExpensesData = canonicalLivingExpensesMonthly != null
+  const hasActualLiabilityData = true
+  const hasActualMortgageRepaymentData = true
+  const hasPropertyRentData = true
+  const hasPropertyExpenseData = true
   const actualTotalMonthlyOutgoings =
-    actualLivingExpensesMonthly == null
+    canonicalLivingExpensesMonthly == null
       ? null
       : roundCurrency(
           Math.max(
             0,
-            actualLivingExpensesMonthly +
-              actualMonthlyPropertyExpenses +
-              actualTotalLiabilityRepaymentsMonthly +
-              actualMortgageRepaymentsMonthly
+            canonicalMortgageRepaymentsMonthly +
+              canonicalLiabilityRepaymentsMonthly +
+              canonicalLivingExpensesMonthly
           )
         )
   const actualMonthlySurplusReady =
@@ -647,10 +735,17 @@ export function calculateBorrowingPower({
     hasActualMortgageRepaymentData &&
     hasPropertyRentData &&
     hasPropertyExpenseData
-  const actualMonthlySurplus =
-    !actualMonthlySurplusReady || actualLivingExpensesMonthly == null
+  const currentMonthlySurplusCanonical =
+    !actualMonthlySurplusReady || canonicalLivingExpensesMonthly == null
       ? null
-      : roundCurrency(actualTotalMonthlyIncome - actualTotalMonthlyOutgoings)
+      : roundCurrency(
+          canonicalNetHouseholdIncomeMonthly +
+            investmentOperatingCashFlowMonthly -
+            canonicalMortgageRepaymentsMonthly -
+            canonicalLiabilityRepaymentsMonthly -
+            canonicalLivingExpensesMonthly
+        )
+  const actualMonthlySurplus = currentMonthlySurplusCanonical
 
   const annualGrossIncome = roundCurrency(grossTotalMonthlyIncome * 12)
   const debtToIncomeRatio =
@@ -854,10 +949,15 @@ export function calculateBorrowingPower({
     actual_income_monthly: actualTotalMonthlyIncome,
     actual_after_tax_income_monthly: actualAfterTaxIncomeMonthly,
     actual_property_expenses_monthly: actualMonthlyPropertyExpenses,
+    canonical_net_household_income_monthly: canonicalNetHouseholdIncomeMonthly,
+    investment_operating_cash_flow_monthly: investmentOperatingCashFlowMonthly,
+    canonical_mortgage_repayments_monthly: canonicalMortgageRepaymentsMonthly,
+    canonical_liability_repayments_monthly: canonicalLiabilityRepaymentsMonthly,
+    canonical_living_expenses_monthly: canonicalLivingExpensesMonthly,
     adjusted_income_monthly: adjustedMonthlyIncome,
     usable_rental_income_monthly: usableMonthlyRentalIncome,
     actual_liability_repayments_monthly: actualTotalLiabilityRepaymentsMonthly,
-    actual_living_expenses_monthly: actualLivingExpensesMonthly,
+    actual_living_expenses_monthly: canonicalLivingExpensesMonthly,
     actual_total_monthly_outgoings: actualTotalMonthlyOutgoings,
     actual_monthly_surplus: actualMonthlySurplus,
     estimated_card_commitment_monthly: estimatedCreditCardCommitmentsMonthly,
@@ -881,10 +981,12 @@ export function calculateBorrowingPower({
     gross_total_monthly_income: grossTotalMonthlyIncome,
     actual_total_monthly_income: actualTotalMonthlyIncome,
     actual_after_tax_income_monthly: actualAfterTaxIncomeMonthly,
+    canonical_net_household_income_monthly: canonicalNetHouseholdIncomeMonthly,
     adjusted_income_annual: adjustedIncomeAnnual,
     adjusted_monthly_income: adjustedMonthlyIncome,
     gross_monthly_rental_income: grossMonthlyRentalIncome,
     usable_monthly_rental_income: usableMonthlyRentalIncome,
+    investment_operating_cash_flow_monthly: investmentOperatingCashFlowMonthly,
     monthly_household_income: roundCurrency(
       grossMonthlyHouseholdIncome * runtimeConfig.incomeAdjustmentFactor
     ),
@@ -899,10 +1001,13 @@ export function calculateBorrowingPower({
     total_monthly_living_expenses: roundCurrency(assessedLivingExpenses),
     personal_liability_repayments_monthly: actualPersonalLiabilityRepaymentsMonthly,
     actual_total_liability_repayments_monthly: actualTotalLiabilityRepaymentsMonthly,
+    canonical_liability_repayments_monthly: canonicalLiabilityRepaymentsMonthly,
     estimated_credit_card_commitments_monthly: estimatedCreditCardCommitmentsMonthly,
     total_monthly_liability_repayments: totalMonthlyLiabilityRepayments,
     actual_mortgage_repayments_monthly: actualMortgageRepaymentsMonthly,
+    canonical_mortgage_repayments_monthly: canonicalMortgageRepaymentsMonthly,
     actual_property_expenses_monthly: actualMonthlyPropertyExpenses,
+    canonical_living_expenses_monthly: canonicalLivingExpensesMonthly,
     assessed_mortgage_commitments_monthly: assessedMortgageCommitmentsMonthly,
     mortgage_commitments_monthly: totalMonthlyLoanCommitments,
     total_monthly_loan_commitments: totalMonthlyLoanCommitments,
@@ -928,13 +1033,18 @@ export function calculateBorrowingPower({
         gross_annual_income: annualGrossIncome,
         actual_monthly_income: actualTotalMonthlyIncome,
         actual_after_tax_income_monthly: actualAfterTaxIncomeMonthly,
-        actual_living_expenses_monthly: actualLivingExpensesMonthly,
+        canonical_net_household_income_monthly: canonicalNetHouseholdIncomeMonthly,
+        investment_operating_cash_flow_monthly: investmentOperatingCashFlowMonthly,
+        actual_living_expenses_monthly: canonicalLivingExpensesMonthly,
+        canonical_living_expenses_monthly: canonicalLivingExpensesMonthly,
         actual_property_expenses_monthly: actualMonthlyPropertyExpenses,
         actual_liabilities_monthly: actualTotalLiabilityRepaymentsMonthly,
+        canonical_liabilities_monthly: canonicalLiabilityRepaymentsMonthly,
         adjusted_monthly_income: adjustedMonthlyIncome,
         living_expenses_monthly: roundCurrency(assessedLivingExpenses),
         liabilities_monthly: totalMonthlyLiabilityRepayments,
         actual_mortgage_repayments_monthly: actualMortgageRepaymentsMonthly,
+        canonical_mortgage_repayments_monthly: canonicalMortgageRepaymentsMonthly,
         assessed_mortgage_repayments_monthly: assessedMortgageCommitmentsMonthly,
         rental_income_included_monthly: usableMonthlyRentalIncome,
         actual_total_monthly_outgoings: actualTotalMonthlyOutgoings,

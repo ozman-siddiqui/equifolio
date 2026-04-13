@@ -82,7 +82,7 @@ export default function BorrowingPowerCard({
             <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
           </div>
           <p className="mt-2 text-sm text-gray-500">
-            Add your financial layer before Equifolio estimates borrowing capacity.
+            Add your financial layer before Vaulta estimates borrowing capacity.
           </p>
         </div>
 
@@ -95,7 +95,7 @@ export default function BorrowingPowerCard({
               Add your financial profile to calculate borrowing power
             </p>
             <p className="mt-2 text-sm text-gray-600">
-              Add your financial profile before Equifolio estimates borrowing capacity.
+              Add your financial profile before Vaulta estimates borrowing capacity.
             </p>
           </div>
 

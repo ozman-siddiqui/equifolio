@@ -80,6 +80,7 @@ export default function PremiumProjectionChart({
   const chartContainerRef = useRef(null)
   const [chartBounds, setChartBounds] = useState({ width: 0, height })
   const [tooltipPosition, setTooltipPosition] = useState(null)
+  const [hasEnteredViewport, setHasEnteredViewport] = useState(false)
 
   useEffect(() => {
     if (!chartContainerRef.current) return undefined
@@ -101,6 +102,28 @@ export default function PremiumProjectionChart({
       resizeObserver.disconnect()
     }
   }, [height])
+
+  useEffect(() => {
+    if (!chartContainerRef.current || hasEnteredViewport) return undefined
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return
+        setHasEnteredViewport(true)
+        observer.disconnect()
+      },
+      {
+        threshold: 0.55,
+        rootMargin: '0px 0px -18% 0px',
+      }
+    )
+
+    observer.observe(chartContainerRef.current)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [hasEnteredViewport])
 
   const handleMouseMove = (state) => {
     if (!state?.isTooltipActive) return
@@ -266,28 +289,48 @@ export default function PremiumProjectionChart({
               />
             ))}
 
-            {series.map((item) => (
-              <Line
-                key={item.dataKey}
-                type={item.type || 'monotone'}
-                yAxisId={item.yAxisId || 'left'}
-                dataKey={item.dataKey}
-                name={item.label}
-                stroke={item.color}
-                strokeWidth={item.strokeWidth ?? 2.75}
-                strokeDasharray={item.strokeDasharray}
-                dot={item.dot ?? false}
-                activeDot={
-                  item.activeDot ?? {
-                    r: 6,
-                    stroke: '#FFFFFF',
-                    strokeWidth: 2.75,
-                    fill: item.color,
+            {series.map((item) => {
+              const normalizedLabel = String(item.label || '').toLowerCase()
+              const isAcquisitionSeries = normalizedLabel.includes('with acquisition')
+              const isSecondarySeries =
+                Boolean(item.strokeDasharray) || normalizedLabel.includes('without acquisition')
+              const resolvedStrokeWidth = isAcquisitionSeries ? 4 : isSecondarySeries ? 2 : 3
+              const resolvedDot =
+                item.dot === true
+                  ? {
+                      r: isAcquisitionSeries ? 6 : isSecondarySeries ? 5 : 6,
+                      stroke: '#FFFFFF',
+                      strokeWidth: isAcquisitionSeries ? 2.75 : isSecondarySeries ? 2 : 2.5,
+                      fill: item.color,
+                    }
+                  : item.dot ?? false
+
+              return (
+                <Line
+                  key={item.dataKey}
+                  type={item.type || 'monotone'}
+                  yAxisId={item.yAxisId || 'left'}
+                  dataKey={item.dataKey}
+                  name={item.label}
+                  stroke={item.color}
+                  strokeWidth={resolvedStrokeWidth}
+                  strokeDasharray={item.strokeDasharray}
+                  dot={resolvedDot}
+                  isAnimationActive={hasEnteredViewport}
+                  animationDuration={4200}
+                  animationBegin={220}
+                  activeDot={
+                    item.activeDot ?? {
+                      r: isAcquisitionSeries ? 6 : isSecondarySeries ? 5 : 6,
+                      stroke: '#FFFFFF',
+                      strokeWidth: isAcquisitionSeries ? 3 : isSecondarySeries ? 2.25 : 3,
+                      fill: item.color,
+                    }
                   }
-                }
-                connectNulls={item.connectNulls ?? true}
-              />
-            ))}
+                  connectNulls={item.connectNulls ?? true}
+                />
+              )
+            })}
           </LineChart>
         </ResponsiveContainer>
       </div>
