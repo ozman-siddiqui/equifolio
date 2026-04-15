@@ -733,7 +733,7 @@ export default function Financials({ session = null }) {
 
                 <h1 className="text-[28px] font-medium tracking-[-0.3px] text-[var(--color-text-primary)]">Financials</h1>
                 <p className="mt-2 max-w-2xl text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
-                  Add borrower income and living expenses so Vaulta can build a
+                  Add borrower income and living expenses so Nextiq can build a
                   reliable financial profile for future serviceability and borrowing decisions.
                 </p>
               </div>
@@ -809,7 +809,7 @@ export default function Financials({ session = null }) {
 
                 <Field
                   label="Other income ($ / year)"
-                  helper="Include non-salary income such as bonuses, dividends, trust distributions, or side income. Do not include rent from investment properties already tracked in Vaulta, so it is not counted twice."
+                  helper="Include non-salary income such as bonuses, dividends, trust distributions, or side income. Do not include rent from investment properties already tracked in Nextiq, so it is not counted twice."
                   helperClassName="min-h-[50px]"
                 >
                   <input

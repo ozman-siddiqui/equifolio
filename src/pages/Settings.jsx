@@ -20,7 +20,7 @@ import { supabase } from '../supabase'
 import usePortfolioData from '../hooks/usePortfolioData'
 
 const PLAN_LIMITS = { starter: 3, investor: 10, premium: Infinity }
-const SETTINGS_STORAGE_KEY = 'vaulta.settings'
+const SETTINGS_STORAGE_KEY = 'nextiq.settings'
 
 function getInitialSettings() {
   if (typeof window === 'undefined') {
@@ -276,7 +276,7 @@ export default function Settings({ session = null, subscription = null }) {
             <SummaryTile
               label="Signed-in email"
               value={accountEmail}
-              description="This account is currently active in the Vaulta workspace."
+              description="This account is currently active in the Nextiq workspace."
             />
 
             <div className="rounded-2xl border border-gray-100 p-4 bg-gray-50">
@@ -541,7 +541,7 @@ export default function Settings({ session = null, subscription = null }) {
           <SettingsCard
             icon={<Bell size={18} className="text-primary-600" />}
             title="Alerts Preferences"
-            description="Controls that shape how aggressively Vaulta highlights alert activity."
+            description="Controls that shape how aggressively Nextiq highlights alert activity."
           >
             <FieldRow label="Reminder threshold in days">
               <div className="rounded-2xl border border-gray-100 p-4 bg-gray-50">

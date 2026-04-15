@@ -382,7 +382,7 @@ export default function AIOpportunityCard({ currentUserId, loans = [] }) {
             {showValueStrip ? (
               <>
                 <h2 className="mt-4 text-[15px] font-medium text-[var(--color-text-primary)]">
-                  Vaulta has identified {formatCurrency(cumulativeValue)} in potential portfolio
+                  Nextiq has identified {formatCurrency(cumulativeValue)} in potential portfolio
                   improvements
                 </h2>
                 <p className="mt-2 text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
