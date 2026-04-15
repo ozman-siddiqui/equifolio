@@ -5,8 +5,9 @@ export default function Features() {
         className="flex h-[66px] items-center justify-between px-14"
         style={{ backgroundColor: '#071C17' }}
       >
-        <a href="/" className="text-xl font-extrabold no-underline" style={{ color: '#19C37D' }}>
-          Vaulta
+        <a href="/" className="no-underline" style={{ fontSize: '20px', fontWeight: 500, letterSpacing: '-0.5px' }}>
+          <span style={{ color: 'white' }}>next</span>
+          <span style={{ color: '#1D9E75' }}>iq</span>
         </a>
 
         <div className="flex shrink-0 items-center">
@@ -102,7 +103,7 @@ export default function Features() {
               Know what your portfolio actually costs you after tax
             </h2>
             <p className="mx-auto max-w-2xl text-xl leading-relaxed" style={{ color: '#475569' }}>
-              Most investors guess at their real holding cost. Vaulta calculates it — including
+              Most investors guess at their real holding cost. Nextiq calculates it — including
               negative gearing, depreciation, and ownership structure — so the number you see is
               your actual after-tax position.
             </p>
@@ -122,7 +123,7 @@ export default function Features() {
                 Negative gearing and depreciation
               </h3>
               <p className="mb-5 text-sm leading-relaxed" style={{ color: '#475569' }}>
-                Investment properties running at a loss reduce your taxable income. Vaulta models
+                Investment properties running at a loss reduce your taxable income. Nextiq models
                 this using your actual marginal tax rate. Depreciation is modelled separately as a
                 non-cash deduction, improving your ATO benefit without costing you additional cash.
               </p>
@@ -132,7 +133,7 @@ export default function Features() {
               </h3>
               <p className="mb-5 text-sm leading-relaxed" style={{ color: '#475569' }}>
                 A property owned 100% by the higher earner is taxed very differently to one owned
-                50/50. Vaulta applies the correct marginal rate to each owner's share, giving you
+                50/50. Nextiq applies the correct marginal rate to each owner's share, giving you
                 an accurate tax benefit specific to your ownership structure.
               </p>
 
@@ -168,13 +169,13 @@ export default function Features() {
             <div className="flex flex-col gap-4">
               <img
                 src="/screenshots/tax-cashflow.webp"
-                alt="Vaulta tax and cash flow showing pre-tax loss, ATO benefit, and net holding cost"
+                alt="Nextiq tax and cash flow showing pre-tax loss, ATO benefit, and net holding cost"
                 className="w-full rounded-2xl"
                 loading="lazy"
               />
               <img
                 src="/screenshots/tax-settings.webp"
-                alt="Vaulta tax ownership settings showing joint ownership and depreciation input"
+                alt="Nextiq tax ownership settings showing joint ownership and depreciation input"
                 className="w-full rounded-2xl"
                 loading="lazy"
               />
@@ -209,13 +210,13 @@ export default function Features() {
             <div className="flex flex-col gap-4">
               <img
                 src="/screenshots/hero-dashboard.webp"
-                alt="Vaulta acquisition decision showing purchase range and readiness score"
+                alt="Nextiq acquisition decision showing purchase range and readiness score"
                 className="w-full rounded-2xl"
                 loading="eager"
               />
               <img
                 src="/screenshots/execution-readiness.webp"
-                alt="Vaulta execution readiness showing available versus required capital"
+                alt="Nextiq execution readiness showing available versus required capital"
                 className="w-full rounded-2xl"
                 loading="lazy"
               />
@@ -225,7 +226,7 @@ export default function Features() {
                 Lender-grade serviceability
               </h3>
               <p className="mb-5 text-sm leading-relaxed" style={{ color: '#475569' }}>
-                Vaulta applies the APRA standard 3% assessment rate buffer, the same stress test
+                Nextiq applies the APRA standard 3% assessment rate buffer, the same stress test
                 Australian lenders use. Borrowing capacity is calculated from your real income,
                 expenses, existing repayments, credit limits, and liabilities.
               </p>
@@ -243,7 +244,7 @@ export default function Features() {
                 Execution readiness check
               </h3>
               <p className="mb-5 text-sm leading-relaxed" style={{ color: '#475569' }}>
-                Vaulta compares your available capital against the full upfront requirement
+                Nextiq compares your available capital against the full upfront requirement
                 including deposit, stamp duty, and acquisition costs. You see immediately whether
                 you clear the hurdle and by how much.
               </p>
@@ -317,7 +318,7 @@ export default function Features() {
                 Refinancing opportunity detection
               </h3>
               <p className="mb-5 text-sm leading-relaxed" style={{ color: '#475569' }}>
-                Vaulta compares your rates against market benchmarks continuously. When a gap is
+                Nextiq compares your rates against market benchmarks continuously. When a gap is
                 identified it surfaces the monthly saving, annual saving, and break-even period
                 specific to your loan.
               </p>
@@ -335,7 +336,7 @@ export default function Features() {
                 RBA rate decision intelligence
               </h3>
               <p className="mb-5 text-sm leading-relaxed" style={{ color: '#475569' }}>
-                When the Reserve Bank moves rates, Vaulta calculates the exact dollar impact on
+                When the Reserve Bank moves rates, Nextiq calculates the exact dollar impact on
                 each variable loan and delivers a personalised email the same day. Your properties,
                 your balances, your repayments.
               </p>
@@ -345,7 +346,7 @@ export default function Features() {
               </h3>
               <p className="text-sm leading-relaxed" style={{ color: '#475569' }}>
                 Unused credit card limits reduce borrowing capacity under lender rules regardless
-                of actual balance. Vaulta quantifies this drag in dollars and surfaces it as a
+                of actual balance. Nextiq quantifies this drag in dollars and surfaces it as a
                 ranked action when it materially affects your position.
               </p>
 
@@ -373,19 +374,19 @@ export default function Features() {
             <div className="flex flex-col gap-4">
               <img
                 src="/screenshots/refinance-card-updated.webp"
-                alt="Vaulta refinance opportunity card showing monthly and annual saving"
+                alt="Nextiq refinance opportunity card showing monthly and annual saving"
                 className="w-full rounded-2xl"
                 loading="lazy"
               />
               <img
                 src="/screenshots/rba-intelligence-updated.webp"
-                alt="Vaulta RBA intelligence alert showing personalised rate impact"
+                alt="Nextiq RBA intelligence alert showing personalised rate impact"
                 className="w-full rounded-2xl"
                 loading="lazy"
               />
               <img
                 src="/screenshots/fixed-rate-alert-updated.webp"
-                alt="Vaulta fixed rate expiry alert"
+                alt="Nextiq fixed rate expiry alert"
                 className="w-full rounded-2xl"
                 loading="lazy"
               />
@@ -420,13 +421,13 @@ export default function Features() {
             <div className="flex flex-col gap-4">
               <img
                 src="/screenshots/equity-chart.webp"
-                alt="Vaulta 30-year portfolio equity projection chart"
+                alt="Nextiq 30-year portfolio equity projection chart"
                 className="w-full rounded-2xl"
                 loading="lazy"
               />
               <img
                 src="/screenshots/scenario-modelling.webp"
-                alt="Vaulta growth scenario modelling with deposit strategy and growth rate inputs"
+                alt="Nextiq growth scenario modelling with deposit strategy and growth rate inputs"
                 className="w-full rounded-2xl"
                 loading="lazy"
               />
@@ -623,9 +624,11 @@ export default function Features() {
 
       <footer className="px-14 py-8 text-center" style={{ background: '#071C17' }}>
         <p className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>
-          © 2026 Vaulta. All rights reserved.
+          © 2026 Nextiq. All rights reserved.
         </p>
       </footer>
     </div>
   )
 }
+
+

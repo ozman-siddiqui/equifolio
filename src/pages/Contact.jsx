@@ -20,7 +20,7 @@ function ContactCard({ title, body, href }) {
         {body}
       </p>
       <a href={href} className="text-sm font-semibold no-underline" style={{ color: '#19C37D' }}>
-        support@vaulta.com.au
+        support@nextiq.com.au
       </a>
     </div>
   )
@@ -33,8 +33,9 @@ export default function Contact() {
         className="flex h-[66px] items-center justify-between px-6 md:px-10 lg:px-14"
         style={{ background: '#071C17' }}
       >
-        <a href="/" className="text-xl font-extrabold no-underline" style={{ color: '#19C37D' }}>
-          Vaulta
+        <a href="/" className="no-underline" style={{ fontSize: '20px', fontWeight: 500, letterSpacing: '-0.5px' }}>
+          <span style={{ color: 'white' }}>next</span>
+          <span style={{ color: '#1D9E75' }}>iq</span>
         </a>
         <div className="flex items-center">
           <a
@@ -80,27 +81,27 @@ export default function Contact() {
                 General enquiries
               </h2>
               <p className="mb-3 text-sm" style={{ color: '#475569' }}>
-                Questions about Vaulta, your account, or how features work.
+                Questions about Nextiq, your account, or how features work.
               </p>
               <a
-                href="mailto:support@vaulta.com.au"
+                href="mailto:support@nextiq.com.au"
                 className="text-sm font-semibold no-underline"
                 style={{ color: '#19C37D' }}
               >
-                support@vaulta.com.au
+                support@nextiq.com.au
               </a>
             </div>
 
             <ContactCard
               title="Report an issue"
               body="Found a bug or something not working as expected? Let us know."
-              href="mailto:support@vaulta.com.au?subject=Issue%20report"
+              href="mailto:support@nextiq.com.au?subject=Issue%20report"
             />
 
             <ContactCard
               title="Privacy and data"
               body="Questions about your data, deletion requests, or privacy concerns."
-              href="mailto:support@vaulta.com.au?subject=Privacy%20enquiry"
+              href="mailto:support@nextiq.com.au?subject=Privacy%20enquiry"
             />
 
             <p className="mt-2 text-sm" style={{ color: '#6B7280' }}>
@@ -162,8 +163,10 @@ export default function Contact() {
         className="px-14 py-8 text-center text-xs"
         style={{ background: '#071C17', color: 'rgba(255,255,255,0.2)' }}
       >
-        © 2026 Vaulta. All rights reserved.
+        © 2026 Nextiq. All rights reserved.
       </footer>
     </div>
   )
 }
+
+

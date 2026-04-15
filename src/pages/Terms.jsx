@@ -5,8 +5,9 @@ export default function Terms() {
         className="flex h-[66px] items-center justify-between px-6 md:px-10 lg:px-14"
         style={{ background: '#071C17' }}
       >
-        <a href="/" className="text-xl font-extrabold no-underline" style={{ color: '#19C37D' }}>
-          Vaulta
+        <a href="/" className="no-underline" style={{ fontSize: '20px', fontWeight: 500, letterSpacing: '-0.5px' }}>
+          <span style={{ color: 'white' }}>next</span>
+          <span style={{ color: '#1D9E75' }}>iq</span>
         </a>
         <div className="flex items-center">
           <a
@@ -49,7 +50,7 @@ export default function Terms() {
           1. Acceptance of Terms
         </h2>
         <p className="mb-4 text-sm leading-relaxed" style={{ color: '#475569' }}>
-          By using Vaulta you agree to these terms. If you do not agree, do not use
+          By using Nextiq you agree to these terms. If you do not agree, do not use
           the platform.
         </p>
 
@@ -57,10 +58,10 @@ export default function Terms() {
           2. General Information Only
         </h2>
         <p className="mb-4 text-sm leading-relaxed" style={{ color: '#475569' }}>
-          Vaulta provides general informational insights based on data you enter and
+          Nextiq provides general informational insights based on data you enter and
           indicative market benchmarks. All outputs are illustrative estimates.
-          Nothing on Vaulta constitutes financial, investment, tax, mortgage, or legal
-          advice. Vaulta is not an Australian Financial Services Licence (AFSL)
+          Nothing on Nextiq constitutes financial, investment, tax, mortgage, or legal
+          advice. Nextiq is not an Australian Financial Services Licence (AFSL)
           holder. Always consult a licensed financial adviser, mortgage broker,
           accountant, or solicitor before making any investment or borrowing
           decisions.
@@ -70,9 +71,9 @@ export default function Terms() {
           3. Accuracy of Information
         </h2>
         <p className="mb-4 text-sm leading-relaxed" style={{ color: '#475569' }}>
-          Vaulta calculations are indicative only and will differ from formal lender
+          Nextiq calculations are indicative only and will differ from formal lender
           assessments. Actual borrowing capacity and investment outcomes may vary
-          significantly from Vaulta outputs.
+          significantly from Nextiq outputs.
         </p>
 
         <h2 className="mb-3 mt-8 text-lg font-bold" style={{ color: '#0F172A' }}>
@@ -92,7 +93,7 @@ export default function Terms() {
           5. Subscription and Billing
         </h2>
         <p className="mb-4 text-sm leading-relaxed" style={{ color: '#475569' }}>
-          Vaulta is a monthly subscription. Cancel anytime from Settings.
+          Nextiq is a monthly subscription. Cancel anytime from Settings.
           Cancellation takes effect at the end of your billing period. Refunds are
           not provided for partial periods. Pricing may change with 30 days notice.
         </p>
@@ -101,7 +102,7 @@ export default function Terms() {
           6. Intellectual Property
         </h2>
         <p className="mb-4 text-sm leading-relaxed" style={{ color: '#475569' }}>
-          All content, features, and functionality of Vaulta are owned by Vaulta and
+          All content, features, and functionality of Nextiq are owned by Nextiq and
           protected by applicable intellectual property laws.
         </p>
 
@@ -109,9 +110,9 @@ export default function Terms() {
           7. Limitation of Liability
         </h2>
         <p className="mb-4 text-sm leading-relaxed" style={{ color: '#475569' }}>
-          To the maximum extent permitted by Australian law, Vaulta is not liable for
+          To the maximum extent permitted by Australian law, Nextiq is not liable for
           any loss or damage arising from your use of the platform, including
-          financial losses from decisions made using Vaulta outputs.
+          financial losses from decisions made using Nextiq outputs.
         </p>
 
         <h2 className="mb-3 mt-8 text-lg font-bold" style={{ color: '#0F172A' }}>
@@ -127,11 +128,11 @@ export default function Terms() {
         <p className="mb-4 text-sm leading-relaxed" style={{ color: '#475569' }}>
           For terms enquiries contact:{' '}
           <a
-            href="mailto:support@vaulta.com.au"
+            href="mailto:support@nextiq.com.au"
             className="no-underline"
             style={{ color: '#19C37D' }}
           >
-            support@vaulta.com.au
+            support@nextiq.com.au
           </a>
         </p>
       </main>
@@ -140,8 +141,10 @@ export default function Terms() {
         className="px-14 py-8 text-center text-xs"
         style={{ background: '#071C17', color: 'rgba(255,255,255,0.2)' }}
       >
-        © 2026 Vaulta. All rights reserved.
+        © 2026 Nextiq. All rights reserved.
       </footer>
     </div>
   )
 }
+
+
