@@ -52,16 +52,11 @@ export default function Sidebar({ mobile = false, onNavigate }) {
     <aside className="w-64 xl:w-72 bg-white border-r border-gray-100 min-h-screen">
       <div className="px-6 py-5 border-b border-gray-100">
         <div className="flex items-center gap-3">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: '#19C37D' }}
-          >
-            <span className="text-sm font-bold" style={{ color: '#071C17' }}>V</span>
-          </div>
           <div className="min-w-0">
-            <p className="font-semibold text-gray-900 text-lg leading-tight">
-              Vaulta
-            </p>
+            <div style={{ fontSize: '18px', fontWeight: 500, letterSpacing: '-0.5px', lineHeight: 1 }}>
+              <span style={{ color: '#0F172A' }}>next</span>
+              <span style={{ color: '#1D9E75' }}>iq</span>
+            </div>
             <p className="text-sm text-gray-500 leading-tight">
               Portfolio Intelligence
             </p>

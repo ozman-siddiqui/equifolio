@@ -14,7 +14,7 @@ const steps = [
     title: 'Add your portfolio numbers',
     background: '#FFFFFF',
     body:
-      'Vaulta does not connect to your bank account. You enter your real numbers directly — giving you full control over what is modelled and ensuring nothing is missed or misread.',
+      'Nextiq does not connect to your bank account. You enter your real numbers directly — giving you full control over what is modelled and ensuring nothing is missed or misread.',
     bullets: [
       'Properties and current market values',
       'Mortgage balances, interest rates, and loan types',
@@ -25,7 +25,7 @@ const steps = [
     screenshots: [
       {
         src: '/screenshots/hero-dashboard.webp',
-        alt: 'Vaulta dashboard showing acquisition readiness and portfolio position',
+        alt: 'Nextiq dashboard showing acquisition readiness and portfolio position',
         loading: 'eager',
       },
     ],
@@ -37,17 +37,17 @@ const steps = [
     title: 'Understand your true financial position',
     background: '#F6FBF8',
     body:
-      'Most investors have no idea what their property actually costs them after tax. Vaulta calculates your after-tax holding cost, tax benefit from negative gearing, and the real impact of depreciation on your position — adjusted for your specific ownership structure.',
+      'Most investors have no idea what their property actually costs them after tax. Nextiq calculates your after-tax holding cost, tax benefit from negative gearing, and the real impact of depreciation on your position — adjusted for your specific ownership structure.',
     sections: [
       {
         heading: 'Tax modelling that reflects your reality',
         body:
-          "Whether you own individually or jointly, Vaulta applies the correct tax bracket to each owner's share of the investment. A property owned jointly 50/50 is taxed differently than one owned 100% by the higher-income earner — and that difference matters significantly for your real holding cost.",
+          "Whether you own individually or jointly, Nextiq applies the correct tax bracket to each owner's share of the investment. A property owned jointly 50/50 is taxed differently than one owned 100% by the higher-income earner — and that difference matters significantly for your real holding cost.",
       },
       {
         heading: 'Depreciation — the often-missed tax advantage',
         body:
-          'Vaulta lets you include non-cash depreciation in your tax calculation. Depreciation reduces your taxable income without costing you cash, improving your ATO benefit and lowering your true net monthly holding cost. Most investors either forget this or guess at the number.',
+          'Nextiq lets you include non-cash depreciation in your tax calculation. Depreciation reduces your taxable income without costing you cash, improving your ATO benefit and lowering your true net monthly holding cost. Most investors either forget this or guess at the number.',
       },
     ],
     bullets: [
@@ -60,12 +60,12 @@ const steps = [
     screenshots: [
       {
         src: '/screenshots/tax-cashflow.webp',
-        alt: 'Vaulta tax and cash flow showing pre-tax loss, ATO benefit, and net holding cost',
+        alt: 'Nextiq tax and cash flow showing pre-tax loss, ATO benefit, and net holding cost',
         loading: 'lazy',
       },
       {
         src: '/screenshots/tax-settings.webp',
-        alt: 'Vaulta tax ownership settings showing joint ownership split and depreciation',
+        alt: 'Nextiq tax ownership settings showing joint ownership split and depreciation',
         loading: 'lazy',
       },
     ],
@@ -77,7 +77,7 @@ const steps = [
     title: 'Know your breaking point before markets move',
     background: '#FFFFFF',
     body:
-      'Rising interest rates compress borrowing power and monthly surplus faster than most investors realise. Vaulta models your portfolio across multiple rate scenarios so you understand your risk exposure before a lender assessment makes it real.',
+      'Rising interest rates compress borrowing power and monthly surplus faster than most investors realise. Nextiq models your portfolio across multiple rate scenarios so you understand your risk exposure before a lender assessment makes it real.',
     sections: [
       {
         heading: 'Rate sensitivity analysis',
@@ -104,7 +104,7 @@ const steps = [
     screenshots: [
       {
         src: '/screenshots/execution-readiness.webp',
-        alt: 'Vaulta execution readiness showing available versus required capital',
+        alt: 'Nextiq execution readiness showing available versus required capital',
         loading: 'lazy',
       },
     ],
@@ -116,22 +116,22 @@ const steps = [
     title: 'Receive proactive intelligence before it matters',
     background: '#F6FBF8',
     body:
-      'Vaulta does not wait for you to log in and check. It monitors your portfolio continuously and sends personalised alerts when something requires your attention — before it impacts your cash flow or borrowing position.',
+      'Nextiq does not wait for you to log in and check. It monitors your portfolio continuously and sends personalised alerts when something requires your attention — before it impacts your cash flow or borrowing position.',
     sections: [
       {
         heading: 'RBA rate decision alerts',
         body:
-          'When the Reserve Bank of Australia moves the cash rate, Vaulta calculates the exact dollar impact on each of your variable loans and delivers a personalised email the same day. Not generic market commentary. Your numbers, your properties, your repayments.',
+          'When the Reserve Bank of Australia moves the cash rate, Nextiq calculates the exact dollar impact on each of your variable loans and delivers a personalised email the same day. Not generic market commentary. Your numbers, your properties, your repayments.',
       },
       {
         heading: 'Fixed rate expiry campaign',
         body:
-          'Vaulta tracks every fixed rate loan in your portfolio and triggers a multi-touchpoint email campaign starting 45 days before expiry. You receive reminders at 45, 30, and 14 days — giving you time to compare refinancing options before the rate automatically reverts.',
+          'Nextiq tracks every fixed rate loan in your portfolio and triggers a multi-touchpoint email campaign starting 45 days before expiry. You receive reminders at 45, 30, and 14 days — giving you time to compare refinancing options before the rate automatically reverts.',
       },
       {
         heading: 'Refinancing opportunity detection',
         body:
-          'Vaulta continuously compares your current rates against market benchmarks. When a material gap is identified, it surfaces an opportunity showing estimated monthly saving, annual saving, and break-even period — specific to your loan.',
+          'Nextiq continuously compares your current rates against market benchmarks. When a material gap is identified, it surfaces an opportunity showing estimated monthly saving, annual saving, and break-even period — specific to your loan.',
       },
     ],
     bullets: [
@@ -143,12 +143,12 @@ const steps = [
     screenshots: [
       {
         src: '/screenshots/rba-intelligence-updated.webp',
-        alt: 'Vaulta RBA intelligence alert showing personalised rate impact by property',
+        alt: 'Nextiq RBA intelligence alert showing personalised rate impact by property',
         loading: 'lazy',
       },
       {
         src: '/screenshots/fixed-rate-alert-updated.webp',
-        alt: 'Vaulta fixed rate expiry alert',
+        alt: 'Nextiq fixed rate expiry alert',
         loading: 'lazy',
       },
     ],
@@ -160,7 +160,7 @@ const steps = [
     title: 'Model your next acquisition before you commit',
     background: '#FFFFFF',
     body:
-      'When you are ready to grow your portfolio, Vaulta builds a complete acquisition scenario from your real inputs. It shows your executable price range, required deposit, post-purchase cash flow, and projected equity trajectory — so you can see the full picture before you approach a broker or make an offer.',
+      'When you are ready to grow your portfolio, Nextiq builds a complete acquisition scenario from your real inputs. It shows your executable price range, required deposit, post-purchase cash flow, and projected equity trajectory — so you can see the full picture before you approach a broker or make an offer.',
     sections: [
       {
         heading: 'Scenario modelling with real assumptions',
@@ -170,7 +170,7 @@ const steps = [
       {
         heading: 'Execution readiness check',
         body:
-          'Vaulta compares your available deployable capital against the full upfront requirement — deposit plus stamp duty and acquisition costs. You see immediately whether your current capital clears the hurdle.',
+          'Nextiq compares your available deployable capital against the full upfront requirement — deposit plus stamp duty and acquisition costs. You see immediately whether your current capital clears the hurdle.',
       },
       {
         heading: 'Trade-off comparison',
@@ -189,12 +189,12 @@ const steps = [
     screenshots: [
       {
         src: '/screenshots/hero-dashboard.webp',
-        alt: 'Vaulta acquisition decision showing price range and readiness score',
+        alt: 'Nextiq acquisition decision showing price range and readiness score',
         loading: 'lazy',
       },
       {
         src: '/screenshots/equity-chart.webp',
-        alt: 'Vaulta 30-year portfolio equity projection',
+        alt: 'Nextiq 30-year portfolio equity projection',
         loading: 'lazy',
       },
     ],
@@ -269,8 +269,9 @@ export default function HowItWorks() {
         className="flex h-[66px] items-center justify-between px-6 md:px-10 lg:px-14"
         style={{ background: '#071C17' }}
       >
-        <a href="/" className="text-xl font-extrabold no-underline" style={{ color: '#19C37D' }}>
-          Vaulta
+        <a href="/" className="no-underline" style={{ fontSize: '20px', fontWeight: 500, letterSpacing: '-0.5px' }}>
+          <span style={{ color: 'white' }}>next</span>
+          <span style={{ color: '#1D9E75' }}>iq</span>
         </a>
         <div className="flex items-center">
           <a
@@ -313,7 +314,7 @@ export default function HowItWorks() {
             color: '#19C37D',
           }}
         >
-          How Vaulta works
+          How Nextiq works
         </div>
         <h1 className="mx-auto mb-5 max-w-2xl text-4xl font-extrabold leading-tight tracking-tight text-white md:text-5xl">
           From portfolio setup to
@@ -321,7 +322,7 @@ export default function HowItWorks() {
           confident decisions
         </h1>
         <p className="mx-auto mb-10 max-w-xl text-lg leading-relaxed md:text-xl" style={{ color: 'rgba(255,255,255,0.5)' }}>
-          Vaulta turns your property data into a decision-grade financial model in minutes. No
+          Nextiq turns your property data into a decision-grade financial model in minutes. No
           bank connections. No spreadsheets. No guesswork.
         </p>
         <div className="flex flex-wrap justify-center gap-3">
@@ -395,8 +396,10 @@ export default function HowItWorks() {
       </section>
 
       <footer className="px-14 py-8 text-center text-xs" style={{ background: '#071C17', color: 'rgba(255,255,255,0.2)' }}>
-        © 2026 Vaulta. All rights reserved.
+        © 2026 Nextiq. All rights reserved.
       </footer>
     </div>
   )
 }
+
+

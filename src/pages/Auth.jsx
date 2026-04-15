@@ -32,14 +32,11 @@ export default function Auth() {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto"
-            style={{ background: '#19C37D' }}
-          >
-            <span className="text-sm font-bold" style={{ color: '#071C17' }}>V</span>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">Vaulta</h1>
-          <p className="text-gray-500 text-sm mt-1">Property Investment Portfolio Intelligence</p>
+          <h1 style={{ fontSize: '32px', fontWeight: 500, letterSpacing: '-1px', marginBottom: '4px' }}>
+            <span style={{ color: '#0F172A' }}>next</span>
+            <span style={{ color: '#1D9E75' }}>iq</span>
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">Property intelligence for serious investors</p>
         </div>
 
         {/* Card */}

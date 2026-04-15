@@ -5,8 +5,9 @@ export default function PrivacyPolicy() {
         className="flex h-[66px] items-center justify-between px-6 md:px-10 lg:px-14"
         style={{ background: '#071C17' }}
       >
-        <a href="/" className="text-xl font-extrabold no-underline" style={{ color: '#19C37D' }}>
-          Vaulta
+        <a href="/" className="no-underline" style={{ fontSize: '20px', fontWeight: 500, letterSpacing: '-0.5px' }}>
+          <span style={{ color: 'white' }}>next</span>
+          <span style={{ color: '#1D9E75' }}>iq</span>
         </a>
         <div className="flex items-center">
           <a
@@ -45,7 +46,7 @@ export default function PrivacyPolicy() {
           Privacy Policy
         </h1>
         <p className="mb-4 text-sm leading-relaxed" style={{ color: '#475569' }}>
-          Vaulta is committed to protecting your privacy. This policy explains what
+          Nextiq is committed to protecting your privacy. This policy explains what
           information we collect, how we use it, and how we keep it safe.
         </p>
 
@@ -85,7 +86,7 @@ export default function PrivacyPolicy() {
           <br />
           - Send fixed rate expiry alerts and relevant updates
           <br />
-          - Improve and maintain the Vaulta platform
+          - Improve and maintain the Nextiq platform
         </p>
         <p className="mb-4 text-sm leading-relaxed" style={{ color: '#475569' }}>
           We do not sell your personal information. We do not use your data for
@@ -106,7 +107,7 @@ export default function PrivacyPolicy() {
           4. Third Party Services
         </h2>
         <p className="mb-4 text-sm leading-relaxed" style={{ color: '#475569' }}>
-          Vaulta uses these third party services:
+          Nextiq uses these third party services:
         </p>
         <p className="mb-4 text-sm leading-relaxed" style={{ color: '#475569' }}>
           - Supabase — database and authentication
@@ -129,11 +130,11 @@ export default function PrivacyPolicy() {
           You have the right to access, correct, or delete your personal information.
           To exercise these rights, contact us at{' '}
           <a
-            href="mailto:support@vaulta.com.au"
+            href="mailto:support@nextiq.com.au"
             className="no-underline"
             style={{ color: '#19C37D' }}
           >
-            support@vaulta.com.au
+            support@nextiq.com.au
           </a>
           .
         </p>
@@ -142,7 +143,7 @@ export default function PrivacyPolicy() {
           6. Cookies
         </h2>
         <p className="mb-4 text-sm leading-relaxed" style={{ color: '#475569' }}>
-          Vaulta uses essential session cookies for authentication only. We do not
+          Nextiq uses essential session cookies for authentication only. We do not
           use tracking or advertising cookies.
         </p>
 
@@ -151,7 +152,7 @@ export default function PrivacyPolicy() {
         </h2>
         <p className="mb-4 text-sm leading-relaxed" style={{ color: '#475569' }}>
           We may update this policy from time to time. We will notify you of
-          significant changes by email. Continued use of Vaulta after changes
+          significant changes by email. Continued use of Nextiq after changes
           constitutes acceptance of the updated policy.
         </p>
 
@@ -161,11 +162,11 @@ export default function PrivacyPolicy() {
         <p className="mb-4 text-sm leading-relaxed" style={{ color: '#475569' }}>
           For privacy enquiries contact:{' '}
           <a
-            href="mailto:support@vaulta.com.au"
+            href="mailto:support@nextiq.com.au"
             className="no-underline"
             style={{ color: '#19C37D' }}
           >
-            support@vaulta.com.au
+            support@nextiq.com.au
           </a>
         </p>
       </main>
@@ -174,8 +175,10 @@ export default function PrivacyPolicy() {
         className="px-14 py-8 text-center text-xs"
         style={{ background: '#071C17', color: 'rgba(255,255,255,0.2)' }}
       >
-        © 2026 Vaulta. All rights reserved.
+        © 2026 Nextiq. All rights reserved.
       </footer>
     </div>
   )
 }
+
+

@@ -8,8 +8,8 @@ import {
 import { supabase } from '../supabase'
 import Sidebar from './Sidebar'
 
-const LAST_AUTHENTICATED_ROUTE_STORAGE_KEY = 'vaulta:last-authenticated-route'
-const CACHED_ROUTE_SCROLL_STORAGE_KEY = 'vaulta:cached-route-scroll-positions'
+const LAST_AUTHENTICATED_ROUTE_STORAGE_KEY = 'nextiq:last-authenticated-route'
+const CACHED_ROUTE_SCROLL_STORAGE_KEY = 'nextiq:cached-route-scroll-positions'
 
 function getCachedPageKey(pathname) {
   if (pathname === '/') return 'dashboard'
@@ -207,17 +207,11 @@ export default function Layout({ session, onSignOut, cachedPages = {} }) {
       <header className="lg:hidden sticky top-0 z-40 bg-white border-b border-gray-100">
         <div className="px-4 py-3 flex items-center justify-between gap-3">
           <div className="min-w-0 flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-lg shrink-0"
-              style={{ background: '#19C37D', color: '#071C17' }}
-            >
-              V
-            </div>
-
             <div className="min-w-0">
-              <p className="text-xl font-bold text-gray-900 leading-tight">
-                Vaulta
-              </p>
+              <div style={{ fontSize: '18px', fontWeight: 500, letterSpacing: '-0.5px', lineHeight: 1 }}>
+                <span style={{ color: '#0F172A' }}>next</span>
+                <span style={{ color: '#1D9E75' }}>iq</span>
+              </div>
               <p className="text-sm text-gray-500 leading-tight truncate">
                 Portfolio Intelligence
               </p>
@@ -254,17 +248,11 @@ export default function Layout({ session, onSignOut, cachedPages = {} }) {
             <div className="absolute inset-y-0 left-0 w-[86vw] max-w-[340px] bg-white shadow-2xl flex flex-col">
               <div className="px-4 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
                 <div className="min-w-0 flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-lg shrink-0"
-                    style={{ background: '#19C37D', color: '#071C17' }}
-                  >
-                    V
-                  </div>
-
                   <div className="min-w-0">
-                    <p className="text-xl font-bold text-gray-900 leading-tight">
-                      Vaulta
-                    </p>
+                    <div style={{ fontSize: '18px', fontWeight: 500, letterSpacing: '-0.5px', lineHeight: 1 }}>
+                      <span style={{ color: '#0F172A' }}>next</span>
+                      <span style={{ color: '#1D9E75' }}>iq</span>
+                    </div>
                     <p className="text-sm text-gray-500 leading-tight truncate">
                       Portfolio Intelligence
                     </p>

@@ -2,28 +2,28 @@ import { useEffect, useState } from 'react'
 
 const faqItems = [
   {
-    q: 'What is Vaulta?',
-    a: 'Vaulta is an intelligent property portfolio platform built for Australian investors with 1 to 5 properties. It brings your properties, loans, cash flow, and household financials into one place, then helps you understand your real position, find opportunities to save money, and decide confidently whether you can buy your next property.',
+    q: 'What is Nextiq?',
+    a: 'Nextiq is an intelligent property portfolio platform built for Australian investors with 1 to 5 properties. It brings your properties, loans, cash flow, and household financials into one place, then helps you understand your real position, find opportunities to save money, and decide confidently whether you can buy your next property.',
   },
   {
-    q: 'Is Vaulta financial advice?',
-    a: 'No. Vaulta provides general informational insights only and does not constitute financial, tax, investment, or lending advice. All outputs are illustrative estimates based on your inputs and indicative market benchmarks. Before making any investment or borrowing decisions, we recommend consulting a licensed financial adviser, mortgage broker, or accountant.',
+    q: 'Is Nextiq financial advice?',
+    a: 'No. Nextiq provides general informational insights only and does not constitute financial, tax, investment, or lending advice. All outputs are illustrative estimates based on your inputs and indicative market benchmarks. Before making any investment or borrowing decisions, we recommend consulting a licensed financial adviser, mortgage broker, or accountant.',
   },
   {
-    q: 'How does Vaulta calculate borrowing capacity?',
-    a: 'Vaulta uses a lender-style serviceability model based on your household income, living expenses, existing loan repayments, credit card limits, and liabilities. It applies the standard APRA assessment rate buffer of 3% above the loan rate, which is how Australian lenders stress-test your repayments. The result is an indicative borrowing estimate, not a formal credit assessment.',
+    q: 'How does Nextiq calculate borrowing capacity?',
+    a: 'Nextiq uses a lender-style serviceability model based on your household income, living expenses, existing loan repayments, credit card limits, and liabilities. It applies the standard APRA assessment rate buffer of 3% above the loan rate, which is how Australian lenders stress-test your repayments. The result is an indicative borrowing estimate, not a formal credit assessment.',
   },
   {
     q: 'Can I track multiple properties?',
-    a: 'Yes. Vaulta is designed for investors with 1 to 5 properties. The Starter plan supports up to 3 properties. The Investor plan supports unlimited properties. Each property can have its own loan details, cash flow transactions, and mortgage tracking.',
+    a: 'Yes. Nextiq is designed for investors with 1 to 5 properties. The Starter plan supports up to 3 properties. The Investor plan supports unlimited properties. Each property can have its own loan details, cash flow transactions, and mortgage tracking.',
   },
   {
     q: 'How does the RBA intelligence work?',
-    a: 'When the Reserve Bank of Australia announces a rate decision, Vaulta automatically calculates the dollar impact on your specific variable loans, property by property. A personalised AI-generated summary is delivered to your inbox the same day, referencing your actual property addresses and repayment figures. The intelligence is powered by Anthropic Claude.',
+    a: 'When the Reserve Bank of Australia announces a rate decision, Nextiq automatically calculates the dollar impact on your specific variable loans, property by property. A personalised AI-generated summary is delivered to your inbox the same day, referencing your actual property addresses and repayment figures. The intelligence is powered by Anthropic Claude.',
   },
   {
     q: 'Is my data secure?',
-    a: 'Yes. Vaulta is built on Supabase, which uses PostgreSQL with Row Level Security enforced at the database level. This means your data is isolated at the infrastructure layer, not just in application code. Vaulta does not connect to your bank accounts and does not store login credentials. All data you enter is used only to generate your portfolio insights.',
+    a: 'Yes. Nextiq is built on Supabase, which uses PostgreSQL with Row Level Security enforced at the database level. This means your data is isolated at the infrastructure layer, not just in application code. Nextiq does not connect to your bank accounts and does not store login credentials. All data you enter is used only to generate your portfolio insights.',
   },
 ]
 
@@ -139,8 +139,9 @@ function Landing() {
         className="flex h-[66px] items-center justify-between px-6 md:px-10 lg:px-14"
         style={{ background: '#071C17' }}
       >
-        <a href="#" className="text-xl font-extrabold no-underline" style={{ color: '#19C37D' }}>
-          Vaulta
+        <a href="/" className="no-underline" style={{ fontSize: '20px', fontWeight: 500, letterSpacing: '-0.5px' }}>
+          <span style={{ color: 'white' }}>next</span>
+          <span style={{ color: '#1D9E75' }}>iq</span>
         </a>
         <div className="hidden items-center gap-8 md:flex">
           {navLinks.map(([label, href]) => (
@@ -254,7 +255,7 @@ function Landing() {
           </div>
           <img
             src="/screenshots/hero-dashboard.webp"
-            alt="Vaulta dashboard showing acquisition readiness and investment property purchase range"
+            alt="Nextiq dashboard showing acquisition readiness and investment property purchase range"
             loading="eager"
             className="w-full rounded-t-3xl"
             style={{
@@ -461,7 +462,7 @@ function Landing() {
               portfolio
             </h2>
             <p className="mb-7 text-lg leading-relaxed md:text-xl" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              Before the market noise settles, Vaulta shows the exact dollar impact on each of your
+              Before the market noise settles, Nextiq shows the exact dollar impact on each of your
               loans, property by property, delivered to your inbox the same day.
             </p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -527,7 +528,7 @@ function Landing() {
             </div>
             <img
               src="/screenshots/rba-intelligence-updated.webp"
-              alt="Vaulta RBA intelligence card showing personalised rate impact by property address"
+              alt="Nextiq RBA intelligence card showing personalised rate impact by property address"
               loading="lazy"
               className="mt-5 w-full rounded-2xl"
             />
@@ -610,7 +611,7 @@ function Landing() {
 
           <img
             src="/screenshots/refinance-card-updated.webp"
-            alt="Vaulta refinance opportunity showing $3,540 annual saving"
+            alt="Nextiq refinance opportunity showing $3,540 annual saving"
             loading="lazy"
             className="mb-5 w-full rounded-xl"
           />
@@ -776,7 +777,7 @@ function Landing() {
 
             <img
               src="/screenshots/execution-readiness.webp"
-              alt="Vaulta execution readiness showing available versus required capital"
+              alt="Nextiq execution readiness showing available versus required capital"
               loading="lazy"
               className="mt-4 w-full rounded-xl"
             />
@@ -897,13 +898,13 @@ function Landing() {
 
         <img
           src="/screenshots/equity-chart.webp"
-          alt="Vaulta 30-year portfolio equity projection chart"
+          alt="Nextiq 30-year portfolio equity projection chart"
           loading="lazy"
           className="mx-auto mt-0 block w-full max-w-5xl rounded-2xl"
         />
         <img
           src="/screenshots/fixed-rate-alert-updated.webp"
-          alt="Vaulta fixed rate expiry alert strip"
+          alt="Nextiq fixed rate expiry alert strip"
           loading="lazy"
           className="mx-auto mt-3 block w-full max-w-5xl rounded-xl"
         />
@@ -1196,11 +1197,11 @@ function Landing() {
         }}
       >
         <div className="mx-auto max-w-4xl text-center text-xs leading-relaxed text-slate-400">
-          General information only. Vaulta provides informational insights based on user-supplied
+          General information only. Nextiq provides informational insights based on user-supplied
           data and indicative market benchmarks. Outputs do not constitute financial, investment,
           tax, or lending advice. Figures shown are illustrative estimates and subject to lender
           assessment and market conditions. Always consult a licensed financial adviser, mortgage
-          broker, or accountant before making investment decisions. Vaulta is not an Australian
+          broker, or accountant before making investment decisions. Nextiq is not an Australian
           Financial Services Licence holder.
         </div>
       </section>
@@ -1209,11 +1210,12 @@ function Landing() {
         <div className="mx-auto max-w-5xl">
           <div className="mb-12 grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-4">
             <div className="lg:col-span-1">
-              <div className="mb-3 text-xl font-extrabold" style={{ color: '#19C37D' }}>
-                Vaulta
+              <div className="mb-3" style={{ fontSize: '20px', fontWeight: 500, letterSpacing: '-0.5px' }}>
+                <span style={{ color: 'white' }}>next</span>
+                <span style={{ color: '#1D9E75' }}>iq</span>
               </div>
               <p className="mb-5 max-w-xs text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                Intelligent property portfolio intelligence for Australian investors. Track
+                Intelligent property portfolio platform for Australian investors. Track
                 everything, understand your numbers, and uncover opportunities to save.
               </p>
               <div
@@ -1232,7 +1234,7 @@ function Landing() {
             {[
               ['PRODUCT', ['Features', 'How it works', 'Pricing', 'FAQ', 'Start free trial']],
               ['LEGAL', ['Privacy Policy', 'Terms of Use', 'Disclaimer', 'Cookie Policy']],
-              ['SUPPORT', ['Contact us', 'support@vaulta.com.au', 'Report an issue']],
+              ['SUPPORT', ['Contact us', 'support@nextiq.com.au', 'Report an issue']],
             ].map(([title, links]) => (
               <div key={title}>
                 <div
@@ -1266,8 +1268,8 @@ function Landing() {
                                           ? '/privacy'
                                           : link === 'Contact us'
                                             ? '/contact'
-                                            : link === 'support@vaulta.com.au'
-                                              ? 'mailto:support@vaulta.com.au'
+                                            : link === 'support@nextiq.com.au'
+                                              ? 'mailto:support@nextiq.com.au'
                                               : link === 'Report an issue'
                                                 ? '/contact'
                                                 : '#'
@@ -1288,7 +1290,7 @@ function Landing() {
             style={{ borderColor: 'rgba(255,255,255,0.06)' }}
           >
             <div style={{ color: 'rgba(255,255,255,0.2)' }}>
-              © 2026 Vaulta. All rights reserved. Australian-built for Australian property
+              © 2026 Nextiq. All rights reserved. Australian-built for Australian property
               investors.
             </div>
             <div className="flex gap-5">
@@ -1311,6 +1313,8 @@ function Landing() {
 }
 
 export default Landing
+
+
 
 
 
