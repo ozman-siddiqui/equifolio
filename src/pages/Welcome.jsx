@@ -220,7 +220,7 @@ export default function Welcome({ session = null }) {
     : 'onboardingSnapshot'
   const [draft, setDraft] = useState(() => {
     try {
-      const saved = sessionStorage.getItem('vaulta_onboarding_draft')
+      const saved = sessionStorage.getItem('nextiq_onboarding_draft')
       return saved ? JSON.parse(saved) : defaultDraft
     } catch {
       return defaultDraft
@@ -236,7 +236,7 @@ export default function Welcome({ session = null }) {
 
   useEffect(() => {
     try {
-      sessionStorage.setItem('vaulta_onboarding_draft', JSON.stringify(draft))
+      sessionStorage.setItem('nextiq_onboarding_draft', JSON.stringify(draft))
     } catch {
       // Ignore storage write failures in onboarding draft mode.
     }
@@ -614,7 +614,10 @@ export default function Welcome({ session = null }) {
           }}
         >
           <div style={{ fontSize: 24, fontWeight: 500, letterSpacing: -1, color: '#84ebc7' }}>
-            VAULTA
+            <span style={{ fontWeight: 500, letterSpacing: '-0.5px', fontSize: 'inherit', lineHeight: 1 }}>
+              <span style={{ color: 'white' }}>next</span>
+              <span style={{ color: '#1D9E75' }}>iq</span>
+            </span>
           </div>
 
           <div style={{ marginTop: 54, display: 'flex', flexDirection: 'column', gap: 28 }}>
@@ -712,7 +715,7 @@ export default function Welcome({ session = null }) {
                   Welcome
                 </div>
                 <div style={{ marginTop: 10, fontSize: 38, fontWeight: 500, letterSpacing: -1.3, color: '#f3fff9' }}>
-                  Welcome to Vaulta
+                  Welcome to Nextiq
                 </div>
                 <div style={{ marginTop: 10, fontSize: 18, lineHeight: 1.6, color: '#c7eadc' }}>
                   What should we call you?

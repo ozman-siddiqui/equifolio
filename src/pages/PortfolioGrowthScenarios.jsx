@@ -1994,7 +1994,7 @@ export default function PortfolioGrowthScenarios() {
         eyebrow: 'Growth scenarios',
         title: 'Portfolio Growth Scenarios',
         description:
-          'These scenarios show how current borrowing headroom and deployable equity can be deployed into the next acquisition path using only the data already stored in Vaulta.',
+          'These scenarios show how current borrowing headroom and deployable equity can be deployed into the next acquisition path using only the data already stored in Nextiq.',
         kpis: [
           {
             label: 'Borrowing capacity',
@@ -2124,7 +2124,7 @@ export default function PortfolioGrowthScenarios() {
         description:
           scenarioModel.recommendedStrategy && recommendedScenario
             ? 'Based on your current position, borrowing capacity, and selected assumptions'
-            : 'Current purchase capacity based on the inputs already available in Vaulta.',
+            : 'Current purchase capacity based on the inputs already available in Nextiq.',
         metrics:
           scenarioModel.recommendedStrategy && recommendedScenario
             ? [
