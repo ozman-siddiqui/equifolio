@@ -543,8 +543,8 @@ function buildRecommendedActions(propertyAnalysis) {
 
   if (metrics.monthlyNet < 0 && metrics.estimatedRefinanceSavings > 100 && metrics.debt > 0) {
     actions.push({
-      label: 'Refinance loan',
-      impact: `Save about ${formatCurrency(metrics.estimatedRefinanceSavings)}/month`,
+      label: 'Review refinance options',
+      impact: `Modelled repayment difference: about ${formatCurrency(metrics.estimatedRefinanceSavings)}/month`,
       type: 'financial',
       priority: 96,
     })
@@ -571,7 +571,7 @@ function buildRecommendedActions(propertyAnalysis) {
   if (
     metrics.avgRate >= 6.3 &&
     metrics.estimatedRefinanceSavings >= 50 &&
-    !actions.some((action) => action.label === 'Refinance loan')
+    !actions.some((action) => action.label === 'Review refinance options')
   ) {
     actions.push({
       label: 'Benchmark current loan rate',
@@ -622,7 +622,7 @@ function buildSummary(decisionLabel, reasons, confidenceLabel, missingInputs) {
   }
 
   if (decisionLabel === 'Optimise') {
-    return `This property is viable, but one weak signal is dragging the outcome. ${opportunitySignal || problemSignal}`.trim()
+    return `This property shows supportive signals, but one weaker input is materially affecting the modelled outcome. ${opportunitySignal || problemSignal}`.trim()
   }
 
   if (decisionLabel === 'Strong Hold') {
@@ -636,7 +636,7 @@ function buildSummary(decisionLabel, reasons, confidenceLabel, missingInputs) {
   }
 
   if (decisionLabel === 'Review') {
-    return `Multiple signals need attention before this property can justify a confident hold. ${problemSignal}`.trim()
+    return `Multiple signals need attention before this property strongly supports the current hold view. ${problemSignal}`.trim()
   }
 
   return `The property is generally stable, with one area that still needs attention. ${problemSignal || opportunitySignal}`.trim()

@@ -168,13 +168,13 @@ export default function Features() {
 
             <div className="flex flex-col gap-4">
               <img
-                src="/screenshots/tax-cashflow.webp"
+                src="/screenshots/tax-cashflow-1604.webp"
                 alt="Nextiq tax and cash flow showing pre-tax loss, ATO benefit, and net holding cost"
                 className="w-full rounded-2xl"
                 loading="lazy"
               />
               <img
-                src="/screenshots/tax-settings.webp"
+                src="/screenshots/tax-settings-1604.webp"
                 alt="Nextiq tax ownership settings showing joint ownership and depreciation input"
                 className="w-full rounded-2xl"
                 loading="lazy"
@@ -209,13 +209,13 @@ export default function Features() {
           <div className="grid grid-cols-1 gap-16 md:grid-cols-2">
             <div className="flex flex-col gap-4">
               <img
-                src="/screenshots/hero-dashboard.webp"
+                src="/screenshots/hero-dashboard-1604.webp"
                 alt="Nextiq acquisition decision showing purchase range and readiness score"
                 className="w-full rounded-2xl"
                 loading="eager"
               />
               <img
-                src="/screenshots/execution-readiness.webp"
+                src="/screenshots/execution-readiness-1604.webp"
                 alt="Nextiq execution readiness showing available versus required capital"
                 className="w-full rounded-2xl"
                 loading="lazy"
@@ -373,19 +373,19 @@ export default function Features() {
 
             <div className="flex flex-col gap-4">
               <img
-                src="/screenshots/refinance-card-updated.webp"
+                src="/screenshots/refinance-card-1604.webp"
                 alt="Nextiq refinance opportunity card showing monthly and annual saving"
                 className="w-full rounded-2xl"
                 loading="lazy"
               />
               <img
-                src="/screenshots/rba-intelligence-updated.webp"
+                src="/screenshots/rba-intelligence-1604-final.webp"
                 alt="Nextiq RBA intelligence alert showing personalised rate impact"
                 className="w-full rounded-2xl"
                 loading="lazy"
               />
               <img
-                src="/screenshots/fixed-rate-alert-updated.webp"
+                src="/screenshots/fixed-rate-alert-1604.webp"
                 alt="Nextiq fixed rate expiry alert"
                 className="w-full rounded-2xl"
                 loading="lazy"
@@ -426,7 +426,7 @@ export default function Features() {
                 loading="lazy"
               />
               <img
-                src="/screenshots/scenario-modelling.webp"
+                src="/screenshots/scenario-modelling-1604.webp"
                 alt="Nextiq growth scenario modelling with deposit strategy and growth rate inputs"
                 className="w-full rounded-2xl"
                 loading="lazy"

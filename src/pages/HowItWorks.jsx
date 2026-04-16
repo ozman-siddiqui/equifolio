@@ -24,7 +24,7 @@ const steps = [
     ],
     screenshots: [
       {
-        src: '/screenshots/hero-dashboard.webp',
+        src: '/screenshots/hero-dashboard-1604.webp',
         alt: 'Nextiq dashboard showing acquisition readiness and portfolio position',
         loading: 'eager',
       },
@@ -59,12 +59,12 @@ const steps = [
     ],
     screenshots: [
       {
-        src: '/screenshots/tax-cashflow.webp',
+        src: '/screenshots/tax-cashflow-1604.webp',
         alt: 'Nextiq tax and cash flow showing pre-tax loss, ATO benefit, and net holding cost',
         loading: 'lazy',
       },
       {
-        src: '/screenshots/tax-settings.webp',
+        src: '/screenshots/tax-settings-1604.webp',
         alt: 'Nextiq tax ownership settings showing joint ownership split and depreciation',
         loading: 'lazy',
       },
@@ -103,7 +103,7 @@ const steps = [
     ],
     screenshots: [
       {
-        src: '/screenshots/execution-readiness.webp',
+        src: '/screenshots/execution-readiness-1604.webp',
         alt: 'Nextiq execution readiness showing available versus required capital',
         loading: 'lazy',
       },
@@ -142,12 +142,12 @@ const steps = [
     ],
     screenshots: [
       {
-        src: '/screenshots/rba-intelligence-updated.webp',
+        src: '/screenshots/rba-intelligence-1604-final.webp',
         alt: 'Nextiq RBA intelligence alert showing personalised rate impact by property',
         loading: 'lazy',
       },
       {
-        src: '/screenshots/fixed-rate-alert-updated.webp',
+        src: '/screenshots/fixed-rate-alert-1604.webp',
         alt: 'Nextiq fixed rate expiry alert',
         loading: 'lazy',
       },
@@ -188,7 +188,7 @@ const steps = [
     ],
     screenshots: [
       {
-        src: '/screenshots/hero-dashboard.webp',
+        src: '/screenshots/hero-dashboard-1604.webp',
         alt: 'Nextiq acquisition decision showing price range and readiness score',
         loading: 'lazy',
       },

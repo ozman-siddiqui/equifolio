@@ -1119,14 +1119,14 @@ export default function Welcome({ session = null }) {
                 <div style={{ fontSize: 38, fontWeight: 500, letterSpacing: -1.5, color: '#38c29a' }}>
                   {derived.acquisitionReadiness}%
                 </div>
-                <div style={{ marginTop: 4, fontSize: 14, color: '#5ba88d' }}>acquisition readiness</div>
+                <div style={{ marginTop: 4, fontSize: 14, color: '#5ba88d' }}>scenario readiness</div>
               </div>
             </div>
           </div>
 
           <div style={{ marginTop: 18 }}>
             <MetricRow
-              label="Indicative purchase range"
+              label="Indicative scenario range"
               value={
                 derived.indicativePurchaseRangeLow > 0
                   ? `${formatCompactRange(derived.indicativePurchaseRangeLow)}–${formatCompactRange(derived.indicativePurchaseRangeHigh)}`
@@ -1259,15 +1259,15 @@ export default function Welcome({ session = null }) {
                 marginBottom: 10,
               }}
             >
-              Top unlock
+              Top modelled improvement
             </div>
             {derived.creditCardLimits > 0 ? (
               <div>
-                Reducing credit card limit by {formatCurrency(derived.creditCardLimits)} could unlock +
+                Reducing credit card limit by {formatCurrency(derived.creditCardLimits)} could support a modelled improvement of +
                 {formatCurrency(Math.round(derived.creditCardLimits * 3.8))} borrowing capacity
               </div>
             ) : (
-              <div>Add your credit card limits to see your top unlock</div>
+              <div>Add your credit card limits to see your top modelled improvement</div>
             )}
           </div>
 

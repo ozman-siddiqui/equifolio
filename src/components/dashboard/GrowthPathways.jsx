@@ -103,7 +103,7 @@ function ReadinessScoreBlock({ acquisitionReadiness }) {
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-            Acquisition readiness
+            Scenario readiness
           </p>
           <p className="mt-3 text-sm text-gray-600">
             Primary constraint: <span className="font-semibold text-gray-900">{primaryConstraint}</span>
@@ -231,7 +231,7 @@ function YieldFirstContent({
 }) {
   if (yieldFirst?.isExecutable) {
     return (
-      <PathwayCard badge="Possible Now" title="Yield-first acquisition" tone="emerald">
+      <PathwayCard badge="Possible under current assumptions" title="Yield-first scenario" tone="emerald">
         <p>
           Properties in the {formatCurrency(yieldFirst.purchaseRangeLow)}-
           {formatCurrency(yieldFirst.purchaseRangeHigh)} range with{' '}
@@ -271,7 +271,7 @@ function YieldFirstContent({
         : null
 
     return (
-      <PathwayCard badge="Constrained" title="Yield-first acquisition" tone="amber">
+      <PathwayCard badge="Constrained" title="Yield-first scenario" tone="amber">
         <p>
           Your deployable capital is strong, but current borrowing capacity supports an
           estimated purchase of ~{formatCurrency(yieldFirst.maxPurchase)}, which remains
@@ -279,8 +279,8 @@ function YieldFirstContent({
           {formatCurrency(MARKET_FLOORS.regionalYield)}.
         </p>
         <p>
-          Improving serviceability by reducing liabilities or increasing income could unlock
-          this pathway.
+          Improving serviceability by reducing liabilities or increasing income may improve
+          the modelled viability of this pathway.
         </p>
         <div className="rounded-[1.25rem] border border-amber-200/70 bg-white/80 p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700">
@@ -341,10 +341,11 @@ function YieldFirstContent({
   }
 
   return (
-    <PathwayCard badge="Explore" title="Yield-first acquisition" tone="amber">
+    <PathwayCard badge="Explore" title="Yield-first scenario" tone="amber">
       <p>
         Regional yield properties in the $350k-$480k range may be worth exploring as market
-        conditions evolve. Building capital or borrowing capacity could unlock this pathway.
+        conditions evolve. Building capital or borrowing capacity may improve the modelled
+        viability of this pathway.
       </p>
       <p className="text-xs leading-6 text-gray-500">
         Yield and cost estimates are indicative only, based on assumed market conditions. Not
@@ -376,7 +377,7 @@ function TimelineContent({
     tone = 'blue'
     body = `Borrowing capacity is currently the primary constraint at ${formatCurrency(
       borrowingCapacity
-    )}. Reducing liabilities by ~$20k typically unlocks $30-40k in additional borrowing.`
+    )}. Reducing liabilities by ~$20k may improve modelled borrowing capacity by roughly $30-40k.`
   } else if (acquisitionReadiness?.primaryConstraint === 'capital') {
     badge = 'In Progress'
     tone = 'blue'
@@ -388,11 +389,11 @@ function TimelineContent({
     badge = 'Ready'
     tone = 'emerald'
     body =
-      'Your current position supports an acquisition move. Review your growth scenarios to explore options.'
+      'Your current inputs suggest this scenario may be worth reviewing with a licensed adviser or broker.'
   }
 
   return (
-    <PathwayCard badge={badge} title="Acquisition timeline" tone={tone}>
+    <PathwayCard badge={badge} title="Scenario timeline" tone={tone}>
       <p>{body}</p>
       {acquisitionReadiness?.topUnlockAction ? (
         <p className="text-xs leading-6 text-gray-500">
@@ -400,7 +401,7 @@ function TimelineContent({
         </p>
       ) : null}
       {topActionTitle ? (
-        <p className="text-xs leading-6 text-gray-500">Top action: {topActionTitle}</p>
+        <p className="text-xs leading-6 text-gray-500">Top scenario insight: {topActionTitle}</p>
       ) : null}
     </PathwayCard>
   )

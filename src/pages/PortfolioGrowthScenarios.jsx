@@ -32,15 +32,15 @@ const MAX_ANNUAL_DEPRECIATION = 20000
 const HIGH_DEPRECIATION_WARNING_THRESHOLD = 15000
 
 function getConfidenceLabel(score) {
-  if (score >= 85) return 'High'
-  if (score >= 65) return 'Medium'
-  return 'Low'
+  if (score >= 85) return 'Strong'
+  if (score >= 65) return 'Moderate'
+  return 'Limited'
 }
 
 function getConfidenceSummary(score) {
-  if (score >= 85) return 'High confidence based on complete data'
-  if (score >= 65) return 'Medium confidence based on partial data'
-  return 'Lower confidence due to missing or limited data'
+  if (score >= 85) return 'Strong data coverage across scenario inputs'
+  if (score >= 65) return 'Moderate data coverage across scenario inputs'
+  return 'Limited data coverage across scenario inputs'
 }
 
 const formatCurrency = (amount) =>
@@ -922,11 +922,11 @@ export default function PortfolioGrowthScenarios() {
     const simulatedScenario = simulatedScenarioLookup.get(recommendedScenario.id)
     return effectiveCashToDeploy > 0 && simulatedScenario ? simulatedScenario : recommendedScenario
   }, [effectiveCashToDeploy, recommendedScenario, simulatedScenarioLookup])
-  const suggestedScenarioTitle = 'Buy 1 investment property now'
+  const suggestedScenarioTitle = 'Scenario A: Single investment property acquisition'
   const suggestedScenarioDescription =
-    'Optimised from your preferred settings to the strongest currently executable purchase path.'
+    'Calculated from your selected assumptions as the strongest feasible scenario under the current model.'
   const suggestedScenarioSupportText =
-    'This path is fully funded within your current capital and borrowing constraints.'
+    'This scenario fits within the current capital and borrowing assumptions.'
   const topAlternativeScenario = useMemo(() => {
     const sourceScenario = blockedScenarios[0] || secondaryScenarios[0] || null
     if (!sourceScenario) return null
@@ -1124,7 +1124,7 @@ export default function PortfolioGrowthScenarios() {
     const firstNegativePoint = stressTestData.find((point) => Number(point.monthlySurplus) < 0)
     return firstNegativePoint
       ? `Portfolio turns negative above ${firstNegativePoint.rateLabel} rates.`
-      : 'Remains positive but borrowing is constrained by lender buffers.'
+      : 'Monthly surplus remains positive, though borrowing capacity is constrained by lender buffers.'
   }, [stressTestData])
   const borrowingSensitivityInsight = useMemo(() => {
     if (borrowingSensitivityData.length < 2) return null
@@ -1135,7 +1135,7 @@ export default function PortfolioGrowthScenarios() {
     )
     const capacityDrop = Math.max(0, lowRateCapacity - highRateCapacity)
 
-    return `Capacity drops by ~${formatCurrency(capacityDrop)} across typical rate ranges.`
+    return `Modelled capacity decreases by ~${formatCurrency(capacityDrop)} across the tested rate range.`
   }, [borrowingSensitivityData])
   const borrowingSensitivityConfidence = useMemo(() => {
     if (!borrowingSensitivityData.length) return null
@@ -1532,7 +1532,7 @@ export default function PortfolioGrowthScenarios() {
   }
   const borrowingSensitivityChart = borrowingSensitivityData.length > 0 ? (
     <GraphPanel
-      title="Borrowing sensitivity"
+      title="Borrowing capacity under different rate settings"
       preface="Your borrowing is assessed at ~8.5%, not your actual loan rate."
       insight={borrowingSensitivityInsight}
       confidenceLabel={borrowingSensitivityConfidence?.label}
@@ -1542,7 +1542,7 @@ export default function PortfolioGrowthScenarios() {
       note="Borrowing capacity estimates may differ from lender assessments."
     >
       <PremiumProjectionChart
-        title="Borrowing sensitivity"
+        title="Borrowing capacity under different rate settings"
         data={borrowingSensitivityData}
         series={[
           {
@@ -1603,7 +1603,7 @@ export default function PortfolioGrowthScenarios() {
   }, [borrowingSensitivityData.length])
   const depositPurchasePowerChart = !hasCentralBorrowingCapacity ? (
     <GraphPanel
-      title="Deposit vs purchase power"
+      title="Deposit setting vs indicative purchase capacity"
       warning="Deposit graph missing central borrowing capacity input."
     >
       <div className="rounded-[1.75rem] border border-slate-200/80 bg-white p-6 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.35)]">
@@ -1615,7 +1615,7 @@ export default function PortfolioGrowthScenarios() {
     </GraphPanel>
   ) : depositPurchasePowerData.length > 0 ? (
     <GraphPanel
-      title="Deposit vs purchase power"
+      title="Deposit setting vs indicative purchase capacity"
       insight={depositPurchaseInsight}
       traceability={`Inputs used: deployable capital and central borrowing capacity ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· Assumptions: ${Math.round(
         selectedDepositStrategy.depositRatio * 100
@@ -1624,13 +1624,13 @@ export default function PortfolioGrowthScenarios() {
       ).toFixed(1)}% acquisition costs`}
     >
       <PremiumProjectionChart
-        title="Deposit vs purchase power"
-        subtitle="See how deposit strategy changes the maximum property price you can support with current capital and borrowing constraints."
+        title="Deposit setting vs indicative purchase capacity"
+        subtitle="Use this view to test how changing deposit structure affects indicative price range."
         data={depositPurchasePowerData}
         series={[
           {
             dataKey: 'maxPurchasePrice',
-            label: 'Achievable purchase power',
+            label: 'Indicative purchase capacity',
             color: '#0F172A',
           },
           {
@@ -1711,7 +1711,7 @@ export default function PortfolioGrowthScenarios() {
   ) : null
   const stressTestChart = stressTestData.length > 0 ? (
     <GraphPanel
-      title="Stress test: rate vs surplus"
+      title="When does serviceability begin to tighten?"
       insight={stressTestInsight}
       confidenceLabel={stressTestConfidence?.label}
       traceability={`Inputs used: recorded income, liabilities, mortgages, and serviceability surplus ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· Assumptions: lender assessment rates from ${STRESS_TEST_RATES[0].toFixed(
@@ -1719,8 +1719,8 @@ export default function PortfolioGrowthScenarios() {
       )}% to ${STRESS_TEST_RATES[STRESS_TEST_RATES.length - 1].toFixed(1)}%`}
     >
       <PremiumProjectionChart
-        title="Stress test: rate vs surplus"
-        subtitle="See where serviceability surplus tightens as lender assessment rates rise."
+        title="When does serviceability begin to tighten?"
+        subtitle="Use this panel to see how higher assessment rates affect monthly resilience."
         data={stressTestData}
         series={[
           {
@@ -1778,13 +1778,13 @@ export default function PortfolioGrowthScenarios() {
   ) : null
   const equityCashFlowTradeOffChart = equityCashFlowTradeOffData.length > 0 ? (
     <GraphPanel
-      title="How your wealth grows over time"
+      title="How the balance sheet changes over time"
       preface={
         fiveYearEquitySourceOfTruth > 0
           ? `~${formatCurrency(fiveYearEquitySourceOfTruth)} equity at 5 years`
           : null
       }
-      insight="Projected equity growth reflects assumed value growth and debt reduction over time."
+      insight="Track asset growth, debt reduction, and the equity spread under the selected assumptions over time."
       traceability={`Inputs used: scenario purchase price, loan, rent, and expenses ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· Assumptions: ${growthRateAssumptionPct.toFixed(
         1
       )}% annual growth, ${Number(scenarioDebtRateAssumption || 0).toFixed(
@@ -1792,8 +1792,8 @@ export default function PortfolioGrowthScenarios() {
       )}% debt rate, and rental growth over time`}
     >
       <PremiumProjectionChart
-        title="How your wealth grows over time"
-        subtitle="Illustrative projection based on assumed growth and loan conditions"
+        title="How the balance sheet changes over time"
+        subtitle="How value, debt, and equity change over time"
         data={equityCashFlowTradeOffData}
         series={[
           {
@@ -1848,7 +1848,10 @@ export default function PortfolioGrowthScenarios() {
   ) : null
 
   const scenarioAssumptionsSection = (
-    <section className="mt-5 rounded-[2rem] border border-gray-100 bg-white p-4 shadow-sm shadow-gray-100/70">
+    <section
+      className="mt-5 rounded-[2rem] border border-gray-100 bg-white p-4 shadow-sm shadow-gray-100/70"
+      style={{ position: 'static', top: 'auto' }}
+    >
       <div className="rounded-2xl border border-gray-100 bg-gray-50/70 px-4 py-3">
         <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
           Confidence
@@ -1859,13 +1862,16 @@ export default function PortfolioGrowthScenarios() {
       </div>
 
       <details className="group mt-4">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl border border-gray-100 bg-white px-4 py-3 marker:hidden">
+        <summary
+          className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl border border-gray-100 bg-white px-4 py-3 marker:hidden"
+          style={{ position: 'static', top: 'auto' }}
+        >
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
               Scenario assumptions
             </p>
             <p className="mt-1 text-sm text-gray-600">
-              Adjust deposit strategy and debt rate assumptions to see how outcomes change.
+              Adjust assumptions to test the current acquisition scenario.
             </p>
           </div>
           <ChevronRight
@@ -1989,12 +1995,29 @@ export default function PortfolioGrowthScenarios() {
   }
 
   return (
+    <>
     <PortfolioGrowthScenariosPremiumView
       hero={{
         eyebrow: 'Growth scenarios',
         title: 'Portfolio Growth Scenarios',
-        description:
-          'These scenarios show how current borrowing headroom and deployable equity can be deployed into the next acquisition path using only the data already stored in Nextiq.',
+        description: (
+          <>
+            <span>
+              Stress-test acquisition scenarios using your live portfolio inputs,
+              compare feasible and constrained outcomes, and inspect funding, carry,
+              and wealth effects under different assumptions.
+            </span>
+            <span className="mt-3 block text-xs italic leading-5 text-slate-500">
+              These outputs are illustrative scenario models based on your selected
+              assumptions and currently stored portfolio information. They are
+              general informational tools only and do not constitute financial,
+              tax, credit, or investment advice, or a recommendation to buy,
+              refinance, hold, or sell any property or loan product. Actual
+              outcomes will vary based on lender assessment, valuation, tax
+              position, rates, costs, and market conditions.
+            </span>
+          </>
+        ),
         kpis: [
           {
             label: 'Borrowing capacity',
@@ -2030,7 +2053,7 @@ export default function PortfolioGrowthScenarios() {
         scenarioModel.recommendedStrategy
           ? [
               {
-                badge: 'EXECUTABLE NOW',
+                badge: 'PRIMARY SCENARIO',
                 title: suggestedScenarioTitle,
                 description: suggestedScenarioDescription,
                 supportText: suggestedScenarioSupportText,
@@ -2055,15 +2078,15 @@ export default function PortfolioGrowthScenarios() {
                     value: `${Number(topSuggestedScenario?.estimatedGrossYield || 0).toFixed(1)}% gross`,
                   },
                 ],
-                footer: 'Fully funded for execution',
+                footer: 'Funding requirement covered',
               },
               topAlternativeScenario
                 ? {
                     badge:
                       String(topAlternativeScenario?.scenarioStateLabel || '').toLowerCase() ===
                       'blocked'
-                        ? 'Blocked'
-                        : 'Alternative',
+                        ? 'Currently constrained'
+                        : 'SECONDARY SCENARIO',
                     title: topAlternativeScenario?.title || 'Additional scenario',
                     description:
                       topAlternativeScenario?.blockedExplanation ||
@@ -2102,10 +2125,10 @@ export default function PortfolioGrowthScenarios() {
                       topAlternativeScenario?.rationale,
                   }
                 : {
-                    badge: 'Alternative',
+                    badge: 'SECONDARY SCENARIO',
                     title: 'Additional scenario',
                     description:
-                      'Alternative scenario preview will appear when another computed scenario is available.',
+                      'A secondary scenario preview will appear when another computed scenario is available.',
                     tone: 'neutral',
                     metrics: [],
                     footer: 'Waiting for an additional computed scenario',
@@ -2117,7 +2140,7 @@ export default function PortfolioGrowthScenarios() {
         eyebrow: 'Scenario summary',
         title:
           scenarioModel.recommendedStrategy && recommendedScenario && recommendedNextMoveSummary
-            ? `Estimated equity growth: ~${formatCurrency(
+            ? `Illustrative net equity outcome: ~${formatCurrency(
                 recommendedNextMoveSummary.fiveYearEquity
               )} over 5 years`
             : scenarioModel.viability?.message || 'Scenario overview',
@@ -2151,7 +2174,7 @@ export default function PortfolioGrowthScenarios() {
                   helper:
                     baselineCapitalGap > 0
                       ? 'Additional funding required'
-                      : 'Fully funded based on your inputs',
+                      : 'Requirement covered',
                   tone: baselineCapitalGap > 0 ? 'caution' : 'success',
                 },
               ]
@@ -2165,7 +2188,7 @@ export default function PortfolioGrowthScenarios() {
                   value: formatCurrency(scenarioModel.inputs.totalDeployableCapital || 0),
                 },
                 {
-                  label: 'Additional capital required',
+                  label: 'Additional capital currently required',
                   value: formatCurrency(baselineCapitalGap),
                 },
               ],
@@ -2178,19 +2201,19 @@ export default function PortfolioGrowthScenarios() {
       activeTab={activePremiumTab}
       onTabChange={setActivePremiumTab}
       wealthTab={{
-        title: 'How your wealth grows over time',
+        title: 'How the balance sheet changes over time',
         description: recommendedScenario
-          ? `Illustrative projection based on assumed growth and loan conditions. 5-year equity: ~${formatCurrency(
+          ? `Track asset growth, debt reduction, and the equity spread under the selected assumptions over time. 5-year equity: ~${formatCurrency(
               fiveYearEquitySourceOfTruth
             )}.`
-          : 'Illustrative projection based on the currently selected scenario.',
+          : 'Track asset growth, debt reduction, and the equity spread under the selected assumptions over time.',
         chart: equityCashFlowTradeOffChart,
       }}
       fundingTab={{
         eyebrow: 'Funding',
-        title: 'How this is funded',
+        title: 'Capital required under the current scenario',
         description:
-          'Available capital, required capital, and any remaining shortfall using the current scenario assumptions.',
+          'This view compares available capital, required capital, and any remaining gap under the selected scenario assumptions.',
         cards: [
           {
             label: 'Available capital',
@@ -2209,12 +2232,12 @@ export default function PortfolioGrowthScenarios() {
             connector: '→',
           },
           {
-            label: 'Shortfall',
+            label: 'Remaining funding gap',
             value: formatCurrency(remainingCapitalGap),
             helper:
               remainingCapitalGap > 0
-                ? 'Additional capital still required'
-                : 'No additional upfront cash required based on current inputs',
+                ? 'Remaining funding gap after currently available capital is applied.'
+                : 'Current capital exceeds the scenario funding requirement.',
             tone: remainingCapitalGap > 0 ? 'danger' : 'positive',
           },
         ],
@@ -2223,7 +2246,8 @@ export default function PortfolioGrowthScenarios() {
             {recommendedWealthBreakdown ? (
               <div className="space-y-4">
                 <p className="text-sm text-gray-600">
-                  This scenario uses your existing equity and allocated savings.
+                  This view compares existing equity and allocated savings under the
+                  current scenario.
                 </p>
                 <ScenarioFundingBreakdown
                   scenario={recommendedScenario}
@@ -2237,7 +2261,8 @@ export default function PortfolioGrowthScenarios() {
       taxTab={{
         eyebrow: 'Tax & cash flow',
         title: 'Tax & cash flow',
-        description: 'Monthly cost story based on the currently calculated tax-aware scenario values.',
+        description:
+          'This is the monthly carry profile under the current assumptions: pre-tax carry, tax offset, and after-tax holding cost.',
         cards: recommendedScenarioSafeTaxView
           ? [
               {
@@ -2246,7 +2271,7 @@ export default function PortfolioGrowthScenarios() {
                   Math.abs(recommendedScenarioSafeTaxView.monthlyPreTaxPropertyCashFlow)
                 )}`,
                 unit: 'per month',
-                helper: 'Monthly property result before tax is applied.',
+                helper: 'Monthly operating result before tax offsets are applied.',
                 tone: 'neutral',
                 connector: '+',
               },
@@ -2264,7 +2289,7 @@ export default function PortfolioGrowthScenarios() {
                   Math.abs(recommendedScenarioSafeTaxView.afterTaxMonthlyImpact)
                 )}`,
                 unit: 'per month',
-                helper: 'Estimated monthly cost after tax is taken into account.',
+                helper: 'Modelled monthly carry cost after tax offsets are applied.',
                 tone: 'caution',
               },
             ]
@@ -2275,7 +2300,7 @@ export default function PortfolioGrowthScenarios() {
                   Math.abs(Number(recommendedScenario?.estimatedMonthlyCashFlow || 0))
                 )}`,
                 unit: 'per month',
-                helper: 'Monthly property result before tax is applied.',
+                helper: 'Monthly operating result before tax offsets are applied.',
                 tone: 'neutral',
                 connector: '+',
               },
@@ -2293,7 +2318,7 @@ export default function PortfolioGrowthScenarios() {
                   Math.abs(Number(recommendedScenario?.estimatedMonthlyCashFlow || 0))
                 )}`,
                 unit: 'per month',
-                helper: 'Current monthly impact without a completed tax estimate.',
+                helper: 'Modelled monthly carry cost without a completed tax estimate.',
                 tone: 'caution',
               },
             ],
@@ -2337,14 +2362,14 @@ export default function PortfolioGrowthScenarios() {
       assumptionsSection={{
         eyebrow: 'Scenario assumptions',
         title: 'What this scenario assumes',
-        description: 'Adjust deposit strategy and debt rate assumptions to see how outcomes change.',
+        description: 'Adjust assumptions to test the current acquisition scenario.',
         content: scenarioAssumptionsSection?.props?.children ?? scenarioAssumptionsSection,
       }}
       advancedAnalysis={{
         title: 'Advanced analysis',
         description:
-          'Explore how changes in rates, deposits, and borrowing assumptions affect this scenario.',
-        toggleLabel: 'Show advanced analysis',
+          'Test the scenario under tougher rates, tighter buffers, and different capital structures.',
+        toggleLabel: 'Open advanced analysis',
         isOpen: isAdvancedAnalysisOpen,
         onToggle: setIsAdvancedAnalysisOpen,
         content: (
@@ -2352,10 +2377,11 @@ export default function PortfolioGrowthScenarios() {
             <div className="space-y-3">
               <div>
                 <p className="text-sm font-semibold text-gray-900">
-                  Borrowing capacity sensitivity
+                  How does borrowing capacity change as rates rise?
                 </p>
                 <p className="mt-1 text-sm text-gray-600">
-                  See how borrowing capacity changes across different interest rates
+                  See how lender buffer changes affect purchase capacity and the
+                  range available under the current scenario.
                 </p>
               </div>
               {borrowingSensitivityChart}
@@ -2363,10 +2389,11 @@ export default function PortfolioGrowthScenarios() {
             <div className="space-y-3">
               <div>
                 <p className="text-sm font-semibold text-gray-900">
-                  Interest rate stress test
+                  When does serviceability begin to tighten?
                 </p>
                 <p className="mt-1 text-sm text-gray-600">
-                  See how higher rates affect serviceability and funding pressure
+                  Track how monthly surplus changes under tougher lending
+                  assumptions and where the funding profile begins to weaken.
                 </p>
               </div>
               {stressTestChart}
@@ -2374,10 +2401,12 @@ export default function PortfolioGrowthScenarios() {
             <div className="space-y-3">
               <div>
                 <p className="text-sm font-semibold text-gray-900">
-                  Deposit vs purchase power
+                  How does deposit structure affect indicative range?
                 </p>
                 <p className="mt-1 text-sm text-gray-600">
-                  See how deposit levels affect the purchase range this scenario can support
+                  Compare deposit settings to see whether lower upfront capital
+                  expands the indicative price range or shifts the constraint
+                  toward borrowing.
                 </p>
               </div>
               {depositPurchasePowerChart}
@@ -2386,6 +2415,7 @@ export default function PortfolioGrowthScenarios() {
         ),
       }}
     />
+    </>
   )
 }
 function getBlockedStrategyAction(strategy) {
@@ -2424,7 +2454,7 @@ function GraphPanel({
       {note ? <p className="mt-2 text-xs text-gray-500">{note}</p> : null}
       {confidenceLabel ? (
         <p className="mt-2 text-xs font-medium uppercase tracking-[0.16em] text-gray-400">
-          Confidence: {confidenceLabel}
+          Data coverage: {confidenceLabel}
         </p>
       ) : null}
       {warning ? <p className="mt-2 text-sm leading-6 text-amber-700">{warning}</p> : null}

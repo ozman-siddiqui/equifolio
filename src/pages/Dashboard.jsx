@@ -454,9 +454,9 @@ export default function Dashboard({ session, subscription }) {
   const dataCoveragePct =
     Math.round((completedSections / totalSections) * 100)
   const snapshotConfidenceLabel =
-    dataCoveragePct >= 90 ? 'High'
-    : dataCoveragePct >= 70 ? 'Indicative'
-    : dataCoveragePct >= 40 ? 'Low'
+    dataCoveragePct >= 90 ? 'Strong data coverage'
+    : dataCoveragePct >= 70 ? 'Moderate data coverage'
+    : dataCoveragePct >= 40 ? 'Limited data coverage'
     : 'Early stage'
 
   const effectiveDashboardState = useMemo(() => {
@@ -933,7 +933,7 @@ export default function Dashboard({ session, subscription }) {
             acquisitionReadiness?.label ??
             null,
       subtitle: isAcquisitionMode
-        ? 'Based on current inputs, this pathway appears viable and illustrative - subject to lender assessment and market conditions.'
+        ? 'Based on current inputs, this scenario is illustrative only and remains subject to lender assessment and market conditions.'
         : 'Your existing portfolio is compounding. Focus on the top actions below to unlock your next acquisition move.',
       isFirstNameResolved,
       monthlyTileEyebrow: isAcquisitionMode ? 'Surplus after acquisition' : 'Monthly surplus / gap',
@@ -950,7 +950,7 @@ export default function Dashboard({ session, subscription }) {
         ? 'Indicative'
         : incompleteSteps.length > 0
           ? 'Setup-based readiness'
-          : 'High confidence',
+          : 'Higher data completeness',
       topUnlockCopy,
       isExecutable: Boolean(
         capacityUseCaseCount > 0 ||
@@ -1236,7 +1236,7 @@ export default function Dashboard({ session, subscription }) {
                 value={`${dataCoveragePct}% complete`}
               />
               <StripMetric
-                label="Decision Confidence"
+                label="Decision basis"
                 value={
                   usingOnboardingSnapshot
                     ? snapshotConfidenceLabel
@@ -1416,11 +1416,11 @@ export default function Dashboard({ session, subscription }) {
                     ...((borrowingRenderState.state !== 'locked' &&
                       commandCenter.hero.borrowingPower.unlockPotential != null)
                       ? [{
-                          label: 'Unlock via card limits',
+                          label: 'Potential uplift from lower card limits',
                           value: formatCurrency(commandCenter.hero.borrowingPower.unlockPotential),
                           tone: 'text-green-600',
                         }, {
-                          label: 'Post-unlock total',
+                          label: 'Estimated capacity after change',
                           value: formatCurrency(
                             Number(commandCenter.hero.borrowingPower.currentCapacity || 0) +
                               Number(commandCenter.hero.borrowingPower.unlockPotential || 0)
@@ -1444,7 +1444,7 @@ export default function Dashboard({ session, subscription }) {
                       ? 'Indicative based on onboarding snapshot. Complete financial details for a fuller lender-grade view.'
                       : borrowingRenderState.state === 'warning'
                       ? 'Borrowing output is available, but confidence is reduced. Use the breakdown before acting.'
-                      : 'Additional borrowing headroom visible from your next best move'
+                      : 'Additional borrowing headroom under the current scenario'
                   }
                   warning={borrowingRenderState.warning}
                   confidence={borrowingRenderState.confidence}
@@ -1484,12 +1484,12 @@ export default function Dashboard({ session, subscription }) {
                     Actions
                   </p>
                   <h2 className="mt-2 text-2xl font-semibold text-gray-900">
-                    What to fix first
+                    Priority opportunities
                   </h2>
                   <p className="mt-2 text-sm leading-6 text-gray-600">
                     {usingOnboardingSnapshot
                       ? 'Indicative next steps based on your onboarding snapshot. Complete more detail to sharpen prioritisation.'
-                      : 'Ranked actions unlocked from validated portfolio, mortgage, and household inputs.'}
+                      : 'Ranked priorities based on validated portfolio, mortgage, and household inputs.'}
                   </p>
                 </div>
 
@@ -1597,10 +1597,10 @@ export default function Dashboard({ session, subscription }) {
                       Growth Scenario Studio
                     </p>
                     <h2 className="mt-2 text-[15px] font-medium text-[var(--color-text-primary)]">
-                      Stress-test every acquisition path
+                      Stress-test acquisition options
                     </h2>
                     <p className="mt-3 max-w-xl text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
-                      Explore multiple buy strategies, compare serviceability outcomes,
+                      Explore multiple acquisition options, compare serviceability outcomes,
                       and model your 30-year wealth trajectory using your real portfolio
                       data.
                     </p>

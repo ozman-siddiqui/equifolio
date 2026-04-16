@@ -184,7 +184,7 @@ export default function HeroDecisionCard({
   isFirstNameResolved = true,
   primaryCtaLabel = 'Explore scenarios',
   primaryCtaRoute = '/growth-scenarios',
-  confidenceChipLabel = 'High confidence',
+  confidenceChipLabel = 'Higher data completeness',
   topUnlockCopy = null,
   firstName = null,
   isExecutable = true,
@@ -224,6 +224,10 @@ export default function HeroDecisionCard({
     typeof acquisitionReadinessLabel === 'string' && acquisitionReadinessLabel
       ? acquisitionReadinessLabel
       : acquisitionReadinessData?.label ?? 'Getting close'
+  const acquisitionReadinessChipLabel =
+    acquisitionReadinessLabelValue === 'Ready to act'
+      ? 'Scenario readiness'
+      : acquisitionReadinessLabelValue
 
   const purchaseRangeDisplay =
     purchaseRangeLowNumber != null && purchaseRangeHighNumber != null
@@ -356,10 +360,10 @@ export default function HeroDecisionCard({
           rateImpactBorrowingDeltaNumber > 0 ? '+' : ''
         }${formatCurrency(rateImpactBorrowingDeltaNumber)}`
   const unlockSummaryDisplay =
-    unlockValueNumber != null ? `expands purchase range by +${unlockValueDisplay}` : 'Complete setup to unlock'
+    unlockValueNumber != null ? `may expand the modelled range by +${unlockValueDisplay}` : 'Complete setup to view the modelled change'
   const unlockStripDisplay =
     unlockValueNumber != null
-      ? `Reduce card limits → +${unlockValueDisplay} borrowing capacity`
+      ? `Sensitivity scenario: lower card limits may improve modelled borrowing capacity by ~${unlockValueDisplay}`
       : topUnlockCopy || 'Unavailable until setup complete'
   const hasScenarioData =
     purchaseRangeLowNumber != null &&
@@ -379,9 +383,9 @@ export default function HeroDecisionCard({
     return `${percentage}%`
   }
   const acquisitionSummaryCopy = isAcquisitionMode
-    ? 'Executable now.'
+    ? 'Possible under current assumptions.'
     : hasScenarioData
-      ? 'Building toward viability.'
+      ? 'Building toward an illustrative scenario.'
       : 'Setup in progress.'
   const acquisitionBreakdownRows = [
     {
@@ -479,7 +483,7 @@ export default function HeroDecisionCard({
   const acquisitionDifferenceDisplay = isAcquisitionMode
     && hasComparisonBaseline
     && acquisitionDifference != null
-    ? `${acquisitionDifference >= 0 ? '+' : '-'}${formatCurrency(Math.abs(acquisitionDifference))} target property equity by year 5`
+    ? `${acquisitionDifference >= 0 ? '+' : '-'}${formatCurrency(Math.abs(acquisitionDifference))} Year 5 target equity`
     : null
 
   useEffect(() => {
@@ -563,7 +567,7 @@ export default function HeroDecisionCard({
               </p>
               <div className="mt-4 flex flex-wrap items-center gap-2.5">
                 <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-700">
-                  {isAcquisitionMode ? 'Indicatively viable' : 'Building toward'}
+                  {isAcquisitionMode ? 'Illustrative scenario' : 'Building toward'}
                 </span>
                 <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600">
                   {confidenceChipLabel}
@@ -575,57 +579,75 @@ export default function HeroDecisionCard({
           <div className="mt-7 max-w-4xl">
             <h1 className="max-w-3xl text-[2.3rem] font-semibold leading-[1.06] tracking-[-0.04em] text-slate-950 max-[480px]:text-[2rem] md:text-[3.25rem]">
               {isAcquisitionMode
-                ? 'Buy 1 investment property'
+                ? 'Acquisition scenario range'
                 : !isFirstNameResolved
                   ? <span className="inline-block min-h-[1em]">&nbsp;</span>
                   : firstName
                   ? `${firstName}, here’s your next best move`
                   : 'Building toward your next acquisition'}
               {isAcquisitionMode ? (
-                <span className="mt-2 block">in the {purchaseRangeDisplay} range</span>
+                <span className="mt-2 block">{purchaseRangeDisplay}</span>
               ) : null}
             </h1>
             <p className="mt-5 max-w-2xl text-[1.05rem] leading-8 text-emerald-800">
               {subtitle ?? (isAcquisitionMode ? (
                 <>
-                  Based on current inputs, this pathway appears viable and illustrative - subject
+                  Based on current inputs, this scenario is illustrative only and remains subject
                   to lender assessment and market conditions.
                 </>
               ) : (
                 <>
-                  Your existing portfolio is compounding. Focus on the top actions below to unlock
-                  your next acquisition move.
+                  Your existing portfolio is compounding. Focus on the top scenario insights below
+                  to review your next acquisition pathway.
                 </>
               ))}
             </p>
           </div>
 
           {isAcquisitionMode && hasScenarioData ? (
-            <div className="mt-8 grid gap-3 min-[481px]:grid-cols-1 md:grid-cols-2 xl:grid-cols-3 max-[480px]:grid-cols-1">
-              <StatTile
-                eyebrow="Executable range"
-                value={executableRangeDisplay}
-                detail="Based on active acquisition scenario"
-                tone="highlight"
-                tooltip="Indicative property price range based on your current deposit position and borrowing capacity."
-              />
-              <StatTile
-                eyebrow="Target property equity (5Y)"
-                value={fiveYearEquityUpliftDisplay}
-                detail="At 6% annual growth"
-                tooltip="Estimated equity in the target property after 5 years, based on purchase price and assumed growth rate."
-              />
-              <StatTile
-                eyebrow={resolvedMonthlyTileEyebrow}
-                value={
-                  isAcquisitionMode
-                    ? postAcquisitionSurplusDisplay
-                    : monthlyHoldingCostDisplay
-                }
-                detail={resolvedMonthlyTileDetail}
-                tooltip="Projected monthly position after acquiring the target property, including estimated rental income minus loan repayments and holding costs."
-              />
-            </div>
+            <>
+              <div className="mt-8 grid gap-3 min-[481px]:grid-cols-1 md:grid-cols-2 xl:grid-cols-3 max-[480px]:grid-cols-1">
+                <StatTile
+                  eyebrow="Indicative scenario range"
+                  value={executableRangeDisplay}
+                  detail="Based on active acquisition scenario"
+                  tone="highlight"
+                  tooltip="Indicative property price range based on your current deposit position and borrowing capacity."
+                />
+                <StatTile
+                  eyebrow="Target property equity (5Y)"
+                  value={fiveYearEquityUpliftDisplay}
+                  detail="At 6% annual growth"
+                  tooltip="Estimated equity in the target property after 5 years, based on purchase price and assumed growth rate."
+                />
+                <StatTile
+                  eyebrow={resolvedMonthlyTileEyebrow}
+                  value={
+                    isAcquisitionMode
+                      ? postAcquisitionSurplusDisplay
+                      : monthlyHoldingCostDisplay
+                  }
+                  detail={resolvedMonthlyTileDetail}
+                  tooltip="Projected monthly position after acquiring the target property, including estimated rental income minus loan repayments and holding costs."
+                />
+              </div>
+              <p
+                style={{
+                  fontSize: '12px',
+                  color: 'rgba(255,255,255,0.4)',
+                  fontStyle: 'italic',
+                  maxWidth: '640px',
+                  lineHeight: 1.6,
+                  margin: '16px auto 0',
+                  textAlign: 'center',
+                }}
+              >
+                Nextiq provides portfolio modelling tools and general information only. Outputs
+                are illustrative and do not constitute personal financial advice, credit
+                advice, or a recommendation to buy, refinance, or apply for any financial
+                product or loan.
+              </p>
+            </>
           ) : null}
 
           {isAcquisitionMode && postAcquisitionBreakdownRows ? (
@@ -668,7 +690,7 @@ export default function HeroDecisionCard({
                 detail={
                   hasProjectionData
                     ? 'Based on current portfolio only'
-                    : 'Complete mortgage details to unlock 5Y projection'
+                    : 'Complete mortgage details to show the 5Y projection'
                 }
                 tooltip="Estimated portfolio equity in 5 years based on current property values, growth assumptions, and loan amortisation. Does not include future acquisitions."
               />
@@ -712,10 +734,10 @@ export default function HeroDecisionCard({
                   </p>
                   <p className="mt-0.5 text-sm text-slate-600">
                     {fixedRateExpiry.touchpoint === 'urgent'
-                      ? 'Action required — your rate is about to revert. Review your options now.'
+                      ? 'Fixed-rate expiry approaching. Review timing and available options.'
                       : fixedRateExpiry.touchpoint === 'decision'
-                      ? 'Time to decide — compare refinancing vs reverting to variable.'
-                      : 'Your fixed rate is approaching expiry. Start reviewing your options.'}
+                      ? 'Time to review — compare refinance scenarios with a reversion to variable.'
+                      : 'Your fixed rate is approaching expiry. Start reviewing available options.'}
                   </p>
                 </div>
                 <div className="text-right flex-shrink-0">
@@ -1024,8 +1046,6 @@ export default function HeroDecisionCard({
               <span className="mr-2 inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 align-middle" />
               Next upgrade: reduce credit card limits →
               <span className="font-semibold"> {unlockSummaryDisplay}</span>
-              <br />
-              without changing your executable path today.
             </p>
           </div>
         </div>
@@ -1033,7 +1053,7 @@ export default function HeroDecisionCard({
         <aside className="flex flex-col gap-4">
           <div className="rounded-[2rem] border border-emerald-700/90 bg-[linear-gradient(180deg,#12403b_0%,#0f3d38_100%)] px-5 py-4 text-white shadow-[0_30px_80px_-38px_rgba(6,78,59,0.72)]">
             <p className="text-[1.35rem] font-semibold tracking-tight">
-              {isExecutableScenario ? 'Deploy this strategy' : 'Unlock your next move'}
+              {isExecutableScenario ? 'Review this scenario' : 'Review your next scenario'}
             </p>
             <button
               type="button"
@@ -1055,14 +1075,14 @@ export default function HeroDecisionCard({
 
           <div className="rounded-[2rem] border border-emerald-200/80 bg-white p-5 shadow-[0_22px_54px_-42px_rgba(16,185,129,0.34)]">
             <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-              Acquisition position
+              Scenario position
             </p>
             <div className="mt-4 flex items-center justify-between gap-3">
               <p className="text-[2.3rem] font-semibold tracking-tight text-slate-950">
                 {acquisitionReadinessScoreDisplay}
               </p>
               <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-                {acquisitionReadinessLabelValue}
+                {acquisitionReadinessChipLabel}
               </span>
             </div>
             <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-emerald-50">
@@ -1096,7 +1116,7 @@ export default function HeroDecisionCard({
                 >
                   <div className="mt-4 border-t border-[rgba(0,0,0,0.08)] pt-4">
                     <p className="text-[11px] leading-[1.5] text-slate-500">
-                      Your acquisition position is derived from the key criteria below.
+                      Your scenario position is derived from the key criteria below.
                     </p>
                     {acquisitionBreakdownRows.length > 0 ? (
                       <div className="mt-3 divide-y divide-[rgba(0,0,0,0.06)]">
@@ -1130,16 +1150,16 @@ export default function HeroDecisionCard({
             className="rounded-[12px] border px-[14px] py-[10px]"
             style={{ backgroundColor: '#f4faf7', borderColor: '#c8e8dc', color: '#085041' }}
           >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Top unlock</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Top scenario insight</p>
             <p className="mt-1 text-[12px] leading-5">
               {unlockStripDisplay}
             </p>
           </div>
 
           <p className="px-2 text-center text-xs leading-6 text-slate-400">
-            Illustrative only.
-            <br />
-            Not financial advice.
+            Nextiq provides portfolio modelling tools and general information only. Outputs are
+            illustrative and do not constitute personal financial advice, credit advice, or a
+            recommendation to buy, refinance, or apply for any financial product or loan.
           </p>
         </aside>
       </div>

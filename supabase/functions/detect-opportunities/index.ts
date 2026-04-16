@@ -50,7 +50,7 @@ function buildFallbackNarrative({
   monthlySaving: number
   annualSaving: number
 }) {
-  return `Your current rate of ${currentRate}% appears above recent market benchmarks near ${benchmarkRate}%. Refinancing may improve cash flow by approximately $${Math.round(monthlySaving)}/month ($${Math.round(annualSaving)}/year). Consider discussing your options with a licensed mortgage broker.`
+  return `Your current rate of ${currentRate}% appears above recent market benchmarks near ${benchmarkRate}%. This refinance scenario indicates a repayment difference of about $${Math.round(monthlySaving)}/month ($${Math.round(annualSaving)}/year). Consider discussing your options with a licensed mortgage broker.`
 }
 
 async function generateNarrative({
@@ -413,7 +413,7 @@ serve(async (req: Request) => {
         100,
         Math.round(annualSaving / 100 + (18 - breakEvenMonths) * 2)
       )
-      const title = `Refinance opportunity for ${property.address || 'this property'}`
+      const title = `Refinance scenario for ${property.address || 'this property'}`
 
       const { error: insertError } = await supabase.from('ai_opportunities').insert({
         user_id: userId,

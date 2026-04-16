@@ -35,7 +35,7 @@ export default function PropertyCard({
         ? 'Negative cash flow'
         : status === 'Opportunity'
           ? 'Optimisation available'
-          : 'Position looks stable'
+          : 'Position appears stable'
 
   return (
     <article className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] p-[18px] shadow-[0_10px_24px_rgba(15,23,42,0.04)]">

@@ -254,7 +254,7 @@ export default function Alerts() {
             <MetricCard
               label="Urgent"
               value={urgentAlerts.length}
-              helper="Action required within 30 days"
+              helper="Review within 30 days"
               valueClassName={urgentAlerts.length > 0 ? 'text-red-500' : 'text-gray-900'}
             />
             <MetricCard
@@ -334,7 +334,7 @@ export default function Alerts() {
             {stableSignals.length === 0 ? (
               <EmptyState
                 title="No informational signals yet"
-                description="Add more portfolio data to unlock broader alert context."
+                description="Add more portfolio data to show broader alert context."
                 compact
               />
             ) : (

@@ -987,7 +987,7 @@ function buildStrategyScenario({
       : scenarioState === 'blocked'
         ? blockedExplanation ||
           'This path is not currently executable under realistic market and funding assumptions.'
-        : 'This strategy is currently executable under the stored assumptions.'
+        : 'This scenario currently fits the stored assumptions.'
 
   return {
     id,
@@ -1184,10 +1184,10 @@ export default function buildPortfolioGrowthScenarios({
 
   if (borrowingCapacity < mergedConfig.minimumBorrowingThreshold || currentSurplus < 0) {
     viabilityState = 'NOT_READY'
-    viabilityMessage = 'Your current position is not suitable for acquisition yet'
+    viabilityMessage = 'Your current inputs do not yet support this acquisition scenario under the present assumptions'
   } else if (totalDeployableCapital < minimumCapitalForAcquisition) {
     viabilityState = 'CONSTRAINED'
-    viabilityMessage = 'Lower-cost market or improve capital first'
+    viabilityMessage = 'A lower-cost market or stronger capital position may be needed first'
   }
 
   const confidenceInputs = [
@@ -1203,7 +1203,7 @@ export default function buildPortfolioGrowthScenarios({
 
   const largerPropertyScenario = buildStrategyScenario({
     id: 'larger-property',
-    title: 'Buy 1 larger property',
+    title: 'Scenario A: one larger property',
     strategyType: 'larger_property',
     riskMode: 'growth',
     propertyCount: 1,
@@ -1229,7 +1229,7 @@ export default function buildPortfolioGrowthScenarios({
 
   const twoPropertyScenario = buildStrategyScenario({
     id: 'two-smaller-properties',
-    title: 'Buy 2 smaller properties',
+    title: 'Scenario B: two smaller properties',
     strategyType: 'two_smaller_properties',
     riskMode: 'balanced',
     propertyCount: 2,
