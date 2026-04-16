@@ -166,7 +166,7 @@ export default function Mortgages({ session = null }) {
         if (!profile) {
           setFinancialPrompt({
             tone: 'primary',
-            message: 'Add your financial profile to unlock more accurate refinance and borrowing insights',
+            message: 'Add your financial profile to show more accurate refinance and borrowing insights',
             cta: 'Complete Financials',
           })
           return
@@ -607,7 +607,7 @@ export default function Mortgages({ session = null }) {
               <h2 className="text-[15px] font-medium text-[var(--color-text-primary)]">Portfolio ranking</h2>
             </div>
             <p className="mt-2 text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
-              Loans are ranked by recommendation strength, savings impact, confidence, and break-even speed.
+              Loans are ranked by modelled opportunity strength, savings impact, confidence, and break-even speed.
             </p>
           </div>
 

@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
+import { Wallet, Target, PiggyBank, LineChart } from 'lucide-react'
 
 const faqItems = [
   {
     q: 'What is Nextiq?',
-    a: 'Nextiq is an intelligent property portfolio platform built for Australian investors with 1 to 5 properties. It brings your properties, loans, cash flow, and household financials into one place, then helps you understand your real position, find opportunities to save money, and decide confidently whether you can buy your next property.',
+    a: 'Nextiq is an intelligent property portfolio platform built for Australian investors with 1 to 5 properties. It brings your properties, loans, cash flow, and household financials into one place, then helps you understand your real position, identify potential savings opportunities, and review what the model suggests for your next property scenario.',
   },
   {
     q: 'Is Nextiq financial advice?',
@@ -74,7 +75,7 @@ const pricingPlans = [
     description:
       'For serious investors building wealth.',
     features: investorFeatures,
-    cta: 'Start 14-day free trial →',
+    cta: 'Start 14-day free trial ->',
     featured: true,
   },
   {
@@ -214,7 +215,7 @@ function Landing() {
 
         <p className="mx-auto mb-11 max-w-xl text-lg leading-relaxed md:text-xl" style={{ color: 'rgba(255,255,255,0.48)' }}>
           Track every property, loan, and dollar. Understand your real financial position. Spot
-          opportunities to save money before they pass you by.
+          potential savings opportunities before they pass you by.
         </p>
 
         <div className="mb-5 flex flex-col justify-center gap-3 sm:flex-row">
@@ -223,7 +224,7 @@ function Landing() {
             className="rounded-xl px-9 py-4 text-base font-extrabold no-underline"
             style={{ background: '#19C37D', color: '#071C17' }}
           >
-            Start free trial →
+            {'Start free trial ->'}
           </a>
           <a
             href="#how-it-works"
@@ -239,7 +240,7 @@ function Landing() {
         </div>
 
         <p className="mb-14 text-xs tracking-wide" style={{ color: 'rgba(255,255,255,0.2)' }}>
-          No credit card required · Australian-built · Cancel anytime
+          No credit card required | Australian-built | Cancel anytime
         </p>
 
         <div className="relative mx-auto max-w-5xl">
@@ -251,11 +252,11 @@ function Landing() {
               boxShadow: '0 6px 24px rgba(25,195,125,0.45)',
             }}
           >
-            96% Ready to act
+            96% Scenario readiness
           </div>
           <img
-            src="/screenshots/hero-dashboard.webp"
-            alt="Nextiq dashboard showing acquisition readiness and investment property purchase range"
+            src="/screenshots/hero-dashboard-1604.webp"
+            alt="Nextiq dashboard showing scenario readiness and indicative investment-property range"
             loading="eager"
             className="w-full rounded-t-3xl"
             style={{
@@ -360,7 +361,7 @@ function Landing() {
                 className="w-10 h-10 rounded-2xl flex items-center justify-center mb-4 text-lg"
                 style={{ background: '#E8F6EF', color: '#085041' }}
               >
-                ◈
+                <Wallet size={20} strokeWidth={2.75} />
               </div>
               <h3 className="text-base font-bold mb-2" style={{ color: '#0F172A' }}>
                 True equity position
@@ -381,16 +382,16 @@ function Landing() {
                 className="w-10 h-10 rounded-2xl flex items-center justify-center mb-4 text-lg"
                 style={{ background: '#E8F6EF', color: '#085041' }}
               >
-                ⊕
+                <Target size={20} strokeWidth={2.75} />
               </div>
               <h3 className="text-base font-bold mb-2" style={{ color: '#0F172A' }}>
                 Next acquisition range
               </h3>
               <p className="text-sm leading-relaxed mb-5" style={{ color: '#475569' }}>
-                Know what you can realistically buy next using lender-grade serviceability rules.
+                Review the property range the model currently indicates using lender-style serviceability rules.
               </p>
               <p className="text-xs font-bold" style={{ color: '#19C37D' }}>
-                $523k to $605k executable
+                $523k to $605k indicated
               </p>
             </div>
 
@@ -402,7 +403,7 @@ function Landing() {
                 className="w-10 h-10 rounded-2xl flex items-center justify-center mb-4 text-lg"
                 style={{ background: '#E8F6EF', color: '#085041' }}
               >
-                ◎
+                <PiggyBank size={20} strokeWidth={2.75} />
               </div>
               <h3 className="text-base font-bold mb-2" style={{ color: '#0F172A' }}>
                 Money leak detection
@@ -424,7 +425,7 @@ function Landing() {
                 className="w-10 h-10 rounded-2xl flex items-center justify-center mb-4 text-lg"
                 style={{ background: '#E8F6EF', color: '#085041' }}
               >
-                ◬
+                <LineChart size={20} strokeWidth={2.75} />
               </div>
               <h3 className="text-base font-bold mb-2" style={{ color: '#0F172A' }}>
                 Long-term wealth path
@@ -440,7 +441,313 @@ function Landing() {
         </div>
       </section>
 
-      <section
+      {/* Case Study Section */}
+      <section style={{ background: '#0A0F0D', padding: 'clamp(80px, 10vw, 120px) 24px' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+
+          <div style={{ textAlign: 'center', marginBottom: '72px' }}>
+            <p style={{
+              fontSize: '11px',
+              fontWeight: 500,
+              letterSpacing: '0.2em',
+              textTransform: 'uppercase',
+              color: '#1D9E75',
+              marginBottom: '20px'
+            }}>
+              Real Portfolio Snapshot | Sydney, Australia
+            </p>
+
+            <h2 style={{
+              fontSize: 'clamp(32px, 5vw, 52px)',
+              fontWeight: 500,
+              letterSpacing: '-1.5px',
+              lineHeight: 1.1,
+              color: 'white',
+              maxWidth: '800px',
+              margin: '0 auto 24px'
+            }}>
+              What the model surfaced in one session
+            </h2>
+
+            <p style={{
+              fontSize: '18px',
+              lineHeight: 1.7,
+              color: 'rgba(255,255,255,0.5)',
+              maxWidth: '560px',
+              margin: '0 auto'
+            }}>
+              A real investor portfolio. Three signals that were not being
+              tracked in spreadsheets. All surfaced in the first session.
+            </p>
+          </div>
+
+          <div style={{
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '28px',
+            padding: 'clamp(40px, 6vw, 72px)',
+            background: 'rgba(255,255,255,0.03)',
+            marginBottom: '24px'
+          }}>
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+              marginBottom: '48px',
+              paddingBottom: '48px',
+              borderBottom: '1px solid rgba(255,255,255,0.08)'
+            }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '14px',
+                background: 'rgba(29,158,117,0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <div style={{
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '50%',
+                  background: '#1D9E75'
+                }} />
+              </div>
+
+              <div>
+                <p style={{
+                  fontSize: '15px',
+                  fontWeight: 500,
+                  color: 'white',
+                  marginBottom: '4px'
+                }}>
+                  Real investor portfolio snapshot
+                </p>
+
+                <p style={{
+                  fontSize: '13px',
+                  color: 'rgba(255,255,255,0.4)'
+                }}>
+                  8 properties | $13.5M gross portfolio | Based on an anonymised live beta portfolio
+                </p>
+              </div>
+            </div>
+
+            <p style={{
+              fontSize: 'clamp(16px, 2vw, 20px)',
+              lineHeight: 1.75,
+              color: 'rgba(255,255,255,0.6)',
+              fontWeight: 400,
+              marginBottom: '48px',
+              maxWidth: '760px'
+            }}>
+              In one session, Nextiq surfaced three portfolio signals that were
+              not being tracked in spreadsheets.
+            </p>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+              gap: '16px',
+              marginBottom: '56px'
+            }}>
+
+              <div style={{
+                padding: '32px',
+                borderRadius: '20px',
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.07)'
+              }}>
+                <p style={{
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  letterSpacing: '0.15em',
+                  textTransform: 'uppercase',
+                  color: '#1D9E75',
+                  marginBottom: '16px'
+                }}>
+                  Signal 01 - Money leak
+                </p>
+
+                <p style={{
+                  fontSize: 'clamp(36px, 5vw, 48px)',
+                  fontWeight: 500,
+                  letterSpacing: '-2px',
+                  color: 'white',
+                  lineHeight: 1,
+                  marginBottom: '12px'
+                }}>
+                  $589
+                  <span style={{
+                    fontSize: '16px',
+                    fontWeight: 400,
+                    color: 'rgba(255,255,255,0.4)',
+                    marginLeft: '6px'
+                  }}>
+                    /mo
+                  </span>
+                </p>
+
+                <p style={{
+                  fontSize: '14px',
+                  lineHeight: 1.6,
+                  color: 'rgba(255,255,255,0.5)'
+                }}>
+                  In portfolio leakage identified across loans and cash flow.
+                </p>
+              </div>
+
+              <div style={{
+                padding: '32px',
+                borderRadius: '20px',
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.07)'
+              }}>
+                <p style={{
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  letterSpacing: '0.15em',
+                  textTransform: 'uppercase',
+                  color: '#1D9E75',
+                  marginBottom: '16px'
+                }}>
+                  Signal 02 - Rate expiry
+                </p>
+
+                <p style={{
+                  fontSize: 'clamp(36px, 5vw, 48px)',
+                  fontWeight: 500,
+                  letterSpacing: '-2px',
+                  color: 'white',
+                  lineHeight: 1,
+                  marginBottom: '12px'
+                }}>
+                  47
+                  <span style={{
+                    fontSize: '16px',
+                    fontWeight: 400,
+                    color: 'rgba(255,255,255,0.4)',
+                    marginLeft: '6px'
+                  }}>
+                    days
+                  </span>
+                </p>
+
+                <p style={{
+                  fontSize: '14px',
+                  lineHeight: 1.6,
+                  color: 'rgba(255,255,255,0.5)'
+                }}>
+                  Until two fixed rates were due to expire with no loan review plan in place.
+                </p>
+              </div>
+
+              <div style={{
+                padding: '32px',
+                borderRadius: '20px',
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.07)'
+              }}>
+                <p style={{
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  letterSpacing: '0.15em',
+                  textTransform: 'uppercase',
+                  color: '#1D9E75',
+                  marginBottom: '16px'
+                }}>
+                  Signal 03 - Scenario readiness
+                </p>
+
+                <p style={{
+                  fontSize: 'clamp(36px, 5vw, 48px)',
+                  fontWeight: 500,
+                  letterSpacing: '-2px',
+                  color: 'white',
+                  lineHeight: 1,
+                  marginBottom: '12px'
+                }}>
+                  $340K
+                </p>
+
+                <p style={{
+                  fontSize: '14px',
+                  lineHeight: 1.6,
+                  color: 'rgba(255,255,255,0.5)'
+                }}>
+                  In capital position quantified for the first time.
+                </p>
+              </div>
+
+            </div>
+
+            <div style={{
+              borderTop: '1px solid rgba(255,255,255,0.08)',
+              paddingTop: '40px',
+              textAlign: 'center'
+            }}>
+              <p style={{
+                fontSize: '13px',
+                fontWeight: 500,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: 'rgba(255,255,255,0.25)',
+                textAlign: 'center',
+                marginBottom: '32px'
+              }}>
+                Scenario-ready without spreadsheet guesswork
+              </p>
+              <p style={{
+                fontSize: 'clamp(20px, 3vw, 28px)',
+                fontWeight: 500,
+                letterSpacing: '-0.5px',
+                color: 'white',
+                lineHeight: 1.4
+              }}>
+                He had been ready for 6 months.
+                <span style={{ color: '#1D9E75' }}> Without knowing it.</span>
+              </p>
+
+              <a
+                href="/auth"
+                style={{
+                  display: 'inline-block',
+                  marginTop: '32px',
+                  padding: '16px 32px',
+                  borderRadius: '14px',
+                  background: '#1D9E75',
+                  color: 'white',
+                  textDecoration: 'none',
+                  fontWeight: 500,
+                  fontSize: '15px',
+                  letterSpacing: '-0.2px'
+                }}
+              >
+                Review what the model is surfacing
+              </a>
+            </div>
+
+          </div>
+
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '16px',
+            paddingTop: '16px'
+          }}>
+            <p style={{
+              fontSize: '14px',
+              color: 'rgba(255,255,255,0.35)',
+              textAlign: 'center'
+            }}>
+              Numbers are real. Identity is anonymised with permission.
+            </p>
+          </div>
+
+        </div>
+      </section>      <section
         id="features"
         className="px-6 py-20 md:px-10 lg:px-14"
         style={{
@@ -458,18 +765,18 @@ function Landing() {
               AI-Powered Intelligence
             </div>
             <h2 className="mb-4 text-4xl font-extrabold leading-tight tracking-tight text-white md:text-5xl">
-              Know what every RBA move means for <span style={{ color: '#19C37D' }}>your</span>{' '}
+              See what every RBA move means for <span style={{ color: '#19C37D' }}>your</span>{' '}
               portfolio
             </h2>
             <p className="mb-7 text-lg leading-relaxed md:text-xl" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              Before the market noise settles, Nextiq shows the exact dollar impact on each of your
+              Before the market noise settles, Nextiq shows the estimated dollar impact on each of your
               loans, property by property, delivered to your inbox the same day.
             </p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               {[
-                ['Your monthly impact', '+$257/mo', '#EF4444'],
+                ['Your monthly impact', '+$256/mo', '#EF4444'],
                 ['Properties monitored', '2 properties', '#FFFFFF'],
-                ['Rate change tracked', '4% to 4.25%', '#FFFFFF'],
+                ['Rate change tracked', '3.85% to 4.1%', '#FFFFFF'],
               ].map(([label, value, color]) => (
                 <div
                   key={label}
@@ -499,21 +806,21 @@ function Landing() {
                 MARKET UPDATE
               </div>
               <h3 className="mb-1 text-lg font-bold text-slate-900">
-                RBA move may increase your repayments by $257 per month
+                RBA move may increase your repayments by $256 per month
               </h3>
-              <p className="mb-4 text-sm text-slate-400">Cash rate moved from 4% to 4.25%</p>
+              <p className="mb-4 text-sm text-slate-400">Cash rate moved from 3.85% to 4.1%</p>
               <p
                 className="border-l-4 pl-4 text-sm italic leading-7 text-slate-700"
                 style={{ borderColor: '#19C37D' }}
               >
-                Your variable loan repayments will increase by approximately $257 per month across
+                Your variable loan repayments will increase by approximately $256 per month across
                 both properties, with Ingleburn Gardens Drive now costing around $4,680 monthly and
                 Barley Street approximately $3,610 monthly. Review refinancing opportunities
                 immediately.
               </p>
               <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
                 {[
-                  ['Monthly impact', '+$257/mo', '#EF4444'],
+                  ['Monthly impact', '+$256/mo', '#EF4444'],
                   ['Barley Street', '$3,610/mo', '#0F172A'],
                   ['Ingleburn Gardens Drive', '$4,680/mo', '#0F172A'],
                 ].map(([label, value, color]) => (
@@ -527,7 +834,7 @@ function Landing() {
               </div>
             </div>
             <img
-              src="/screenshots/rba-intelligence-updated.webp"
+              src="/screenshots/rba-intelligence-1604-final.webp"
               alt="Nextiq RBA intelligence card showing personalised rate impact by property address"
               loading="lazy"
               className="mt-5 w-full rounded-2xl"
@@ -538,7 +845,7 @@ function Landing() {
 
       <section id="how-it-works" className="bg-white px-6 py-20 md:px-10 lg:px-14">
         <div className="mx-auto max-w-5xl">
-          <SectionBadge>Money Saving Engine</SectionBadge>
+          <SectionBadge>Cash Flow & Savings Modelling</SectionBadge>
           <h2 className="mb-4 mt-5 text-4xl font-extrabold leading-tight tracking-tight md:text-5xl">
             Built to find money you didn&apos;t know you were losing
           </h2>
@@ -559,7 +866,7 @@ function Landing() {
                 START HERE
               </div>
               <h3 className="mb-2 text-base font-bold leading-snug text-slate-900">
-                Unlock $39,016 in borrowing capacity by reducing credit card limits
+                Reducing credit card limits may improve modelled borrowing capacity by $39,016
               </h3>
               <p className="text-sm leading-relaxed text-slate-500">
                 Even unused limits reduce your borrowing capacity. Lenders count the full limit
@@ -610,7 +917,7 @@ function Landing() {
           </div>
 
           <img
-            src="/screenshots/refinance-card-updated.webp"
+            src="/screenshots/refinance-card-1604.webp"
             alt="Nextiq refinance opportunity showing $3,540 annual saving"
             loading="lazy"
             className="mb-5 w-full rounded-xl"
@@ -660,7 +967,7 @@ function Landing() {
       <section className="px-6 py-20 md:px-10 lg:px-14" style={{ background: '#F6FBF8' }}>
         <div className="mx-auto grid max-w-5xl grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-13">
           <div>
-            <SectionBadge>Decision Engine</SectionBadge>
+            <SectionBadge>Scenario Modelling Engine</SectionBadge>
             <h2 className="mb-4 mt-5 text-4xl font-extrabold leading-tight tracking-tight md:text-5xl">
               Know what you can do next, before you commit
             </h2>
@@ -670,9 +977,9 @@ function Landing() {
             </p>
             <div className="mt-6 flex flex-col gap-5">
               {[
-                ['💡', 'Can I buy now?', 'A clear yes or no, with the exact price range you can safely target today.'],
-                ['💰', 'What deposit do I need?', 'Available capital versus required. See whether you clear the upfront hurdle.'],
-                ['📈', 'What happens after I buy?', 'Cash flow, surplus impact, and 10-year equity trajectory modelled before you commit.'],
+                ['1', 'What range does the current model indicate?', 'A clear yes or no, with the exact price range you can safely target today.'],
+                ['2', 'How much upfront capital is currently modelled?', 'Available capital versus required. See whether you clear the upfront hurdle.'],
+                ['3', 'What does the model show post-acquisition?', 'Cash flow, surplus impact, and 10-year equity trajectory modelled before you commit.'],
               ].map(([icon, title, body]) => (
                 <div key={title} className="flex items-start gap-4">
                   <div
@@ -752,7 +1059,7 @@ function Landing() {
                 </div>
               </div>
               <div className="rounded-xl bg-slate-50 p-4 text-center">
-                <div className="mb-1 text-xs text-slate-400">Buy now</div>
+                <div className="mb-1 text-xs text-slate-400">Purchase scenario</div>
                 <div className="text-lg font-extrabold" style={{ color: '#EF4444' }}>
                   -$25k/yr
                 </div>
@@ -771,12 +1078,12 @@ function Landing() {
                 className="inline-flex w-fit flex-shrink-0 rounded-full px-3.5 py-1.5 text-xs font-extrabold"
                 style={{ background: '#19C37D', color: '#071C17' }}
               >
-                Viable now
+                Possible under current assumptions
               </span>
             </div>
 
             <img
-              src="/screenshots/execution-readiness.webp"
+              src="/screenshots/execution-readiness-1604.webp"
               alt="Nextiq execution readiness showing available versus required capital"
               loading="lazy"
               className="mt-4 w-full rounded-xl"
@@ -857,14 +1164,14 @@ function Landing() {
               className="inline-flex rounded-full px-3 py-1 text-xs font-semibold"
               style={{ background: '#E8F6EF', color: '#085041' }}
             >
-              +$39,016 unlock available
+              +$39,016 modelled improvement available
             </div>
             <div className="mb-1 mt-4 flex justify-between text-sm text-slate-600">
-              <span>Unlock via card limits</span>
+              <span>Modelled improvement via lower card limits</span>
               <span style={{ color: '#19C37D' }}>$39,016</span>
             </div>
             <div className="mb-1 flex justify-between text-sm text-slate-600">
-              <span>Post-unlock total</span>
+              <span>Modelled total after sensitivity change</span>
               <span style={{ color: '#19C37D' }}>$712,954</span>
             </div>
             <div className="flex justify-between text-sm text-slate-600">
@@ -903,7 +1210,7 @@ function Landing() {
           className="mx-auto mt-0 block w-full max-w-5xl rounded-2xl"
         />
         <img
-          src="/screenshots/fixed-rate-alert-updated.webp"
+          src="/screenshots/fixed-rate-alert-1604.webp"
           alt="Nextiq fixed rate expiry alert strip"
           loading="lazy"
           className="mx-auto mt-3 block w-full max-w-5xl rounded-xl"
@@ -967,7 +1274,7 @@ function Landing() {
                       className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-extrabold"
                       style={{ background: '#E8F6EF', color: '#19C37D' }}
                     >
-                      ✓
+                      +
                     </span>
                     {feature}
                   </li>
@@ -1033,7 +1340,7 @@ function Landing() {
                       className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-extrabold"
                       style={{ background: '#E8F6EF', color: '#19C37D' }}
                     >
-                      ✓
+                      +
                     </span>
                     {feature}
                   </li>
@@ -1091,7 +1398,7 @@ function Landing() {
                       className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-extrabold"
                       style={{ background: '#E8F6EF', color: '#19C37D' }}
                     >
-                      ✓
+                      +
                     </span>
                     {feature}
                   </li>
@@ -1181,10 +1488,10 @@ function Landing() {
           className="inline-flex rounded-xl px-10 py-5 text-lg font-extrabold no-underline"
           style={{ background: '#19C37D', color: '#071C17' }}
         >
-          Start free trial →
+          {'Start free trial ->'}
         </a>
         <p className="mt-5 text-xs tracking-wide" style={{ color: 'rgba(255,255,255,0.18)' }}>
-          No credit card required · Cancel anytime · Australian-built
+          No credit card required | Cancel anytime | Australian-built
         </p>
       </section>
 
@@ -1227,7 +1534,7 @@ function Landing() {
                 }}
               >
                 <span className="h-[5px] w-[5px] rounded-full" style={{ background: '#19C37D' }} />
-                Australian-built · RBA-aware
+                Australian-built | RBA-aware
               </div>
             </div>
 
@@ -1290,7 +1597,7 @@ function Landing() {
             style={{ borderColor: 'rgba(255,255,255,0.06)' }}
           >
             <div style={{ color: 'rgba(255,255,255,0.2)' }}>
-              © 2026 Nextiq. All rights reserved. Australian-built for Australian property
+              &copy; 2026 Nextiq. All rights reserved. Australian-built for Australian property
               investors.
             </div>
             <div className="flex gap-5">
@@ -1313,6 +1620,12 @@ function Landing() {
 }
 
 export default Landing
+
+
+
+
+
+
 
 
 

@@ -262,7 +262,7 @@ export default function PropertyDetail() {
     if (fixedExpiringSoon) {
       insights.push({
         type: 'warning',
-        text: `${fixedExpiringSoon.lender} fixed rate is expiring soon. Refinance review should start now.`,
+        text: `${fixedExpiringSoon.lender} fixed rate is expiring soon. Review upcoming loan expiry timing and options.`,
       })
     }
 
@@ -312,7 +312,7 @@ export default function PropertyDetail() {
       actions.push({
         icon: 'risk',
         title: 'Prioritise fixed-rate expiry review',
-        description: `${fixedExpiringSoon.lender} fixed rate is expiring soon. Review refinance timing now.`,
+        description: `${fixedExpiringSoon.lender} fixed rate is expiring soon. Review expiry timing and available options.`,
         tone: { bg: 'bg-amber-50', text: 'text-amber-600' },
         onClick: () => {
           mortgageSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })

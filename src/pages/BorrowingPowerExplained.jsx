@@ -110,7 +110,7 @@ export default function BorrowingPowerExplained() {
               value={formatMaybeCurrency(analysis.borrowing_power_estimate)}
             />
             <SummaryMetric
-              label="Unlock potential"
+              label="Potential modelled improvement"
               value={unlockPotential > 0 ? formatCurrency(unlockPotential) : '—'}
             />
             <SummaryMetric
@@ -122,6 +122,19 @@ export default function BorrowingPowerExplained() {
               value={formatMaybeCurrency(analysis.net_monthly_surplus, '/month')}
             />
           </div>
+          <p
+            style={{
+              fontSize: '12px',
+              color: '#6B7280',
+              fontStyle: 'italic',
+              maxWidth: '640px',
+              lineHeight: 1.6,
+              margin: '16px auto 0',
+              textAlign: 'center',
+            }}
+          >
+            Nextiq provides portfolio modelling tools and general information only. Outputs are illustrative and do not constitute personal financial advice, credit advice, or a recommendation to buy, refinance, or apply for any financial product or loan.
+          </p>
         </SectionCard>
 
         <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
@@ -247,7 +260,7 @@ export default function BorrowingPowerExplained() {
                 helper="The amount of additional debt the current surplus can support under the assessment rate."
               />
               <MetricRow
-                label="Unlock potential"
+              label="Potential modelled improvement"
                 value={unlockPotential > 0 ? formatCurrency(unlockPotential) : '—'}
                 helper="Potential uplift from the strongest currently identified borrowing improvement action."
               />
@@ -302,7 +315,7 @@ export default function BorrowingPowerExplained() {
 
           <SectionCard
             eyebrow="Actions"
-            title="What to do next"
+            title="What to review next"
             description="The next actions most likely to improve borrowing power, serviceability, or lender confidence."
           >
             <div className="grid grid-cols-1 gap-4">

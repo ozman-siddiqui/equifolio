@@ -175,7 +175,7 @@ export function buildOnboardingSnapshotCommandCenter(snapshot = null) {
   ].filter((value) => String(value ?? '').trim() !== '').length
 
   const decisionConfidence =
-    fieldsPresent >= 6 ? 'High' : fieldsPresent >= 3 ? 'Medium' : 'Low'
+    fieldsPresent >= 6 ? 'Strong data coverage' : fieldsPresent >= 3 ? 'Moderate data coverage' : 'Limited data coverage'
   const confidenceLabel =
     fieldsPresent >= 6
       ? 'Indicative based on onboarding snapshot'
@@ -201,14 +201,14 @@ export function buildOnboardingSnapshotCommandCenter(snapshot = null) {
     unlockPotential
       ? createAction({
           id: 'snapshot-reduce-credit-limits',
-          title: `Reduce credit card limits to unlock ${formatCurrency(unlockPotential)}`,
+          title: `Reduce credit card limits to support a modelled improvement of ${formatCurrency(unlockPotential)}`,
           route: '/financials',
           priority: 88,
           category: 'Borrowing',
           effort: 'Low',
           confidence: decisionConfidence,
           problem: 'Card limits reduce serviceability even when balances are low.',
-          whyItMatters: 'Lowering limits can free up borrowing capacity immediately.',
+          whyItMatters: 'Lowering limits may improve modelled borrowing capacity under lender-style servicing assumptions.',
           borrowingLift: unlockPotential,
           kind: 'borrowing',
           actionClass: 'DIRECT_FINANCIAL',
@@ -258,7 +258,7 @@ export function buildOnboardingSnapshotCommandCenter(snapshot = null) {
       monthlyPosition: {
         propertyCashFlow: Math.round(rentPerMonth - monthlyRepayment),
         householdSurplus: Math.round(householdSurplus),
-        subtitle: 'Add income, expenses and liabilities to unlock your monthly position.',
+        subtitle: 'Add income, expenses and liabilities to improve your modelled monthly position.',
         cta: { label: 'Complete cash flow', route: '/cashflow' },
       },
       borrowingPower: {
@@ -320,7 +320,7 @@ export function buildOnboardingSnapshotCommandCenter(snapshot = null) {
     topActionSummaries: topActions.map((action, index) => ({
       id: action.id,
       rank: index + 1,
-      sequenceLabel: index === 0 ? 'Start here' : 'Next priority',
+      sequenceLabel: index === 0 ? 'Priority 1' : 'Priority 2',
       reason: action.whyItMatters,
       title: action.title,
       priority: action.priorityLabel,
@@ -380,8 +380,8 @@ function normalizeActionType(action) {
 }
 
 function getActionSequenceLabel(rank) {
-  if (rank === 1) return 'Start here'
-  if (rank === 2) return 'Next priority'
+  if (rank === 1) return 'Priority 1'
+  if (rank === 2) return 'Priority 2'
   return 'Then consider'
 }
 
@@ -544,7 +544,7 @@ function buildSetupAction({ id, title, impact, route, priority }) {
     effort: 'Low',
     confidence: 'High',
     problem: 'Key data is still missing from the decision layer.',
-    whyItMatters: 'Without it, Vaulta cannot show a lender-grade or portfolio-grade recommendation.',
+    whyItMatters: 'Without it, Nextiq cannot show a lender-grade or portfolio-grade modelled outcome.',
     impactLabel: impact,
     kind: 'setup',
     actionClass: 'INDIRECT',
@@ -696,7 +696,7 @@ export default function buildDashboardCommandCenter({
       buildSetupAction({
         id: 'add-property',
         title: 'Add your first property',
-        impact: 'Unlock portfolio-level equity and cash flow tracking',
+        impact: 'Enable portfolio-level equity and cash flow tracking',
         route: '/properties',
         priority: 100,
       })
@@ -708,7 +708,7 @@ export default function buildDashboardCommandCenter({
       buildSetupAction({
         id: 'add-first-mortgage',
         title: 'Add mortgage details',
-        impact: 'Unlock equity, LVR, and refinance actions',
+        impact: 'Enable equity, LVR, and refinance visibility',
         route: '/mortgages',
         priority: 98,
       })
@@ -726,7 +726,7 @@ export default function buildDashboardCommandCenter({
       confidence: 'High',
       problem: 'One or more properties do not yet have mortgage coverage recorded.',
       whyItMatters: 'Missing debt makes equity, LVR, leverage, and borrowing interpretations unreliable.',
-      impactLabel: 'Unlock accurate equity, LVR, and leverage decisions',
+      impactLabel: 'Improves equity, LVR, and leverage visibility',
       kind: 'setup',
     }))
   }
@@ -739,7 +739,7 @@ export default function buildDashboardCommandCenter({
       buildSetupAction({
         id: 'complete-financial-profile',
         title: 'Complete your financial profile',
-        impact: 'Unlock borrowing power plus actual and lender-view surplus analysis',
+        impact: 'Enable borrowing power plus actual and lender-view surplus analysis',
         route: '/financials',
         priority: 96,
       })
@@ -793,7 +793,7 @@ export default function buildDashboardCommandCenter({
     const monthlyImpact = Math.round(Number(topRefinance.monthlySavings || 0))
     const action = createAction({
       id: `refinance-${topRefinance.loanId}`,
-      title: `Unlock ${topRefinance.annualSavings.toLocaleString('en-AU', {
+      title: `Modelled annual repayment difference of ${topRefinance.annualSavings.toLocaleString('en-AU', {
         style: 'currency',
         currency: 'AUD',
         maximumFractionDigits: 0,
@@ -849,7 +849,7 @@ export default function buildDashboardCommandCenter({
     if (borrowingLift > 0) {
       const action = createAction({
         id: 'reduce-credit-card-limits',
-        title: `Unlock ${formatCurrency(borrowingLift)} borrowing capacity by reducing credit card limits`,
+        title: `Reducing credit card limits may improve modelled borrowing capacity by ${formatCurrency(borrowingLift)}`,
         route: '/financials',
         priority: 88,
         category: 'Borrowing',
@@ -921,7 +921,7 @@ export default function buildDashboardCommandCenter({
         style: 'currency',
         currency: 'AUD',
         maximumFractionDigits: 0,
-      })}/month drag`,
+      })}/month cash flow impact`,
       route: '/cashflow',
     })
   }
@@ -1021,7 +1021,7 @@ export default function buildDashboardCommandCenter({
       householdSurplus: borrowingAnalysis?.status === 'insufficient_data' ? null : Number(borrowingAnalysis?.net_monthly_surplus ?? null),
       subtitle:
         borrowingAnalysis?.status === 'insufficient_data'
-          ? 'Add income, expenses and liabilities to unlock your monthly position.'
+          ? 'Add income, expenses and liabilities to improve your modelled monthly position.'
           : 'Property cash flow, actual monthly surplus, and lender-view serviceability are shown separately.',
       cta:
         borrowingAnalysis?.status === 'insufficient_data'
@@ -1212,7 +1212,7 @@ export default function buildDashboardCommandCenter({
 
     compareOptions.push({
       id: 'apply-top-action',
-      scenario: 'Apply top recommendation',
+      scenario: 'Compare priority scenario',
       annualImpact: improvedAnnualImpact,
       headlineValue:
         topRankedAction?.kind === 'borrowing'
@@ -1253,7 +1253,7 @@ export default function buildDashboardCommandCenter({
     if (buyNowScenario) {
       compareOptions.push({
         id: 'buy-now',
-        scenario: 'Buy now',
+        scenario: 'Purchase scenario',
         annualImpact: Math.round(
           currentAnnualCashImpact + Number(buyNowScenario.estimatedMonthlyCashFlow || 0) * 12
         ),
@@ -1328,9 +1328,9 @@ export default function buildDashboardCommandCenter({
     decisionConfidence:
       borrowingAnalysis?.confidenceLabel ||
       (dashboardCompleteness?.confidenceLevel === 'high'
-        ? 'High'
+        ? 'Strong data coverage'
         : dashboardCompleteness?.confidenceLevel === 'medium'
-          ? 'Medium'
-          : 'Low'),
+          ? 'Moderate data coverage'
+          : 'Limited data coverage'),
   }
 }

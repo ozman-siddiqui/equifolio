@@ -179,7 +179,7 @@ export default function buildPortfolioInsights({
         ? 'Fixed-rate expiry creates a refinance window'
         : 'Mortgage pricing may be worth testing',
       description: isFixed
-        ? `${loan.lender} on ${refinanceTarget.address} expires in ${loan.fixedDays} days. Start refinance prep before rates reset.`
+        ? `${loan.lender} on ${refinanceTarget.address} expires in ${loan.fixedDays} days. Review available refinance options before rates reset.`
         : `${loan.lender} on ${refinanceTarget.address} is at ${loan.rate.toFixed(
             2
           )}%. Compare refinance options and lender pricing.`,

@@ -9,15 +9,15 @@ const NARRATIVE_PROMPT = (
   variableSummary: string,
   fixedLoanCount: number,
   fixedExpirySummary: string
-) => `You are a property investment advisor. Write exactly 2 sentences summarising what this RBA rate decision means for this specific investor. Be direct, use dollar amounts, and reference their actual situation. Do not use disclaimers.
+) => `You are a neutral property portfolio analyst writing general information only. Write exactly 2 sentences summarising what this RBA rate decision means for this specific investor. Use cautious, scenario-based language, include dollar amounts, and reference their actual portfolio context. Do not give financial advice, credit advice, or directive recommendations. Do not use wording such as "You should review", "You should start preparing", "lock in current rates", "before rates rise further", "best move", "recommended action", or "locking in current rates now". Do not tell the user to act immediately, lock in rates, or prepare now.
 
 RBA decision: Cash rate ${decisionLabel} — from ${previousRate}% to ${newRate}%.
 Estimated monthly repayment change on variable loans: ${monthlyDelta < 0 ? '-' : '+'}$${Math.abs(monthlyDelta)}/month.
 Variable loans (${variableLoanCount}): ${variableSummary || 'none'}.
 ${fixedLoanCount > 0 ? `Fixed loans unaffected (${fixedLoanCount}): ${fixedExpirySummary}.` : ''}
 
-Sentence 1: What this rate decision means for their repayments in dollar terms.
-Sentence 2: One concrete action to consider — if a fixed loan is expiring soon mention that, otherwise suggest reviewing refinance opportunities or acquisition capacity.`
+Sentence 1: Summarise what this rate decision means for their repayments in dollar terms, referencing the relevant properties or loans dynamically from the provided data. Preferred style: "Your monthly repayments on the variable loan at {propertyAddress} may increase by approximately ${Math.abs(monthlyDelta)}." If a projected new monthly repayment is not explicitly available from the provided data, do not invent it.
+Sentence 2: Use this exact style: "This scenario may warrant review, particularly where current variable rates exceed available fixed-rate benchmarks. Consider discussing available options with a licensed broker or adviser." Keep all property names, rate values, and repayment values dynamic from the provided data.`
 
 Deno.serve(async (req) => {
   const corsHeaders = {

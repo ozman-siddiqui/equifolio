@@ -9,7 +9,7 @@ const formatCurrency = (amount) =>
 
 export default function BorrowingPowerCard({
   analysis,
-  title = 'Borrowing Power Unlock',
+  title = 'Borrowing Power Overview',
   onExplore,
   onCompleteFinancials,
   loading = false,
@@ -89,7 +89,7 @@ export default function BorrowingPowerCard({
         <div className="space-y-5 p-6">
           <div className="rounded-2xl border border-amber-100 bg-amber-50/60 p-5">
             <p className="text-xs font-medium uppercase tracking-wide text-amber-700">
-              Action required
+              Review required
             </p>
             <p className="mt-2 text-lg font-semibold text-gray-900">
               Add your financial profile to calculate borrowing power
@@ -184,7 +184,7 @@ export default function BorrowingPowerCard({
           <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
         </div>
         <p className="mt-2 text-sm text-gray-500">
-          Clear borrowing uplift opportunities based on the current lender-view serviceability result.
+          Clear modelled borrowing-improvement opportunities based on the current lender-view serviceability result.
         </p>
       </div>
 
@@ -203,6 +203,20 @@ export default function BorrowingPowerCard({
             Borrowing capacity estimates may differ from lender assessments.
           </p>
         </div>
+
+        <p
+          style={{
+            fontSize: '12px',
+            color: '#6B7280',
+            fontStyle: 'italic',
+            maxWidth: '640px',
+            lineHeight: 1.6,
+            margin: '16px auto 0',
+            textAlign: 'center',
+          }}
+        >
+          Nextiq provides portfolio modelling tools and general information only. Outputs are illustrative and do not constitute personal financial advice, credit advice, or a recommendation to buy, refinance, or apply for any financial product or loan.
+        </p>
 
         <div className="grid grid-cols-2 gap-3 text-sm text-gray-600">
           <InlineMetric
@@ -240,7 +254,7 @@ export default function BorrowingPowerCard({
             onClick={onExplore}
             className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
           >
-            <span className="whitespace-nowrap">Explore borrowing strategy</span>
+            <span className="whitespace-nowrap">Review borrowing scenario</span>
             <ArrowRight size={14} className="shrink-0" />
           </button>
         </div>

@@ -46,10 +46,27 @@ function patchNarrativeLenderName(narrative, lender) {
 
   const safeLender = String(lender || '').trim() || 'Harbourline Bank'
 
-  return String(narrative).replace(
-    /\b(?:Westpac|ANZ|NAB|Commonwealth Bank|CBA|Macquarie|Suncorp|St George|Bankwest)\b/gi,
-    safeLender
-  )
+  return String(narrative)
+    .replace(
+      /\b(?:Westpac|ANZ|NAB|Commonwealth Bank|CBA|Macquarie|Suncorp|St George|Bankwest)\b/gi,
+      safeLender
+    )
+    .replace(
+      new RegExp(`This\\s+${safeLender.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+[^.]*?opportunity shows`, 'i'),
+      `This ${safeLender} refinance scenario shows`
+    )
+    .replace(
+      /could potentially save approximately (\$[\d,]+)\s+monthly/gi,
+      'indicates an estimated repayment difference of about $1 per month'
+    )
+    .replace(
+      /(\$[\d,]+)\s+monthly/gi,
+      '$1 per month'
+    )
+    .replace(
+      /(\$[\d,]+)\/month/gi,
+      '$1 per month'
+    )
 }
 
 async function fetchOpportunityRows(userId) {
@@ -382,8 +399,8 @@ export default function AIOpportunityCard({ currentUserId, loans = [] }) {
             {showValueStrip ? (
               <>
                 <h2 className="mt-4 text-[15px] font-medium text-[var(--color-text-primary)]">
-                  Nextiq has identified {formatCurrency(cumulativeValue)} in potential portfolio
-                  improvements
+                  Nextiq has identified up to {formatCurrency(cumulativeValue)} in potential
+                  repayment savings
                 </h2>
                 <p className="mt-2 text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
                   {totalDetected} opportunities detected since you joined
@@ -501,7 +518,7 @@ export default function AIOpportunityCard({ currentUserId, loans = [] }) {
                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                         <div className="min-w-0">
                           <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
-                            Refinance Opportunity
+                            Refinance scenario
                           </p>
                           <h3 className="mt-3 text-[15px] font-medium text-[var(--color-text-primary)]">
                             {opportunity.propertyAddress}

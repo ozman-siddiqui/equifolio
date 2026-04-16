@@ -31,15 +31,15 @@ const DEFAULT_DEBT_RATE_PCT = 5.8
 const DEFAULT_LOAN_TERM_MONTHS = 360
 
 function getConfidenceLabel(score) {
-  if (score >= 85) return 'High'
-  if (score >= 65) return 'Medium'
-  return 'Low'
+  if (score >= 85) return 'Strong'
+  if (score >= 65) return 'Moderate'
+  return 'Limited'
 }
 
 function getConfidenceSummary(score) {
-  if (score >= 85) return 'High confidence based on complete data'
-  if (score >= 65) return 'Medium confidence based on partial data'
-  return 'Lower confidence due to missing or limited data'
+  if (score >= 85) return 'Strong data coverage across scenario inputs'
+  if (score >= 65) return 'Moderate data coverage across scenario inputs'
+  return 'Limited data coverage across scenario inputs'
 }
 
 function formatCurrency(amount) {
@@ -407,7 +407,7 @@ function GraphPanel({
               ) : null}
               {confidenceLabel ? (
                 <p className="text-[12px] font-medium leading-[1.6] text-[var(--color-text-secondary)]">
-                  Confidence: {confidenceLabel}
+                  Data coverage: {confidenceLabel}
                 </p>
               ) : null}
             </div>
@@ -843,7 +843,7 @@ function DepreciationControls({
         Depreciation (optional)
       </p>
       <label className="mt-4 flex items-center justify-between gap-4 text-[1.03rem] text-slate-700">
-        <span>Include non-cash depreciation to improve your tax position</span>
+        <span>Include non-cash depreciation to model tax effects</span>
         <input
           type="checkbox"
           checked={includeDepreciation}
@@ -2173,15 +2173,15 @@ export default function PortfolioGrowthScenariosRebuild() {
     topSuggestedScenario,
   ])
   const suggestedPathTitle = hasExecutableScenario
-    ? 'Buy 1 investment property now'
+    ? 'Scenario A: Single investment property acquisition'
     : 'No acquisition scenario is currently executable'
   const suggestedPathDescription = hasExecutableScenario
-    ? 'Optimised from your preferred settings to the strongest currently viable purchase path.'
+    ? 'Calculated from your selected assumptions as the leading feasible scenario under the current model.'
     : null
   const suggestedPathSupportText = hasExecutableScenario
-    ? 'This path is fully funded within your current capital and borrowing constraints.'
+    ? 'This scenario fits within the current capital and borrowing assumptions.'
     : null
-  const suggestedPathStatus = hasExecutableScenario ? 'Indicatively viable' : 'No live acquisition path'
+  const suggestedPathStatus = hasExecutableScenario ? 'Feasible under current assumptions' : 'No live acquisition path'
   const wealthOutcomeHoldingCost5Y = useMemo(
     () => Math.abs(Number(recommendedScenarioSafeTaxView?.afterTaxMonthlyImpact ?? 0)) * 12 * 5,
     [recommendedScenarioSafeTaxView?.afterTaxMonthlyImpact]
@@ -2242,7 +2242,7 @@ export default function PortfolioGrowthScenariosRebuild() {
     ? 'Capital, not borrowing power, is the current constraint'
     : isBorrowingConstraint
       ? 'Borrowing power, not capital, is the current constraint'
-      : 'No binding constraint - scenario appears viable'
+      : 'No primary constraint identified'
   const limitingFactorSummary = !hasExecutableScenario
     ? scenarioModel.viability?.message ||
       'Current capital, borrowing power, and realistic market-entry assumptions do not yet support a fundable acquisition path.'
@@ -2250,7 +2250,7 @@ export default function PortfolioGrowthScenariosRebuild() {
     ? 'You appear to have enough borrowing capacity to support the next move, but execution is still limited by available upfront capital.'
     : isBorrowingConstraint
       ? 'Available capital is sufficient, but borrowing capacity does not fully support the loan required for the recommended acquisition.'
-      : 'Both available capital and borrowing capacity support the recommended acquisition.'
+      : 'Current available capital and borrowing capacity support this scenario under selected assumptions.'
   const limitingFactorActionLine = !hasExecutableScenario
     ? limitingFactor === 'borrowing'
       ? 'Improving serviceability or reducing purchase size is the fastest way to unlock execution.'
@@ -2259,7 +2259,7 @@ export default function PortfolioGrowthScenariosRebuild() {
     ? 'Closing the capital gap is the fastest way to unlock the recommended path.'
     : isBorrowingConstraint
       ? 'Improving serviceability or reducing purchase size is the fastest way to unlock execution.'
-      : 'Appears viable based on current inputs and remains subject to lender assessment, valuation, and market conditions.'
+      : 'This scenario appears feasible under current inputs and remains subject to lender assessment, valuation, tax outcomes, and market conditions.'
   const assessmentRateValue = Number(
     borrowingAnalysis?.assumptions?.assessment_rate_pct ??
       borrowingAnalysis?.assumptions_detail?.assessment_rate_pct ??
@@ -2307,9 +2307,9 @@ export default function PortfolioGrowthScenariosRebuild() {
       borrowingSensitivityData[borrowingSensitivityData.length - 1]?.borrowingCapacity || 0
     )
 
-    return `Capacity drops by ~${formatCurrency(
+    return `Modelled capacity decreases by ~${formatCurrency(
       Math.max(0, lowRateCapacity - highRateCapacity)
-    )} across typical rate ranges.`
+    )} across the tested rate range.`
   }, [borrowingSensitivityData])
   const borrowingSensitivityConfidence = useMemo(() => {
     if (!borrowingSensitivityData.length) return null
@@ -2363,7 +2363,7 @@ export default function PortfolioGrowthScenariosRebuild() {
     const firstNegativePoint = stressTestData.find((point) => Number(point.monthlySurplus) < 0)
     return firstNegativePoint
       ? `Portfolio turns negative above ${firstNegativePoint.rateLabel} rates.`
-      : 'Remains positive but borrowing is constrained by lender buffers.'
+      : 'Monthly surplus remains positive, though borrowing capacity is constrained by lender buffers.'
   }, [stressTestData])
   const stressTestConfidence = useMemo(() => {
     if (!stressTestData.length) return null
@@ -2510,9 +2510,9 @@ export default function PortfolioGrowthScenariosRebuild() {
       activeBorrowingSensitivityData[activeBorrowingSensitivityData.length - 1]?.borrowingCapacity || 0
     )
 
-    return `Capacity drops by ~${formatCurrency(
+    return `Modelled capacity decreases by ~${formatCurrency(
       Math.max(0, lowRateCapacity - highRateCapacity)
-    )} across typical rate ranges.`
+    )} across the tested rate range.`
   }, [activeBorrowingSensitivityData])
   const activeBorrowingSensitivityConfidence = useMemo(() => {
     if (!activeBorrowingSensitivityData.length) return null
@@ -2533,7 +2533,7 @@ export default function PortfolioGrowthScenariosRebuild() {
     const firstNegativePoint = activeStressTestData.find((point) => Number(point.monthlySurplus) < 0)
     return firstNegativePoint
       ? `Portfolio turns negative above ${firstNegativePoint.rateLabel} rates.`
-      : 'Remains positive but borrowing is constrained by lender buffers.'
+      : 'Monthly surplus remains positive, though borrowing capacity is constrained by lender buffers.'
   }, [activeStressTestData])
   const activeStressTestConfidence = useMemo(() => {
     if (!activeStressTestData.length) return null
@@ -2673,8 +2673,8 @@ export default function PortfolioGrowthScenariosRebuild() {
   )
   const equityCashFlowTradeOffChart = equityCashFlowTradeOffData.length > 0 ? (
     <AnalysisChartCard
-      title="How value, debt, and equity evolve over time"
-      subtitle="Property value trends upward, debt amortises lower, and net equity compounds as the spread between them widens. Loan balance reflects your recorded loan structures. Principal & Interest loans amortise over time, while Interest Only balances remain flat until principal repayments begin."
+      title="How value, debt, and equity change over time"
+      subtitle="Property value may trend upward, debt may amortise lower, and net equity may expand as the spread between them changes over time. Loan balance reflects your recorded loan structures. Principal & Interest loans amortise over time, while Interest Only balances remain flat until principal repayments begin."
       xLabel="Years"
       yLabel="Portfolio value ($)"
       tooltipContextLabel="Projection year"
@@ -2713,7 +2713,7 @@ export default function PortfolioGrowthScenariosRebuild() {
   ) : null
   const borrowingSensitivityChart = (
     <GraphPanel
-      preface="Use this to judge how quickly indicative purchase power compresses as lender assessment settings move higher."
+      preface="Use this to observe how indicative purchase capacity changes as lender assessment settings move higher."
       insight={activeBorrowingSensitivityInsight}
       confidenceLabel={activeBorrowingSensitivityConfidence?.label}
       traceability="Inputs used: recorded income, liabilities, mortgages, and lender assessment rate · Assumptions: buffered serviceability at 8.5%"
@@ -2724,8 +2724,8 @@ export default function PortfolioGrowthScenariosRebuild() {
       }
     >
       <AnalysisChartCard
-        title="Borrowing capacity across rate settings"
-        subtitle="Helps test how much acquisition headroom remains before the recommended path becomes materially constrained."
+        title="Borrowing capacity under different rate settings"
+        subtitle="Shows how much acquisition headroom remains before the current scenario becomes materially constrained."
         xLabel="Interest rate (%)"
         yLabel="Borrowing capacity ($)"
         tooltipContextLabel="Interest rate"
@@ -2754,7 +2754,7 @@ export default function PortfolioGrowthScenariosRebuild() {
   )
   const stressTestChart = (
     <GraphPanel
-      preface="Use this panel to see when higher assessment rates begin to erode monthly resilience."
+      preface="Use this panel to see how higher assessment rates affect monthly resilience."
       insight={activeStressTestInsight}
       confidenceLabel={activeStressTestConfidence?.label}
       traceability="Inputs used: recorded income, liabilities, mortgages, and serviceability surplus · Assumptions: lender assessment rates from 5.5% to 8.5%"
@@ -2766,7 +2766,7 @@ export default function PortfolioGrowthScenariosRebuild() {
     >
       <AnalysisChartCard
         title="Serviceability surplus under stress"
-        subtitle="Shows where monthly surplus tightens and when the funding profile starts to become fragile."
+        subtitle="Shows where monthly surplus tightens and when the funding profile becomes more constrained."
         xLabel="Interest rate (%)"
         yLabel="Monthly surplus ($)"
         tooltipContextLabel="Assessment rate"
@@ -2795,8 +2795,8 @@ export default function PortfolioGrowthScenariosRebuild() {
   )
   const depositPurchasePowerChart = (
     <GraphPanel
-      preface="Use this view to test whether changing deposit structure genuinely expands your indicative price range."
-      insight="Higher deposit settings lift achievable purchase power, but the curve flattens once borrowing becomes the binding constraint."
+      preface="Use this view to test how changing deposit structure affects indicative price range."
+      insight="Higher deposit settings increase indicative purchase capacity, but the curve flattens once borrowing becomes the main constraint."
       traceability="Inputs used: deployable capital and central borrowing capacity · Assumptions: 20% selected deposit strategy and 5.0% acquisition costs"
       note={
         hasRecommendedScenario
@@ -2805,8 +2805,8 @@ export default function PortfolioGrowthScenariosRebuild() {
       }
     >
       <AnalysisChartCard
-        title="Deposit setting vs purchase power"
-        subtitle="Shows whether lower upfront capital materially improves range or simply pushes the constraint back to borrowing."
+        title="Deposit setting vs indicative purchase capacity"
+        subtitle="Shows whether lower upfront capital expands indicative range or shifts the constraint toward borrowing."
         xLabel="Deposit (%)"
         yLabel="Purchase power ($)"
         tooltipContextLabel="Deposit strategy"
@@ -2848,13 +2848,13 @@ export default function PortfolioGrowthScenariosRebuild() {
             </h1>
 
             <p className="mt-4 max-w-[760px] text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
-              Stress-test the next acquisition path using your live portfolio inputs, compare viable and blocked strategies, and inspect the funding, carry, and wealth outcome before committing to a move.
+              Stress-test acquisition scenarios using your live portfolio inputs, compare feasible and constrained outcomes, and inspect funding, carry, and wealth effects under different assumptions.
             </p>
           </div>
         </section>
 
         {hasExecutableScenario ? (
-          <section className="sticky top-3 z-30 mt-[22px]">
+          <section className="z-30 mt-[22px]">
             <div className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-white/95 px-[22px] py-[18px] shadow-[0_18px_40px_-28px_rgba(15,23,42,0.12)] backdrop-blur md:px-[22px] md:py-[18px]">
               <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-[1.25fr_1.2fr_0.95fr]">
                 <div className="min-w-0 h-full rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-slate-50/70 px-[22px] py-[18px]">
@@ -2998,7 +2998,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                 </div>
               </div>
               <p className="mt-3 text-sm leading-6 text-slate-600">
-                Adjust assumptions to stress your acquisition strategy
+                Adjust assumptions to test the current acquisition scenario
               </p>
             </div>
           </section>
@@ -3229,11 +3229,11 @@ export default function PortfolioGrowthScenariosRebuild() {
                         ? acquisitionGrowthDelta
                         : baseGrowthDelta
                     )}{' '}
-                    {projectionStudioChart.comparisonActive ? 'projected wealth with acquisition' : 'projected portfolio growth'} over {selectedProjectionYears} years
+                    {projectionStudioChart.comparisonActive ? 'projected portfolio value with acquisition' : 'projected portfolio growth'} over {selectedProjectionYears} years
                   </span>
                   {projectionStudioChart.comparisonActive ? (
                     <span className="inline-flex rounded-full border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-3.5 py-1.5 text-sm font-medium text-[var(--color-text-secondary)]">
-                      +{formatCompactAmount(baseGrowthDelta)} without acquisition
+                      +{formatCompactAmount(baseGrowthDelta)} projected base portfolio over {selectedProjectionYears} years
                     </span>
                   ) : null}
                 </div>
@@ -3449,7 +3449,7 @@ export default function PortfolioGrowthScenariosRebuild() {
 
                 <div className="mt-5">
                   <p className="text-[11px] leading-[1.5] text-[var(--color-text-tertiary)]">
-                    Illustrative outputs based on your selected assumptions.
+                    Estimated outputs based on your selected assumptions.
                   </p>
                   <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     {[
@@ -3502,11 +3502,11 @@ export default function PortfolioGrowthScenariosRebuild() {
               Scenario comparison
             </p>
             <h2 className="mt-2 text-[15px] font-medium text-[var(--color-text-primary)]">
-              Compare your next acquisition paths
+              Compare acquisition scenarios
             </h2>
             <p className="mt-2.5 max-w-[68ch] text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
-              Review the recommended and alternative paths side by side, including illustrative
-              equity, acquisition size, yield, and execution constraints.
+              Review scenario outcomes side by side, including illustrative equity,
+              acquisition size, yield, and funding constraints.
             </p>
           </div>
 
@@ -3622,11 +3622,11 @@ export default function PortfolioGrowthScenariosRebuild() {
                           : 'bg-[#FAEEDA] text-[#633806]'
                       }`}
                     >
-                      {hasExecutableScenario ? 'Indicatively viable' : 'Not viable'}
+                      {hasExecutableScenario ? 'Feasible under current assumptions' : 'Not viable'}
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1.5 pl-4 text-right">
                       <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
-                        {hasExecutableScenario ? 'Recommended Path' : 'Current State'}
+                        {hasExecutableScenario ? 'Primary Scenario' : 'Current State'}
                       </p>
                       <p className="text-[13px] font-medium text-[var(--color-text-primary)]">
                         {suggestedPathStatus}
@@ -3716,7 +3716,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                       {hasExecutableScenario
                         ? Number(topSuggestedScenario?.requiredCapitalGap || 0) > 0
                           ? `Capital shortfall: ${formatCurrency(topSuggestedScenario?.requiredCapitalGap || 0)}`
-                          : 'Fully funded for execution'
+                          : 'Funding requirement covered'
                         : 'Blocked paths remain visible below only as non-executable reference scenarios.'}
                     </p>
                   </div>
@@ -3735,10 +3735,10 @@ export default function PortfolioGrowthScenariosRebuild() {
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1.5 pl-4 text-right">
                       <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
-                        Alternative Path
+                        Secondary Scenario
                       </p>
                       <p className="text-[13px] font-medium text-[var(--color-text-primary)]">
-                        {topAlternativeScenario?.blockedReason ? 'Not executable' : 'Inferior outcome'}
+                        {topAlternativeScenario?.blockedReason ? 'Currently constrained' : 'Inferior outcome'}
                       </p>
                     </div>
                   </div>
@@ -3837,7 +3837,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                     : 'Unavailable'}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Current borrowing power available under the live lending assumptions.
+                  Current borrowing capacity under the selected lending assumptions.
                 </p>
               </div>
 
@@ -3847,7 +3847,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                   {formatCurrency(recommendedTotalRequiredCapital)}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Upfront capital needed to execute the recommended scenario.
+                  Upfront capital required for the current scenario.
                 </p>
               </div>
 
@@ -3861,7 +3861,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                   {remainingCapitalGap > 0 ? formatCurrency(remainingCapitalGap) : 'No shortfall'}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  The residual gap that still blocks clean execution today.
+                  The remaining funding gap under the current scenario.
                 </p>
               </div>
             </div>
@@ -3916,14 +3916,14 @@ export default function PortfolioGrowthScenariosRebuild() {
             </div>
             <div className="px-5 py-5">
               <p className={microLabelClass}>
-                {remainingCapitalGap > 0 ? 'Capital Gap' : 'Funding Status'}
+                {remainingCapitalGap > 0 ? 'Capital Gap' : 'Scenario Funding Status'}
               </p>
               <p
                 className={`mt-2 text-[1.7rem] font-semibold tracking-tight ${
                   remainingCapitalGap > 0 ? 'text-[#854F0B]' : 'text-[#0F6E56]'
                 }`}
               >
-                {remainingCapitalGap > 0 ? formatCurrency(remainingCapitalGap) : 'Fully funded'}
+                {remainingCapitalGap > 0 ? formatCurrency(remainingCapitalGap) : 'Requirement covered'}
               </p>
             </div>
           </div>
@@ -3933,11 +3933,11 @@ export default function PortfolioGrowthScenariosRebuild() {
           <div className="rounded-[2.2rem] border border-slate-200/80 bg-white px-6 pt-6 pb-6 shadow-[0_24px_70px_-54px_rgba(15,23,42,0.18)] md:px-8">
             <p className={microLabelClass}>Execution Readiness</p>
           <h3 className="mt-4 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
-            Can this strategy be executed now?
+            Does current capital cover the scenario requirement?
           </h3>
           <p className="mt-4 max-w-[46rem] text-[1.03rem] leading-8 text-slate-600">
-            Compare deployable capital with the true upfront requirement and isolate the binding
-            execution constraint immediately.
+            Compare deployable capital with the current upfront requirement and identify the main
+            funding constraint under the selected assumptions.
           </p>
 
             <div className="mt-8 grid grid-cols-1 gap-5 xl:grid-cols-[1fr_auto_1fr_auto_1fr] xl:items-stretch">
@@ -3947,7 +3947,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                   {formatCurrency(recommendedAvailableCapital)}
                 </p>
                 <p className="mt-4 text-[1rem] leading-7 text-slate-600">
-                  Deployable capital after liquidity buffers and reserve settings are retained.
+                  Capital available after liquidity buffers and reserve settings are retained.
                 </p>
                 <div className="mt-5 rounded-[1.25rem] border border-emerald-200/70 bg-white/75 px-4 py-4 text-left">
                   <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500">
@@ -3969,8 +3969,8 @@ export default function PortfolioGrowthScenariosRebuild() {
                     />
                   </div>
                   <p className="mt-3 text-sm leading-6 text-slate-600">
-                    A portion of your equity is retained as a safety buffer. The remaining usable
-                    equity can be deployed toward the next acquisition.
+                    A portion of equity is retained as a safety buffer. The remaining usable
+                    equity is available under the current scenario settings.
                   </p>
                 </div>
               </article>
@@ -3985,8 +3985,8 @@ export default function PortfolioGrowthScenariosRebuild() {
                   {formatCurrency(recommendedTotalRequiredCapital)}
                 </p>
                 <p className="mt-4 text-[1rem] leading-7 text-slate-600">
-                  Most of the upfront requirement comes from the deposit, with the remainder driven
-                  by stamp duty and acquisition costs.
+                  The upfront requirement is primarily driven by deposit, stamp duty, and
+                  acquisition costs under the current assumptions.
                 </p>
                 <div className="mt-5 rounded-[1.25rem] border border-slate-200/80 bg-white/80 px-4 py-4 text-left">
                   <div className="space-y-2.5">
@@ -4029,7 +4029,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                 <p className="mt-4 text-[1rem] leading-7 text-slate-600">
                   {remainingCapitalGap > 0
                     ? 'This gap must be closed before the transaction is realistically executable.'
-                    : 'Current capital clears the upfront hurdle without additional funding.'}
+                    : 'Current capital exceeds the scenario funding requirement.'}
                 </p>
               </article>
             </div>
@@ -4039,11 +4039,11 @@ export default function PortfolioGrowthScenariosRebuild() {
         <section className="mt-[22px] rounded-[2.25rem] border border-slate-200/80 bg-white px-6 pt-6 pb-6 shadow-[0_28px_80px_-58px_rgba(15,23,42,0.2)] md:px-8">
           <p className={microLabelClass}>Wealth Outcome</p>
           <h3 className="mt-4 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
-            Economic outcome after capital and carry
+            Estimated net outcome after capital and carry
           </h3>
           <p className="mt-4 max-w-[50rem] text-[1.03rem] leading-8 text-slate-600">
-            Equity growth is only part of the result. The real decision is what remains after
-            capital is committed and the asset is carried through the hold period.
+            Equity growth is only one part of the model. This view shows what remains after
+            capital is committed and holding costs are applied over the selected horizon.
           </p>
 
           <div className="mt-8 flex flex-col gap-4 xl:flex-row xl:items-stretch xl:gap-5">
@@ -4053,7 +4053,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                 {formatCurrency(topSuggestedScenario?.fiveYearEquityProjection || 0)}
               </p>
               <p className="mt-3 text-sm leading-7 text-slate-600">
-                Illustrative net equity after 5 years.
+                Estimated equity position after 5 years.
               </p>
             </article>
 
@@ -4068,7 +4068,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                   recommendedWealthBreakdown.totalRequiredCapital}
               </p>
               <p className="mt-3 text-sm leading-7 text-slate-600">
-                Upfront capital committed.
+                Upfront capital allocated under the scenario.
               </p>
             </article>
 
@@ -4082,7 +4082,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                 {formatCurrency(wealthOutcomeHoldingCost5Y)}
               </p>
               <p className="mt-3 text-sm leading-7 text-slate-600">
-                Total after-tax carry over 5 years.
+                Estimated after-tax carry over 5 years.
               </p>
             </article>
 
@@ -4102,7 +4102,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                 {formatCurrency(topSuggestedScenario?.economicOutcome5Y || 0)}
               </p>
               <p className="mt-3 text-sm leading-7 text-slate-600">
-                Net wealth after capital and carry.
+                Estimated net outcome after capital and carry.
               </p>
             </article>
           </div>
@@ -4151,11 +4151,11 @@ export default function PortfolioGrowthScenariosRebuild() {
             <div>
               <p className={microLabelClass}>Wealth Growth</p>
               <h3 className="mt-5 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
-                How the balance sheet improves over time
+                How the balance sheet changes over time
               </h3>
               <p className="mt-6 max-w-[50rem] text-[1.04rem] leading-8 text-slate-600">
-                Track asset growth, debt reduction, and the widening equity spread that drives the
-                long-term wealth outcome.
+                Track asset growth, debt reduction, and the equity spread under the selected
+                assumptions over time.
               </p>
             </div>
 
@@ -4167,11 +4167,11 @@ export default function PortfolioGrowthScenariosRebuild() {
           <section className="rounded-b-[2rem] rounded-tr-[2rem] border border-t-0 border-slate-200/75 bg-white px-6 pt-6 pb-6 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:px-8">
             <p className={microLabelClass}>Funding</p>
             <h3 className="mt-5 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
-              Capital required to execute
+              Capital required for this scenario
             </h3>
             <p className="mt-6 max-w-[48rem] text-[1.04rem] leading-8 text-slate-600">
-              Read this as an execution bridge: available capital, required capital, and the gap
-              that still has to be solved.
+              Compare available capital, required capital, and any remaining funding gap under the
+              current scenario.
             </p>
 
             <div className="mt-11 rounded-[1.9rem] border border-slate-100/90 bg-slate-50/40 px-6 py-8 md:px-8 md:py-10">
@@ -4196,7 +4196,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                   {recommendedWealthBreakdown.totalRequiredCapital}
                 </p>
                 <p className="mt-5 text-base leading-8 text-slate-600">
-                  Capital needed to clear deposit, acquisition costs, and get the deal done.
+                  Capital required for deposit and acquisition costs under the selected scenario.
                 </p>
               </article>
 
@@ -4210,7 +4210,7 @@ export default function PortfolioGrowthScenariosRebuild() {
                   {recommendedWealthBreakdown.remainingCapitalGap}
                 </p>
                 <p className="mt-5 text-base leading-8 text-slate-600">
-                  Residual capital shortfall after currently available funding is applied.
+                  Remaining funding gap after available capital is applied.
                 </p>
               </article>
               </div>
@@ -4227,10 +4227,10 @@ export default function PortfolioGrowthScenariosRebuild() {
           <section className="rounded-b-[2rem] rounded-tr-[2rem] border border-t-0 border-slate-200/75 bg-white px-6 pt-6 pb-6 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:px-8">
             <p className={microLabelClass}>Tax &amp; Cash Flow</p>
             <h3 className="mt-5 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
-              What the strategy costs to hold each month
+              Estimated monthly holding cost
             </h3>
             <p className="mt-6 max-w-[50rem] text-[1.04rem] leading-8 text-slate-600">
-              This is the monthly carry profile: pre-tax drag, tax offset, and the true after-tax
+              Monthly carry profile showing pre-tax cash flow, tax offset, and estimated after-tax
               holding cost.
             </p>
 
@@ -4399,14 +4399,14 @@ export default function PortfolioGrowthScenariosRebuild() {
             {getConfidenceSummary(Number(scenarioModel.confidence?.score || 0))}
           </p>
           <p className="mt-3 max-w-[38rem] text-[1rem] leading-7 text-slate-600">
-            Confidence reflects how complete and internally consistent the scenario inputs are.
+            This reflects how complete and internally consistent the scenario inputs currently are.
           </p>
         </section>
 
         <section className="mt-[22px] rounded-[2rem] border border-slate-200/75 bg-white px-6 pt-6 pb-6 shadow-[0_22px_60px_-50px_rgba(15,23,42,0.16)] md:px-8">
           <p className={microLabelClass}>Advanced analysis</p>
           <h3 className="mt-4 text-[22px] font-semibold tracking-tight text-slate-900 md:text-[24px]">
-            Optimise the scenario under tougher rates, tighter buffers, and different capital structures.
+            Test the scenario under tougher rates, tighter buffers, and different capital structures.
           </h3>
 
           <button
@@ -4414,7 +4414,7 @@ export default function PortfolioGrowthScenariosRebuild() {
             onClick={() => setIsAdvancedAnalysisOpen((current) => !current)}
             className="mt-6 inline-flex items-center gap-3 rounded-full border border-slate-200/80 bg-slate-50 px-5 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
           >
-            <span>{isAdvancedAnalysisOpen ? 'Hide advanced analysis' : 'Show advanced analysis'}</span>
+            <span>{isAdvancedAnalysisOpen ? 'Close advanced analysis' : 'Open advanced analysis'}</span>
             <span
               className={`text-base leading-none transition-transform ${
                 isAdvancedAnalysisOpen ? 'rotate-90' : ''
@@ -4429,11 +4429,11 @@ export default function PortfolioGrowthScenariosRebuild() {
               <article className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[18px] pt-[16px] pb-[16px] shadow-[0_24px_70px_-54px_rgba(15,23,42,0.16)] md:px-[18px]">
                 <p className={microLabelClass}>Rate Sensitivity</p>
                 <h4 className="mt-4 text-[1.7rem] font-semibold tracking-tight text-slate-950">
-                  How much borrowing headroom is rate-sensitive?
+                  How does borrowing capacity change as rates rise?
                 </h4>
                 <p className="mt-3 max-w-[45rem] text-[1rem] leading-7 text-slate-600">
-                  See how quickly lender buffer changes compress purchase power and reduce the
-                  range available to the recommended strategy.
+                  See how lender buffer changes affect purchase capacity and the range available
+                  under the current scenario.
                 </p>
                 <div className="mt-6">{borrowingSensitivityChart}</div>
               </article>
@@ -4441,11 +4441,11 @@ export default function PortfolioGrowthScenariosRebuild() {
               <article className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[18px] pt-[16px] pb-[16px] shadow-[0_24px_70px_-54px_rgba(15,23,42,0.16)] md:px-[18px]">
                 <p className={microLabelClass}>Stress Test</p>
                 <h4 className="mt-4 text-[1.7rem] font-semibold tracking-tight text-slate-950">
-                  When does serviceability start to tighten?
+                  When does serviceability begin to tighten?
                 </h4>
                 <p className="mt-3 max-w-[45rem] text-[1rem] leading-7 text-slate-600">
-                  Track how quickly monthly surplus erodes under tougher lending assumptions and
-                  where the funding profile begins to lose resilience.
+                  Track how monthly surplus changes under tougher lending assumptions and where
+                  the funding profile begins to weaken.
                 </p>
                 <div className="mt-6">{stressTestChart}</div>
               </article>
@@ -4453,11 +4453,11 @@ export default function PortfolioGrowthScenariosRebuild() {
               <article className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[18px] py-[16px] shadow-[0_24px_70px_-54px_rgba(15,23,42,0.16)] md:px-[18px] md:py-[16px]">
                 <p className={microLabelClass}>Purchase Power</p>
                 <h4 className="mt-4 text-[1.7rem] font-semibold tracking-tight text-slate-950">
-                  Does deposit structure materially improve range?
+                  How does deposit structure affect indicative range?
                 </h4>
                 <p className="mt-3 max-w-[45rem] text-[1rem] leading-7 text-slate-600">
-                  Compare deposit settings to see whether lower upfront capital truly expands the
-                  indicative price range or simply shifts the constraint back to borrowing.
+                  Compare deposit settings to see whether lower upfront capital expands the
+                  indicative price range or shifts the constraint toward borrowing.
                 </p>
                 <div className="mt-6">{depositPurchasePowerChart}</div>
               </article>

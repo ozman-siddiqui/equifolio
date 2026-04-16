@@ -172,7 +172,7 @@ export default function RefinanceModal({ loan, property, onClose }) {
                 : <TrendingUp size={16} className="text-red-500" />}
               <p className={`text-sm font-semibold ${monthlySaving > 0 ? 'text-green-800' : 'text-red-700'}`}>
                 {monthlySaving > 0
-                  ? `Save ${formatCurrency(monthlySaving)}/month by refinancing`
+                  ? `Modelled repayment difference from refinance scenario: ${formatCurrency(monthlySaving)}/month`
                   : `You'd pay ${formatCurrency(Math.abs(monthlySaving))}/month more`}
               </p>
             </div>
@@ -225,6 +225,20 @@ export default function RefinanceModal({ loan, property, onClose }) {
               </div>
             )}
           </div>
+
+          <p
+            style={{
+              fontSize: '12px',
+              color: '#6B7280',
+              fontStyle: 'italic',
+              maxWidth: '640px',
+              lineHeight: 1.6,
+              margin: '16px auto 0',
+              textAlign: 'center',
+            }}
+          >
+            Nextiq provides portfolio modelling tools and general information only. Outputs are illustrative and do not constitute personal financial advice, credit advice, or a recommendation to buy, refinance, or apply for any financial product or loan.
+          </p>
 
           {/* New vs current repayment */}
           <div className="bg-gray-50 rounded-xl p-4">
