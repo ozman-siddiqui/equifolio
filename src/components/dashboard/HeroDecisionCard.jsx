@@ -1,5 +1,6 @@
 ﻿import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import ReactDOM from 'react-dom'
 import { ArrowRight, ChevronRight, Info } from 'lucide-react'
 
 function formatCurrency(value) {
@@ -105,6 +106,97 @@ function pointToPercentX(pointX, viewBoxWidth = 520) {
   return `${(pointX / viewBoxWidth) * 100}%`
 }
 
+const InlineTooltip = ({ content, size = 12 }) => {
+  const [visible, setVisible] = useState(false)
+  const ref = useRef(null)
+  const tipRef = useRef(null)
+  const rect = ref.current?.getBoundingClientRect()
+
+  const tooltipWidth = 280
+  const padding = 16
+  const viewportHeight = window.innerHeight
+  const tooltipHeight = 60
+  const centeredX = rect ? rect.left + rect.width / 2 : 0
+  const minX = padding + tooltipWidth / 2
+  const maxX = window.innerWidth - padding - tooltipWidth / 2
+  const clampedX = Math.min(Math.max(centeredX, minX), maxX)
+  const finalTop =
+    rect && rect.bottom + tooltipHeight + 12 > viewportHeight
+      ? rect.top - tooltipHeight - 8
+      : (rect?.bottom || 0) + 4
+
+  useEffect(() => {
+    const handle = (e) => {
+      if (
+        tipRef.current &&
+        !tipRef.current.contains(e.target) &&
+        ref.current &&
+        !ref.current.contains(e.target)
+      ) {
+        setVisible(false)
+      }
+    }
+    if (visible) document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [visible])
+
+  return (
+    <>
+      <span
+        ref={ref}
+        onMouseEnter={() => setVisible(true)}
+        onMouseLeave={() => setVisible(false)}
+        onClick={(e) => {
+          e.stopPropagation()
+          setVisible((v) => !v)
+        }}
+        style={{
+          cursor: 'pointer',
+          marginLeft: 4,
+          opacity: 0.6,
+          display: 'inline-flex',
+          alignItems: 'center',
+        }}
+      >
+        <Info size={size} />
+      </span>
+
+      {visible && rect
+        ? ReactDOM.createPortal(
+            <div
+              ref={tipRef}
+              style={{
+                position: 'fixed',
+                top: finalTop,
+                left: clampedX,
+                transform: 'translateX(-50%)',
+                zIndex: 9999,
+                background: '#0F172A',
+                color: 'rgba(255,255,255,0.85)',
+                fontSize: '12px',
+                lineHeight: 1.6,
+                padding: '10px 14px',
+                borderRadius: '10px',
+                maxWidth: '280px',
+                width: 'max-content',
+                textAlign: 'left',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.4)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                pointerEvents: 'auto',
+                textTransform: 'none',
+                letterSpacing: '0',
+                fontWeight: 400,
+              }}
+            >
+              {content}
+            </div>,
+            document.body
+          )
+        : null}
+    </>
+  )
+}
+
 function StatTile({
   eyebrow,
   value,
@@ -124,16 +216,7 @@ function StatTile({
       <div className="min-h-[34px]">
         <p className="flex items-center text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
           {eyebrow}
-          {tooltip && (
-            <span
-              title={tooltip}
-              style={{ cursor: 'help', marginLeft: 4, opacity: 0.5 }}
-              className="inline-flex h-4 w-4 flex-shrink-0 items-center justify-center text-slate-400"
-              aria-label={`Explain ${eyebrow}`}
-            >
-                <Info size={10} />
-            </span>
-          )}
+          {tooltip && <InlineTooltip content={tooltip} size={10} />}
         </p>
       </div>
       <div className="mt-3 flex min-h-[48px] items-start md:min-h-[52px]">
@@ -809,14 +892,9 @@ export default function HeroDecisionCard({
                       ? 'Portfolio under rate stress'
                       : 'Data unavailable'}
                   </p>
-                  <span
-                    title="Rate resilience estimates the interest rate at which your lender-view monthly surplus turns negative under your current portfolio settings. A result of >10.00% means no break point was found within the tested range — your portfolio remains serviceable even under extreme rate stress."
-                    style={{ cursor: 'help', marginLeft: 4, opacity: 0.5 }}
-                    className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center text-slate-400"
-                    aria-label="Explain rate resilience"
-                  >
-                    <Info size={12} />
-                  </span>
+                  <InlineTooltip
+                    content="Rate resilience estimates how much interest rates can rise before your surplus turns negative, based on current inputs."
+                  />
                 </div>
                 <div className="mt-2">
                   {stressThreshold?.status === 'safe' ? (

@@ -1,4 +1,6 @@
-import { ArrowRight } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import ReactDOM from 'react-dom'
+import { ArrowRight, Info } from 'lucide-react'
 
 const formatCurrency = (amount) =>
   new Intl.NumberFormat('en-AU', {
@@ -7,9 +9,101 @@ const formatCurrency = (amount) =>
     maximumFractionDigits: 0,
   }).format(Number(amount || 0))
 
+const InlineTooltip = ({ content, size = 12 }) => {
+  const [visible, setVisible] = useState(false)
+  const ref = useRef(null)
+  const tipRef = useRef(null)
+  const rect = ref.current?.getBoundingClientRect()
+
+  const tooltipWidth = 280
+  const padding = 16
+  const viewportHeight = window.innerHeight
+  const tooltipHeight = 60
+  const centeredX = rect ? rect.left + rect.width / 2 : 0
+  const minX = padding + tooltipWidth / 2
+  const maxX = window.innerWidth - padding - tooltipWidth / 2
+  const clampedX = Math.min(Math.max(centeredX, minX), maxX)
+  const finalTop =
+    rect && rect.bottom + tooltipHeight + 12 > viewportHeight
+      ? rect.top - tooltipHeight - 8
+      : (rect?.bottom || 0) + 4
+
+  useEffect(() => {
+    const handle = (e) => {
+      if (
+        tipRef.current &&
+        !tipRef.current.contains(e.target) &&
+        ref.current &&
+        !ref.current.contains(e.target)
+      ) {
+        setVisible(false)
+      }
+    }
+    if (visible) document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [visible])
+
+  return (
+    <>
+      <span
+        ref={ref}
+        onMouseEnter={() => setVisible(true)}
+        onMouseLeave={() => setVisible(false)}
+        onClick={(e) => {
+          e.stopPropagation()
+          setVisible((v) => !v)
+        }}
+        style={{
+          cursor: 'pointer',
+          marginLeft: 4,
+          opacity: 0.6,
+          display: 'inline-flex',
+          alignItems: 'center',
+        }}
+      >
+        <Info size={size} />
+      </span>
+
+      {visible && rect
+        ? ReactDOM.createPortal(
+            <div
+              ref={tipRef}
+              style={{
+                position: 'fixed',
+                top: finalTop,
+                left: clampedX,
+                transform: 'translateX(-50%)',
+                zIndex: 9999,
+                background: '#0F172A',
+                color: 'rgba(255,255,255,0.85)',
+                fontSize: '12px',
+                lineHeight: 1.6,
+                padding: '10px 14px',
+                borderRadius: '10px',
+                maxWidth: '280px',
+                width: 'max-content',
+                textAlign: 'left',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.4)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                pointerEvents: 'auto',
+                textTransform: 'none',
+                letterSpacing: '0',
+                fontWeight: 400,
+              }}
+            >
+              {content}
+            </div>,
+            document.body
+          )
+        : null}
+    </>
+  )
+}
+
 export default function CommandCentreCard({
   eyebrow,
   title,
+  tooltip = null,
   value = null,
   valueTone = null,
   helper,
@@ -27,7 +121,13 @@ export default function CommandCentreCard({
       <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
         {eyebrow}
       </p>
-      <h2 className="mt-3 text-[20px] font-semibold tracking-[-0.02em] text-gray-900">{title}</h2>
+      <h2
+        className="mt-3 text-[20px] font-semibold tracking-[-0.02em] text-gray-900"
+        style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+      >
+        {title}
+        {tooltip ? <InlineTooltip content={tooltip} size={12} /> : null}
+      </h2>
 
       {metrics.length > 0 ? (
         <div className="mt-6 grid gap-3.5">
@@ -116,7 +216,12 @@ export default function CommandCentreCard({
           {progressInfo ? (
             <div className="mt-5">
               <div className="flex items-center justify-between gap-4 text-[11px] text-gray-400">
-                <span>{progressInfo.label}</span>
+                <span className="inline-flex items-center">
+                  {progressInfo.label}
+                  {progressInfo.tooltip ? (
+                    <InlineTooltip content={progressInfo.tooltip} size={11} />
+                  ) : null}
+                </span>
                 <span>{progressInfo.targetLabel}</span>
               </div>
               <div className="mt-2 h-[6px] overflow-hidden rounded-[999px] bg-[#edf2ef]">

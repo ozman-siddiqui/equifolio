@@ -1274,6 +1274,7 @@ export default function Dashboard({ session, subscription }) {
                 <CommandCentreCard
                   eyebrow="Net Position"
                   title={effectiveDashboardState.showNetPositionPartial ? 'Net Equity (Partial)' : 'Net Equity'}
+                  tooltip="Current portfolio equity after subtracting outstanding loan balances from property values."
                   value={
                     effectiveDashboardState.showNetPositionPartial
                       ? commandCenter.hero.netPosition.value ?? totalPropertyValue
@@ -1313,6 +1314,8 @@ export default function Dashboard({ session, subscription }) {
                       ? null
                       : {
                           label: 'LVR',
+                          tooltip:
+                            'Loan-to-value ratio. Total loan balance divided by total property value. Lower means less leverage.',
                           targetLabel: 'Target 60%',
                           valuePct: currentLvrPct ?? 0,
                           badge:
@@ -1349,6 +1352,7 @@ export default function Dashboard({ session, subscription }) {
                 <CommandCentreCard
                   eyebrow="Monthly Position"
                   title="Current monthly surplus"
+                  tooltip="Estimated monthly surplus after income, loan repayments, property costs, and expenses."
                   value={
                     effectiveDashboardState.canShowActualMonthlySurplus
                       ? borrowingPowerAnalysis?.actual_monthly_surplus
