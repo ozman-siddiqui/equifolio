@@ -996,14 +996,14 @@ export default function Dashboard({ session, subscription }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#F0F2F5] flex items-center justify-center">
         <div className="text-gray-400">Loading your portfolio...</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#F0F2F5]">
       <style>{`
         @keyframes vaulta-strip-pulse {
           0%   { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
@@ -1177,11 +1177,11 @@ export default function Dashboard({ session, subscription }) {
         >
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-3xl">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
                 Portfolio
               </p>
 
-              <h1 className="mt-4 text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">
+              <h1 className="mt-4 text-3xl font-extrabold tracking-[-0.03em] text-[#0F172A] md:text-4xl">
                 Portfolio Command Centre
               </h1>
 
@@ -1226,7 +1226,7 @@ export default function Dashboard({ session, subscription }) {
         </div>
 
         <section
-          className={`mb-[22px] rounded-[1.5rem] border border-gray-100 bg-white/80 px-4 py-3 shadow-sm shadow-gray-100/50 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+          className={`mb-[22px] rounded-[1.5rem] border border-gray-100 bg-white px-4 py-3 shadow-sm shadow-gray-100/50 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
           style={isDashboardMounted ? { animationDelay: '90ms' } : { opacity: 0, transform: 'translateY(8px)' }}
         >
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -1274,6 +1274,7 @@ export default function Dashboard({ session, subscription }) {
                 <CommandCentreCard
                   eyebrow="Net Position"
                   title={effectiveDashboardState.showNetPositionPartial ? 'Net Equity (Partial)' : 'Net Equity'}
+                  tooltip="Current portfolio equity after subtracting outstanding loan balances from property values."
                   value={
                     effectiveDashboardState.showNetPositionPartial
                       ? commandCenter.hero.netPosition.value ?? totalPropertyValue
@@ -1313,6 +1314,8 @@ export default function Dashboard({ session, subscription }) {
                       ? null
                       : {
                           label: 'LVR',
+                          tooltip:
+                            'Loan-to-value ratio. Total loan balance divided by total property value. Lower means less leverage.',
                           targetLabel: 'Target 60%',
                           valuePct: currentLvrPct ?? 0,
                           badge:
@@ -1349,6 +1352,7 @@ export default function Dashboard({ session, subscription }) {
                 <CommandCentreCard
                   eyebrow="Monthly Position"
                   title="Current monthly surplus"
+                  tooltip="Estimated monthly surplus after income, loan repayments, property costs, and expenses."
                   value={
                     effectiveDashboardState.canShowActualMonthlySurplus
                       ? borrowingPowerAnalysis?.actual_monthly_surplus
@@ -1480,10 +1484,10 @@ export default function Dashboard({ session, subscription }) {
                 style={isDashboardMounted ? { animationDelay: '180ms' } : { opacity: 0, transform: 'translateY(8px)' }}
               >
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
                     Actions
                   </p>
-                  <h2 className="mt-2 text-2xl font-semibold text-gray-900">
+                  <h2 className="mt-2 text-2xl font-bold tracking-[-0.02em] text-[#0F172A]">
                     Priority opportunities
                   </h2>
                   <p className="mt-2 text-sm leading-6 text-gray-600">
@@ -1533,7 +1537,7 @@ export default function Dashboard({ session, subscription }) {
             >
               <div className="flex items-center gap-4">
                 <div className="h-px flex-1 bg-[rgba(0,0,0,0.08)]" />
-                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
                   Below the fold · compare paths
                 </p>
                 <div className="h-px flex-1 bg-[rgba(0,0,0,0.08)]" />
@@ -1557,13 +1561,13 @@ export default function Dashboard({ session, subscription }) {
 
             {effectiveDashboardState.canShowBorrowing && commandCenter.compareOptions?.length > 0 ? (
               <section
-                className={`mt-8 rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] p-[22px] shadow-[0_10px_24px_rgba(15,23,42,0.04)] md:px-[26px] md:py-[22px] ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
+                className={`mt-8 rounded-[16px] border border-[rgba(226,232,240,1)] bg-white p-[22px] shadow-[0_1px_3px_rgba(15,23,42,0.05)] md:px-[26px] md:py-[22px] ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
                 style={isDashboardMounted ? { animationDelay: '240ms' } : { opacity: 0, transform: 'translateY(8px)' }}
               >
-                <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
                   Trade-offs
                 </p>
-                <h2 className="mt-2 text-[15px] font-medium text-[var(--color-text-primary)]">
+                <h2 className="mt-2 text-[15px] font-bold tracking-[-0.02em] text-[#0F172A]">
                   {commandCenter?.compareSectionTitle ?? 'Compare your options'}
                 </h2>
                 <p className="mt-2 text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
@@ -1696,10 +1700,10 @@ export default function Dashboard({ session, subscription }) {
                 className={`mt-5 ${isDashboardMounted ? 'dashboard-mounted' : ''}`}
                 style={isDashboardMounted ? { animationDelay: '360ms' } : { opacity: 0, transform: 'translateY(8px)' }}
               >
-                <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
                   Constraints
                 </p>
-                <h2 className="mt-2 text-[15px] font-medium text-[var(--color-text-primary)]">
+                <h2 className="mt-2 text-[15px] font-bold tracking-[-0.02em] text-[#0F172A]">
                   What&apos;s holding you back
                 </h2>
                 <p className="mt-2 text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
@@ -1723,11 +1727,11 @@ export default function Dashboard({ session, subscription }) {
                         {constraint.message}
                       </p>
                       <span
-                        className="shrink-0 rounded-full px-[10px] py-[3px] text-[10px] font-medium"
+                        className="shrink-0 rounded-[6px] px-[10px] py-[3px] text-[10px] font-bold"
                         style={{
                           backgroundColor:
-                            constraint.severity === 'High' ? '#FCEBEB' : '#FAEEDA',
-                          color: constraint.severity === 'High' ? '#791F1F' : '#633806',
+                            constraint.severity === 'High' ? '#FEF2F2' : '#FFFBEB',
+                          color: constraint.severity === 'High' ? '#991B1B' : '#92400E',
                         }}
                       >
                         {constraint.severity}
@@ -1804,7 +1808,7 @@ export default function Dashboard({ session, subscription }) {
 function StripMetric({ label, value }) {
   return (
     <div>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
+      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
         {label}
       </p>
       <p className="mt-1 text-sm font-semibold text-gray-900">{value}</p>
@@ -1881,8 +1885,6 @@ function CompareOptionCard({ option }) {
     option.headlineLabel ?? 'Annual cash flow'
   const isHeadlineCashFlow =
     String(headlineLabel || '').toLowerCase().includes('cash flow')
-  const annualTone =
-    Number(headlineValue) >= 0 ? 'text-[#0F6E56]' : 'text-[#A32D2D]'
   const accentColor =
     option.id === 'do-nothing'
       ? '#F09595'
@@ -1900,13 +1902,13 @@ function CompareOptionCard({ option }) {
 
   return (
     <article
-      className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] p-[22px] transition-[transform,box-shadow] duration-150 ease-out will-change-transform hover:-translate-y-[2px] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
+      className="rounded-[16px] border-[0.5px] border-[#E2E8F0] bg-white p-[22px] transition-[transform,box-shadow] duration-150 ease-out will-change-transform hover:-translate-y-[2px] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
       style={{ borderTopWidth: 3, borderTopColor: accentColor }}
     >
-      <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">
+      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">
         {option.scenario}
       </p>
-      <p className={`mt-3 text-[26px] font-medium tracking-[-0.5px] ${annualTone}`}>
+      <p className="mt-3 text-[26px] font-extrabold tracking-[-0.03em] text-[#0F172A]">
         {typeof headlineValue === 'number'
           ? isHeadlineCashFlow
             ? `${headlineValue < 0 ? '-' : '+'}${formatCurrency(Math.abs(headlineValue))}/year`

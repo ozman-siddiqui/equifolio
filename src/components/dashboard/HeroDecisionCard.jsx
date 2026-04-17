@@ -1,5 +1,6 @@
 ﻿import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import ReactDOM from 'react-dom'
 import { ArrowRight, ChevronRight, Info } from 'lucide-react'
 
 function formatCurrency(value) {
@@ -105,6 +106,97 @@ function pointToPercentX(pointX, viewBoxWidth = 520) {
   return `${(pointX / viewBoxWidth) * 100}%`
 }
 
+const InlineTooltip = ({ content, size = 12 }) => {
+  const [visible, setVisible] = useState(false)
+  const ref = useRef(null)
+  const tipRef = useRef(null)
+  const rect = ref.current?.getBoundingClientRect()
+
+  const tooltipWidth = 280
+  const padding = 16
+  const viewportHeight = window.innerHeight
+  const tooltipHeight = 60
+  const centeredX = rect ? rect.left + rect.width / 2 : 0
+  const minX = padding + tooltipWidth / 2
+  const maxX = window.innerWidth - padding - tooltipWidth / 2
+  const clampedX = Math.min(Math.max(centeredX, minX), maxX)
+  const finalTop =
+    rect && rect.bottom + tooltipHeight + 12 > viewportHeight
+      ? rect.top - tooltipHeight - 8
+      : (rect?.bottom || 0) + 4
+
+  useEffect(() => {
+    const handle = (e) => {
+      if (
+        tipRef.current &&
+        !tipRef.current.contains(e.target) &&
+        ref.current &&
+        !ref.current.contains(e.target)
+      ) {
+        setVisible(false)
+      }
+    }
+    if (visible) document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [visible])
+
+  return (
+    <>
+      <span
+        ref={ref}
+        onMouseEnter={() => setVisible(true)}
+        onMouseLeave={() => setVisible(false)}
+        onClick={(e) => {
+          e.stopPropagation()
+          setVisible((v) => !v)
+        }}
+        style={{
+          cursor: 'pointer',
+          marginLeft: 4,
+          opacity: 0.6,
+          display: 'inline-flex',
+          alignItems: 'center',
+        }}
+      >
+        <Info size={size} />
+      </span>
+
+      {visible && rect
+        ? ReactDOM.createPortal(
+            <div
+              ref={tipRef}
+              style={{
+                position: 'fixed',
+                top: finalTop,
+                left: clampedX,
+                transform: 'translateX(-50%)',
+                zIndex: 9999,
+                background: '#0F172A',
+                color: 'rgba(255,255,255,0.85)',
+                fontSize: '12px',
+                lineHeight: 1.6,
+                padding: '10px 14px',
+                borderRadius: '10px',
+                maxWidth: '280px',
+                width: 'max-content',
+                textAlign: 'left',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.4)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                pointerEvents: 'auto',
+                textTransform: 'none',
+                letterSpacing: '0',
+                fontWeight: 400,
+              }}
+            >
+              {content}
+            </div>,
+            document.body
+          )
+        : null}
+    </>
+  )
+}
+
 function StatTile({
   eyebrow,
   value,
@@ -114,33 +206,24 @@ function StatTile({
 }) {
   const toneClasses =
     tone === 'highlight'
-      ? 'border-emerald-200/80 bg-emerald-50/80 shadow-[0_20px_45px_-34px_rgba(16,185,129,0.35)] hover:border-[rgba(0,0,0,0.12)]'
-      : 'border-slate-200/80 bg-white/88 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.12)] hover:border-[rgba(0,0,0,0.12)]'
+      ? 'border-[#A7F3D0] bg-[#F0FDF9] shadow-[0_1px_3px_rgba(15,23,42,0.06),0_8px_20px_rgba(15,23,42,0.08)] hover:border-[rgba(0,0,0,0.12)]'
+      : 'border-[#E2E8F0] bg-white shadow-[0_1px_3px_rgba(15,23,42,0.06),0_8px_20px_rgba(15,23,42,0.08)] hover:border-[rgba(0,0,0,0.12)]'
 
   return (
     <div
-      className={`relative flex h-full min-h-[172px] flex-col rounded-[1.6rem] border p-4 transition-[transform,box-shadow,border-color] duration-[120ms] ease-out will-change-transform hover:-translate-y-px hover:shadow-[0_2px_10px_rgba(0,0,0,0.04)] md:min-h-[180px] md:p-5 ${toneClasses}`}
+      className={`relative flex h-full min-h-[172px] flex-col rounded-[16px] border p-4 transition-[transform,box-shadow,border-color] duration-[120ms] ease-out will-change-transform hover:-translate-y-px hover:shadow-[0_2px_10px_rgba(0,0,0,0.04)] md:min-h-[180px] md:p-5 ${toneClasses}`}
     >
       <div className="min-h-[34px]">
-        <p className="flex items-center text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+        <p className="flex items-center text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
           {eyebrow}
-          {tooltip && (
-            <span
-              title={tooltip}
-              style={{ cursor: 'help', marginLeft: 4, opacity: 0.5 }}
-              className="inline-flex h-4 w-4 flex-shrink-0 items-center justify-center text-slate-400"
-              aria-label={`Explain ${eyebrow}`}
-            >
-                <Info size={10} />
-            </span>
-          )}
+          {tooltip && <InlineTooltip content={tooltip} size={10} />}
         </p>
       </div>
       <div className="mt-3 flex min-h-[48px] items-start md:min-h-[52px]">
-        <p className="text-[1.8rem] font-semibold tracking-tight text-slate-950">{value}</p>
+        <p className="text-[1.8rem] font-extrabold tracking-[-0.03em] text-[#0F172A]">{value}</p>
       </div>
       <div className="mt-2 min-h-[48px]">
-        <p className="text-sm leading-6 text-slate-600">
+        <p className="text-sm leading-6 text-slate-400">
           {Array.isArray(detail)
             ? detail.map((line) => (
                 <span key={line} className="block">
@@ -577,7 +660,7 @@ export default function HeroDecisionCard({
           </div>
 
           <div className="mt-7 max-w-4xl">
-            <h1 className="max-w-3xl text-[2.3rem] font-semibold leading-[1.06] tracking-[-0.04em] text-slate-950 max-[480px]:text-[2rem] md:text-[3.25rem]">
+            <h1 className="max-w-3xl text-[2.3rem] font-extrabold leading-[1.06] tracking-[-0.04em] text-[#0F172A] max-[480px]:text-[2rem] md:text-[3.25rem]">
               {isAcquisitionMode
                 ? 'Acquisition scenario range'
                 : !isFirstNameResolved
@@ -589,7 +672,7 @@ export default function HeroDecisionCard({
                 <span className="mt-2 block">{purchaseRangeDisplay}</span>
               ) : null}
             </h1>
-            <p className="mt-5 max-w-2xl text-[1.05rem] leading-8 text-emerald-800">
+            <p className="mt-5 max-w-2xl text-[1.05rem] leading-8 text-slate-600">
               {subtitle ?? (isAcquisitionMode ? (
                 <>
                   Based on current inputs, this scenario is illustrative only and remains subject
@@ -796,7 +879,7 @@ export default function HeroDecisionCard({
           <div className="mt-4 rounded-[1.4rem] border border-slate-200/80 bg-white/88 px-4 py-3 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.12)]">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-600">
                   Rate resilience
                 </p>
                 <div className="mt-1 flex items-center gap-1">
@@ -809,14 +892,9 @@ export default function HeroDecisionCard({
                       ? 'Portfolio under rate stress'
                       : 'Data unavailable'}
                   </p>
-                  <span
-                    title="Rate resilience estimates the interest rate at which your lender-view monthly surplus turns negative under your current portfolio settings. A result of >10.00% means no break point was found within the tested range — your portfolio remains serviceable even under extreme rate stress."
-                    style={{ cursor: 'help', marginLeft: 4, opacity: 0.5 }}
-                    className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center text-slate-400"
-                    aria-label="Explain rate resilience"
-                  >
-                    <Info size={12} />
-                  </span>
+                  <InlineTooltip
+                    content="Rate resilience estimates how much interest rates can rise before your surplus turns negative, based on current inputs."
+                  />
                 </div>
                 <div className="mt-2">
                   {stressThreshold?.status === 'safe' ? (
@@ -847,7 +925,7 @@ export default function HeroDecisionCard({
           <div className="mt-8 rounded-[2rem] border border-emerald-200/80 bg-[radial-gradient(circle_at_top,rgba(209,250,229,0.45),rgba(255,255,255,0.96)_62%)] p-4 shadow-[0_28px_70px_-50px_rgba(16,185,129,0.42)] md:px-5 md:py-5">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-600">
                   {hasDualSeries
                     ? 'Portfolio equity with vs without acquisition'
                     : 'Current portfolio trajectory'}
@@ -856,12 +934,12 @@ export default function HeroDecisionCard({
                   <>
                     {hasProjectionData ? (
                       <>
-                        <p className="mt-2 text-sm leading-6 text-slate-500">
+                        <p className="mt-2 text-sm leading-6 text-slate-600">
                           Compare your current portfolio trajectory
                           <br />
                           against the portfolio after acquisition.
                         </p>
-                        <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-slate-500">
+                        <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-slate-600">
                           <span className="inline-flex items-center gap-2">
                             <span className="h-0.5 w-6 rounded-full bg-[#b8e8d8]" />
                             Without acquisition
@@ -873,7 +951,7 @@ export default function HeroDecisionCard({
                         </div>
                       </>
                     ) : (
-                      <p className="mt-2 text-sm leading-6 text-slate-500">
+                      <p className="mt-2 text-sm leading-6 text-slate-600">
                         Complete mortgage details to unlock forward equity trajectory
                       </p>
                     )}
@@ -882,17 +960,17 @@ export default function HeroDecisionCard({
                   <>
                     {hasProjectionData ? (
                       <>
-                        <p className="mt-2 text-sm leading-6 text-slate-500">
+                        <p className="mt-2 text-sm leading-6 text-slate-600">
                           Projected equity path without additional
                           <br />
                           acquisition activity.
                         </p>
-                        <p className="mt-2 text-sm leading-6 text-slate-500">
+                        <p className="mt-2 text-sm leading-6 text-slate-600">
                           Assumes current property growth and debt path only
                         </p>
                       </>
                     ) : (
-                      <p className="mt-2 text-sm leading-6 text-slate-500">
+                      <p className="mt-2 text-sm leading-6 text-slate-600">
                         Complete mortgage details to unlock forward equity trajectory
                       </p>
                     )}
@@ -1068,13 +1146,13 @@ export default function HeroDecisionCard({
           <button
             type="button"
             onClick={() => navigate('/growth-scenarios')}
-            className="rounded-[1.6rem] border border-slate-200 bg-white px-5 py-4 text-left text-sm font-semibold text-slate-800 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.16)] transition-colors duration-150 ease-out hover:bg-[#eef5f2]"
+            className="rounded-[1.6rem] border border-[#E2E8F0] bg-white px-5 py-4 text-left text-sm font-semibold text-slate-800 shadow-[0_1px_4px_rgba(15,23,42,0.06),0_8px_24px_rgba(15,23,42,0.08)] transition-colors duration-150 ease-out hover:bg-[#eef5f2]"
           >
             {isExecutableScenario ? 'View 30-year projection' : 'View your wealth trajectory'}
           </button>
 
-          <div className="rounded-[2rem] border border-emerald-200/80 bg-white p-5 shadow-[0_22px_54px_-42px_rgba(16,185,129,0.34)]">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+          <div className="rounded-[2rem] border border-[#D1FAE5] bg-white p-5 shadow-[0_6px_20px_rgba(16,185,129,0.10)]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-600">
               Scenario position
             </p>
             <div className="mt-4 flex items-center justify-between gap-3">
@@ -1115,7 +1193,7 @@ export default function HeroDecisionCard({
                   style={{ maxHeight: isReadinessExpanded ? '320px' : '0px' }}
                 >
                   <div className="mt-4 border-t border-[rgba(0,0,0,0.08)] pt-4">
-                    <p className="text-[11px] leading-[1.5] text-slate-500">
+                    <p className="text-[11px] leading-[1.5] text-slate-600">
                       Your scenario position is derived from the key criteria below.
                     </p>
                     {acquisitionBreakdownRows.length > 0 ? (
@@ -1132,11 +1210,11 @@ export default function HeroDecisionCard({
                       </div>
                     ) : null}
                     {hasLimitedReadinessDrivers ? (
-                      <p className="mt-3 text-[11px] leading-[1.5] text-slate-500">
+                      <p className="mt-3 text-[11px] leading-[1.5] text-slate-600">
                         More score drivers will appear as additional readiness inputs become available.
                       </p>
                     ) : (
-                      <p className="mt-3 text-[11px] leading-[1.5] text-slate-500">
+                      <p className="mt-3 text-[11px] leading-[1.5] text-slate-600">
                         Weighted to derive your overall acquisition position score.
                       </p>
                     )}
