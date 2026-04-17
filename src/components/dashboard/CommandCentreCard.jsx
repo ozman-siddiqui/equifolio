@@ -117,12 +117,12 @@ export default function CommandCentreCard({
   onClick,
 }) {
   return (
-    <section className="cursor-default rounded-[20px] border border-[#EEF2F7] bg-[#F8FAFC] px-[26px] py-[22px] shadow-[0_12px_30px_rgba(15,23,42,0.06)] transition-[transform,box-shadow] duration-150 ease-out will-change-transform hover:-translate-y-[2px] hover:shadow-[0_4px_16px_rgba(0,0,0,0.07)]">
-      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+    <section className="cursor-default rounded-[16px] border border-[#E2E8F0] bg-white px-[26px] py-[22px] shadow-[0_1px_4px_rgba(15,23,42,0.06),0_8px_24px_rgba(15,23,42,0.08)] transition-[box-shadow] duration-150 ease-out will-change-transform hover:shadow-[0_1px_4px_rgba(15,23,42,0.06),0_8px_24px_rgba(15,23,42,0.08)]">
+      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">
         {eyebrow}
       </p>
       <h2
-        className="mt-3 text-[20px] font-semibold tracking-[-0.02em] text-gray-900"
+        className="mt-3 text-[20px] font-bold tracking-[-0.02em] text-gray-900"
         style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
       >
         {title}
@@ -164,8 +164,8 @@ export default function CommandCentreCard({
       ) : (
         <>
           <p
-            className={`mt-4 text-[44px] font-extrabold tracking-[-0.05em] ${
-              value == null ? 'text-gray-300' : valueTone || 'text-gray-900'
+            className={`mt-4 text-[44px] font-extrabold tracking-[-0.03em] ${
+              value == null ? 'text-gray-300' : valueTone || 'text-[#0F172A]'
             }`}
           >
             {value == null ? '-' : formatCurrency(value)}
@@ -215,7 +215,7 @@ export default function CommandCentreCard({
           ) : null}
           {progressInfo ? (
             <div className="mt-5">
-              <div className="flex items-center justify-between gap-4 text-[11px] text-gray-400">
+              <div className="flex items-center justify-between gap-4 text-[11px] text-slate-500">
                 <span className="inline-flex items-center">
                   {progressInfo.label}
                   {progressInfo.tooltip ? (

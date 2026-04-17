@@ -111,8 +111,8 @@ export default function BorrowingPowerCard({
   onCta,
 }) {
   return (
-    <section className="cursor-default rounded-[20px] border border-[#EEF2F7] bg-[#F8FAFC] px-[26px] py-[22px] shadow-[0_12px_30px_rgba(15,23,42,0.06)] transition-[transform,box-shadow] duration-150 ease-out will-change-transform hover:-translate-y-[2px] hover:shadow-[0_4px_16px_rgba(0,0,0,0.07)]">
-      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+    <section className="cursor-default rounded-[18px] border border-slate-300 bg-white px-[26px] py-[22px] shadow-[0_20px_45px_-30px_rgba(15,23,42,0.18)] transition-[transform,box-shadow] duration-150 ease-out will-change-transform hover:-translate-y-[2px] hover:shadow-[0_4px_16px_rgba(0,0,0,0.07)]">
+      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-600">
         Borrowing Power
       </p>
       <h2
@@ -136,7 +136,7 @@ export default function BorrowingPowerCard({
             <div className="space-y-[14px]">
               {detailRows.map((row) => (
                 <div key={row.label} className="flex items-start justify-between gap-4 text-sm">
-                  <span className="text-slate-500">{row.label}</span>
+                  <span className="text-slate-600">{row.label}</span>
                   <span className={`font-medium ${row.tone || 'text-gray-900'}`}>
                     {row.value}
                   </span>
@@ -152,11 +152,11 @@ export default function BorrowingPowerCard({
           <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
             {confidence ? `${confidence} confidence` : 'Confidence note'}
           </p>
-          <p className="mt-1 text-sm leading-6 text-amber-900">{warning}</p>
+          <p className="mt-1 text-sm leading-6 text-slate-500">{warning}</p>
         </div>
       ) : null}
 
-      <p className="mt-5 text-sm leading-6 text-gray-600">{subtitle}</p>
+      <p className="mt-5 text-sm leading-6 text-slate-500">{subtitle}</p>
 
       <button
         type="button"
