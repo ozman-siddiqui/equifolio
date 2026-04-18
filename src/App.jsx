@@ -283,7 +283,7 @@ export default function App() {
     return () => {
       isMounted = false
     }
-  }, [session?.user?.id, isActive, location.pathname])
+  }, [session?.user?.id, isActive])
 
   if (!ready || !subscriptionReady || !welcomeGateReady) {
     return (
@@ -324,6 +324,15 @@ export default function App() {
   }
 
   if (requiresWelcome) {
+    const pendingRedirect = sessionStorage.getItem('postLoginRedirect')
+    const urlRedirect = new URLSearchParams(window.location.search).get('redirect')
+    const redirectTarget = pendingRedirect || urlRedirect
+
+    if (redirectTarget && redirectTarget.startsWith('/')) {
+      if (pendingRedirect) sessionStorage.removeItem('postLoginRedirect')
+      window.location.replace(redirectTarget)
+      return null
+    }
     return (
       <Routes>
         <Route path="/welcome" element={<Welcome session={session} />} />
