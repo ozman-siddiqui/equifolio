@@ -38,6 +38,11 @@ function buildEmailContent(
             <p style="font-size:14px;color:#6b7280;margin:0 0 24px;">When your fixed rate expires, your loan reverts to the variable rate automatically unless you take action. Now is the right time to review your options.</p>
             <a href="https://www.nextiq.com.au/dashboard" style="display:inline-block;background:#1D9E75;color:#ffffff;padding:12px 24px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none;">Review your options →</a>
             <p style="font-size:12px;color:#9ca3af;margin:24px 0 0;">Illustrative only. Not financial advice.</p>
+            <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;">
+              <p style="font-size:12px;line-height:1.6;color:#9ca3af;margin:0 0 8px;">You’re receiving this because you’re using Nextiq.</p>
+              <p style="font-size:12px;line-height:1.6;color:#9ca3af;margin:0 0 8px;">Nextiq provides general informational insights only and does not constitute financial, tax, or lending advice.</p>
+              <p style="font-size:12px;line-height:1.6;color:#9ca3af;margin:0;">Manage your alert preferences in the app.</p>
+            </div>
           </div>
         </div>`
     }
@@ -57,6 +62,11 @@ function buildEmailContent(
             <p style="font-size:14px;color:#6b7280;margin:0 0 16px;">This is the optimal window to compare refinancing against reverting to variable.</p>
             <a href="https://www.nextiq.com.au/dashboard" style="display:inline-block;background:#1D9E75;color:#ffffff;padding:12px 24px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none;">Compare your options →</a>
             <p style="font-size:12px;color:#9ca3af;margin:24px 0 0;">Illustrative only. Not financial advice.</p>
+            <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;">
+              <p style="font-size:12px;line-height:1.6;color:#9ca3af;margin:0 0 8px;">You’re receiving this because you’re using Nextiq.</p>
+              <p style="font-size:12px;line-height:1.6;color:#9ca3af;margin:0 0 8px;">Nextiq provides general informational insights only and does not constitute financial, tax, or lending advice.</p>
+              <p style="font-size:12px;line-height:1.6;color:#9ca3af;margin:0;">Manage your alert preferences in the app.</p>
+            </div>
           </div>
         </div>`
     }
@@ -76,6 +86,11 @@ function buildEmailContent(
             <p style="font-size:14px;color:#6b7280;margin:0 0 24px;"><strong>Contact your lender or mortgage broker today.</strong></p>
             <a href="https://www.nextiq.com.au/dashboard" style="display:inline-block;background:#1D9E75;color:#ffffff;padding:12px 24px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none;">Review your position →</a>
             <p style="font-size:12px;color:#9ca3af;margin:24px 0 0;">Illustrative only. Not financial advice.</p>
+            <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;">
+              <p style="font-size:12px;line-height:1.6;color:#9ca3af;margin:0 0 8px;">You’re receiving this because you’re using Nextiq.</p>
+              <p style="font-size:12px;line-height:1.6;color:#9ca3af;margin:0 0 8px;">Nextiq provides general informational insights only and does not constitute financial, tax, or lending advice.</p>
+              <p style="font-size:12px;line-height:1.6;color:#9ca3af;margin:0;">Manage your alert preferences in the app.</p>
+            </div>
           </div>
         </div>`
     }
@@ -180,7 +195,8 @@ Deno.serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: 'Nextiq <onboarding@resend.dev>',
+            from: 'Nextiq <alerts@nextiq.com.au>',
+            reply_to: 'support@nextiq.com.au',
             to: userEmail,
             subject: content.subject,
             html: content.html,

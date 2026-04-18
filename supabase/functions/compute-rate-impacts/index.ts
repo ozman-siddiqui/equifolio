@@ -217,6 +217,17 @@ Deno.serve(async (req) => {
             Indicative only. Based on current variable loan balances
             at the new cash rate. Not financial advice.
           </p>
+          <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;">
+            <p style="font-size:12px;line-height:1.6;color:#9ca3af;margin:0 0 8px;">
+              You're receiving this because you're using Nextiq.
+            </p>
+            <p style="font-size:12px;line-height:1.6;color:#9ca3af;margin:0 0 8px;">
+              Nextiq provides general informational insights only and does not constitute financial, tax, or lending advice.
+            </p>
+            <p style="font-size:12px;line-height:1.6;color:#9ca3af;margin:0;">
+              Manage your alert preferences in the app.
+            </p>
+          </div>
         </div>
       </div>`
 
@@ -228,7 +239,8 @@ Deno.serve(async (req) => {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                from: 'Nextiq <onboarding@resend.dev>',
+                from: 'Nextiq <alerts@nextiq.com.au>',
+                reply_to: 'support@nextiq.com.au',
                 to: userEmail,
                 subject,
                 html,
