@@ -115,6 +115,7 @@ Deno.serve(async (req) => {
           isIO: boolean
         ): number => {
           const r = (annualRatePct / 100) / 12
+          // Skip fixed rate loans — not affected by RBA cash rate
           if (isIO || termMonths <= 0) {
             return balance * r
           }
@@ -127,7 +128,6 @@ Deno.serve(async (req) => {
         let newMonthlyTotal = 0
 
         for (const loan of loans) {
-          // Skip fixed rate loans — not affected by RBA cash rate
           if (loan.loan_type === 'Fixed') continue
 
           const balance = Number(loan.current_balance || 0)
@@ -169,20 +169,22 @@ Deno.serve(async (req) => {
 
         if (insertError) throw insertError
 
-        if (RESEND_API_KEY && userEmail && monthlyRepaymentDelta !== 0) {
+        if (RESEND_API_KEY && userEmail) {
           const isCut = monthlyRepaymentDelta < 0
           const absDelta = Math.abs(monthlyRepaymentDelta)
 
-          const subject = isCut
-            ? `RBA update: your repayments may reduce by $${absDelta}/month`
-            : `RBA update: your repayments may increase by $${absDelta}/month`
+          const subject = monthlyRepaymentDelta === 0
+            ? `RBA update: cash rate decision — your repayments unchanged`
+            : isCut
+              ? `RBA update: your repayments may reduce by $${absDelta}/month`
+              : `RBA update: your repayments may increase by $${absDelta}/month`
 
           const html = `
       <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;">
         <div style="background:#1D9E75;padding:24px 28px;border-radius:8px 8px 0 0;">
           <p style="margin:0;font-size:11px;color:#ffffff;
                     letter-spacing:0.12em;text-transform:uppercase;">
-            Market Update — Vaulta
+            Market Update — <span style="text-transform:none;">Nextiq</span>
           </p>
           <p style="margin:8px 0 0;font-size:20px;font-weight:700;
                     color:#ffffff;">
@@ -193,7 +195,9 @@ Deno.serve(async (req) => {
                     border:1px solid #e2e8f0;border-radius:0 0 8px 8px;">
           <p style="font-size:28px;font-weight:700;
                     color:${isCut ? '#15803d' : '#be123c'};margin:0 0 16px;">
-            ${isCut ? '−' : '+'}$${absDelta}/month
+            ${monthlyRepaymentDelta === 0
+              ? 'No change'
+              : `${isCut ? '-' : '+'}$${absDelta}/month`}
           </p>
           <p style="font-size:15px;color:#374151;margin:0 0 8px;">
             Cash rate moved from ${rateEvent.previous_rate}% to
@@ -203,7 +207,7 @@ Deno.serve(async (req) => {
           <p style="font-size:14px;color:#6b7280;margin:0 0 24px;">
             Fixed-rate loans are excluded and unaffected until expiry.
           </p>
-          <a href="https://vaulta.com.au/dashboard"
+          <a href="https://www.nextiq.com.au/dashboard"
              style="display:inline-block;background:#1D9E75;color:#ffffff;
                     padding:12px 24px;border-radius:8px;font-size:15px;
                     font-weight:600;text-decoration:none;">
@@ -224,7 +228,7 @@ Deno.serve(async (req) => {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                from: 'Vaulta <onboarding@resend.dev>',
+                from: 'Nextiq <onboarding@resend.dev>',
                 to: userEmail,
                 subject,
                 html,
@@ -261,25 +265,13 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({
-        rate_event_id: rateEvent.id,
-        rate_delta: rateDelta,
-        computed: results.length,
-        results,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
+      JSON.stringify({ processed: results.length, results, rate_delta: rateDelta }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
-
   } catch (error: any) {
     return new Response(
       JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })
