@@ -30,13 +30,13 @@ function buildEmailContent(
       html: `
         <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;">
           <div style="background:#1D9E75;padding:24px 28px;border-radius:8px 8px 0 0;">
-            <p style="margin:0;font-size:11px;color:#ffffff;letter-spacing:0.12em;text-transform:uppercase;">Fixed Rate Alert — Vaulta</p>
+            <p style="margin:0;font-size:11px;color:#ffffff;letter-spacing:0.12em;text-transform:uppercase;">Fixed Rate Alert — Nextiq</p>
             <p style="margin:8px 0 0;font-size:20px;font-weight:700;color:#ffffff;">Your fixed rate is approaching expiry</p>
           </div>
           <div style="background:#ffffff;padding:28px;border:1px solid #e2e8f0;border-radius:0 0 8px 8px;">
             <p style="font-size:15px;color:#374151;margin:0 0 16px;">Your <strong>${lender}</strong> loan fixed rate of <strong>${formattedRate}</strong> expires on <strong>${formattedDate}</strong> — in ${daysUntil} days.</p>
             <p style="font-size:14px;color:#6b7280;margin:0 0 24px;">When your fixed rate expires, your loan reverts to the variable rate automatically unless you take action. Now is the right time to review your options.</p>
-            <a href="https://vaulta.com.au/dashboard" style="display:inline-block;background:#1D9E75;color:#ffffff;padding:12px 24px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none;">Review your options →</a>
+            <a href="https://www.nextiq.com.au/dashboard" style="display:inline-block;background:#1D9E75;color:#ffffff;padding:12px 24px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none;">Review your options →</a>
             <p style="font-size:12px;color:#9ca3af;margin:24px 0 0;">Illustrative only. Not financial advice.</p>
           </div>
         </div>`
@@ -49,13 +49,13 @@ function buildEmailContent(
       html: `
         <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;">
           <div style="background:#B45309;padding:24px 28px;border-radius:8px 8px 0 0;">
-            <p style="margin:0;font-size:11px;color:#ffffff;letter-spacing:0.12em;text-transform:uppercase;">Fixed Rate Alert — Vaulta</p>
+            <p style="margin:0;font-size:11px;color:#ffffff;letter-spacing:0.12em;text-transform:uppercase;">Fixed Rate Alert — Nextiq</p>
             <p style="margin:8px 0 0;font-size:20px;font-weight:700;color:#ffffff;">Time to decide on your ${lender} loan</p>
           </div>
           <div style="background:#ffffff;padding:28px;border:1px solid #e2e8f0;border-radius:0 0 8px 8px;">
             <p style="font-size:15px;color:#374151;margin:0 0 16px;">Your fixed rate of <strong>${formattedRate}</strong> expires on <strong>${formattedDate}</strong> — in <strong>${daysUntil} days</strong>.</p>
             <p style="font-size:14px;color:#6b7280;margin:0 0 16px;">This is the optimal window to compare refinancing against reverting to variable.</p>
-            <a href="https://vaulta.com.au/dashboard" style="display:inline-block;background:#1D9E75;color:#ffffff;padding:12px 24px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none;">Compare your options →</a>
+            <a href="https://www.nextiq.com.au/dashboard" style="display:inline-block;background:#1D9E75;color:#ffffff;padding:12px 24px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none;">Compare your options →</a>
             <p style="font-size:12px;color:#9ca3af;margin:24px 0 0;">Illustrative only. Not financial advice.</p>
           </div>
         </div>`
@@ -68,13 +68,13 @@ function buildEmailContent(
       html: `
         <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;">
           <div style="background:#BE123C;padding:24px 28px;border-radius:8px 8px 0 0;">
-            <p style="margin:0;font-size:11px;color:#ffffff;letter-spacing:0.12em;text-transform:uppercase;">Urgent — Vaulta</p>
+            <p style="margin:0;font-size:11px;color:#ffffff;letter-spacing:0.12em;text-transform:uppercase;">Urgent — Nextiq</p>
             <p style="margin:8px 0 0;font-size:20px;font-weight:700;color:#ffffff;">Action required — your fixed rate expires soon</p>
           </div>
           <div style="background:#ffffff;padding:28px;border:1px solid #e2e8f0;border-radius:0 0 8px 8px;">
             <p style="font-size:15px;color:#374151;margin:0 0 16px;">Your <strong>${lender}</strong> fixed rate of <strong>${formattedRate}</strong> expires on <strong>${formattedDate}</strong> — only <strong>${daysUntil} days away</strong>.</p>
             <p style="font-size:14px;color:#6b7280;margin:0 0 24px;"><strong>Contact your lender or mortgage broker today.</strong></p>
-            <a href="https://vaulta.com.au/dashboard" style="display:inline-block;background:#1D9E75;color:#ffffff;padding:12px 24px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none;">Review your position →</a>
+            <a href="https://www.nextiq.com.au/dashboard" style="display:inline-block;background:#1D9E75;color:#ffffff;padding:12px 24px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none;">Review your position →</a>
             <p style="font-size:12px;color:#9ca3af;margin:24px 0 0;">Illustrative only. Not financial advice.</p>
           </div>
         </div>`
@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: 'Vaulta <onboarding@resend.dev>',
+            from: 'Nextiq <onboarding@resend.dev>',
             to: userEmail,
             subject: content.subject,
             html: content.html,
