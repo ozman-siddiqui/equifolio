@@ -53,6 +53,7 @@ Deno.serve(async (req) => {
     }
 
     const rateDelta = rateEvent.new_rate - rateEvent.previous_rate
+    const decisionType = rateEvent.decision_type ?? 'hold'
 
     // Get all users
     const { data: usersData, error: usersError } =
@@ -169,6 +170,17 @@ Deno.serve(async (req) => {
 
         if (insertError) throw insertError
 
+        const { data: profileData } = await supabase
+          .from('user_financial_profiles')
+          .select('alerts_opt_out')
+          .eq('user_id', userId)
+          .maybeSingle()
+
+        if (profileData?.alerts_opt_out === true) {
+          results.push({ user_id: userId, status: 'skipped_opted_out' })
+          continue
+        }
+
         if (RESEND_API_KEY && userEmail) {
           const isCut = monthlyRepaymentDelta < 0
           const absDelta = Math.abs(monthlyRepaymentDelta)
@@ -200,9 +212,12 @@ Deno.serve(async (req) => {
               : `${isCut ? '-' : '+'}$${absDelta}/month`}
           </p>
           <p style="font-size:15px;color:#374151;margin:0 0 8px;">
-            Cash rate moved from ${rateEvent.previous_rate}% to
-            ${rateEvent.new_rate}%.
-            This is the estimated impact on your variable loan repayments.
+            ${decisionType === 'hold'
+              ? `The cash rate remains at ${rateEvent.new_rate}%. There is no impact on your variable loan repayments.`
+              : decisionType === 'hike'
+                ? `Cash rate increased from ${rateEvent.previous_rate}% to ${rateEvent.new_rate}%. This is the estimated impact on your variable loan repayments.`
+                : `Cash rate decreased from ${rateEvent.previous_rate}% to ${rateEvent.new_rate}%. This is the estimated impact on your variable loan repayments.`
+            }
           </p>
           <p style="font-size:14px;color:#6b7280;margin:0 0 24px;">
             Fixed-rate loans are excluded and unaffected until expiry.
@@ -224,10 +239,11 @@ Deno.serve(async (req) => {
             <p style="font-size:12px;line-height:1.6;color:#9ca3af;margin:0 0 8px;">
               Nextiq provides general informational insights only and does not constitute financial, tax, or lending advice.
             </p>
-            <p style="font-size:12px;line-height:1.6;color:#9ca3af;margin:0;">
-              Manage your alert preferences in the app.
-            </p>
-          </div>
+              <a href="https://fcawdtlcimytvohivhfq.supabase.co/functions/v1/unsubscribe?u=${userId}"
+                 style="color:#9ca3af;font-size:12px;text-decoration:underline;">
+                Unsubscribe from alerts
+              </a>
+            </div>
         </div>
       </div>`
 

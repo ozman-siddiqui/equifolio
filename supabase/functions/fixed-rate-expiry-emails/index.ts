@@ -14,6 +14,7 @@ function getDaysUntil(dateStr: string): number | null {
 
 function buildEmailContent(
   touchpointKey: string,
+  userId: string,
   lender: string,
   daysUntil: number,
   currentRate: number,
@@ -41,7 +42,10 @@ function buildEmailContent(
             <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;">
               <p style="font-size:12px;line-height:1.6;color:#9ca3af;margin:0 0 8px;">You’re receiving this because you’re using Nextiq.</p>
               <p style="font-size:12px;line-height:1.6;color:#9ca3af;margin:0 0 8px;">Nextiq provides general informational insights only and does not constitute financial, tax, or lending advice.</p>
-              <p style="font-size:12px;line-height:1.6;color:#9ca3af;margin:0;">Manage your alert preferences in the app.</p>
+              <a href="https://fcawdtlcimytvohivhfq.supabase.co/functions/v1/unsubscribe?u=${userId}"
+                 style="color:#9ca3af;font-size:12px;text-decoration:underline;">
+                Unsubscribe from alerts
+              </a>
             </div>
           </div>
         </div>`
@@ -65,7 +69,10 @@ function buildEmailContent(
             <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;">
               <p style="font-size:12px;line-height:1.6;color:#9ca3af;margin:0 0 8px;">You’re receiving this because you’re using Nextiq.</p>
               <p style="font-size:12px;line-height:1.6;color:#9ca3af;margin:0 0 8px;">Nextiq provides general informational insights only and does not constitute financial, tax, or lending advice.</p>
-              <p style="font-size:12px;line-height:1.6;color:#9ca3af;margin:0;">Manage your alert preferences in the app.</p>
+              <a href="https://fcawdtlcimytvohivhfq.supabase.co/functions/v1/unsubscribe?u=${userId}"
+                 style="color:#9ca3af;font-size:12px;text-decoration:underline;">
+                Unsubscribe from alerts
+              </a>
             </div>
           </div>
         </div>`
@@ -89,7 +96,10 @@ function buildEmailContent(
             <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;">
               <p style="font-size:12px;line-height:1.6;color:#9ca3af;margin:0 0 8px;">You’re receiving this because you’re using Nextiq.</p>
               <p style="font-size:12px;line-height:1.6;color:#9ca3af;margin:0 0 8px;">Nextiq provides general informational insights only and does not constitute financial, tax, or lending advice.</p>
-              <p style="font-size:12px;line-height:1.6;color:#9ca3af;margin:0;">Manage your alert preferences in the app.</p>
+              <a href="https://fcawdtlcimytvohivhfq.supabase.co/functions/v1/unsubscribe?u=${userId}"
+                 style="color:#9ca3af;font-size:12px;text-decoration:underline;">
+                Unsubscribe from alerts
+              </a>
             </div>
           </div>
         </div>`
@@ -181,12 +191,25 @@ Deno.serve(async (req) => {
 
         const content = buildEmailContent(
           touchpoint.key,
+          loan.user_id,
           loan.lender,
           daysUntil,
           loan.interest_rate,
           loan.fixed_rate_expiry
         )
         if (!content) continue
+
+        const userId = loan.user_id
+        const { data: profileData } = await supabase
+          .from('user_financial_profiles')
+          .select('alerts_opt_out')
+          .eq('user_id', userId)
+          .maybeSingle()
+
+        if (profileData?.alerts_opt_out === true) {
+          results.push({ user_id: userId, status: 'skipped_opted_out' })
+          continue
+        }
 
         const emailResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',
