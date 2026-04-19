@@ -64,7 +64,7 @@ const pricingPlans = [
     description:
       'Perfect for investors starting out.',
     features: starterFeatures,
-    cta: 'Start 14-day free trial',
+    cta: 'See your numbers',
     featured: false,
   },
   {
@@ -75,7 +75,7 @@ const pricingPlans = [
     description:
       'For serious investors building wealth.',
     features: investorFeatures,
-    cta: 'Start 14-day free trial ->',
+    cta: 'See your numbers',
     featured: true,
   },
   {
@@ -94,7 +94,7 @@ const pricingPlans = [
       'Weekly AI digest',
       'Dedicated support',
     ],
-    cta: 'Start 14-day free trial',
+    cta: 'See your numbers',
     featured: false,
   },
 ]
@@ -206,10 +206,9 @@ function Landing() {
             maxWidth: '820px'
           }}
         >
-          See exactly how your portfolio<br />
-          is performing. And where<br />
+          Find out if you can afford your next property.<br />
           <em style={{ color: '#19C37D', fontStyle: 'normal' }}>
-            you&apos;re losing money.
+            See your real numbers instantly.
           </em>
         </h1>
 
@@ -224,8 +223,16 @@ function Landing() {
             className="rounded-xl px-9 py-4 text-base font-extrabold no-underline"
             style={{ background: '#19C37D', color: '#071C17' }}
           >
-            {'Start free trial ->'}
+            {'See your numbers'}
           </a>
+          <p style={{
+            fontSize: '13px',
+            color: 'rgba(255,255,255,0.5)',
+            marginTop: '10px',
+            textAlign: 'center'
+          }}>
+            Free during early access · No credit check · No bank connection
+          </p>
           <a
             href="#how-it-works"
             className="rounded-xl border px-9 py-4 text-base no-underline"
@@ -972,8 +979,8 @@ function Landing() {
               Know what you can do next, before you commit
             </h2>
             <p className="text-lg leading-relaxed text-slate-500 md:text-xl">
-              Borrowing power, acquisition feasibility, and execution readiness. All from your
-              real numbers, not generic estimates.
+              See your real borrowing power, equity position, and how RBA rate changes affect
+              your repayments. No bank connection. No credit check. Just your numbers.
             </p>
             <div className="mt-6 flex flex-col gap-5">
               {[
@@ -1224,7 +1231,7 @@ function Landing() {
             Simple, transparent pricing
           </h2>
           <p className="mb-13 text-lg leading-relaxed text-slate-500 md:text-xl">
-            Built for Australian property investors. 14-day free trial on all plans. No lock-in.
+            Built for Australian property investors. Free during early access. No lock-in.
             Cancel anytime.
           </p>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 mt-12">
@@ -1286,7 +1293,7 @@ function Landing() {
                 className="w-full rounded-2xl py-4 text-sm font-extrabold text-center no-underline block"
                 style={{ border: '2px solid #19C37D', color: '#19C37D' }}
               >
-                Start 14-day free trial
+                See your numbers
               </a>
             </div>
 
@@ -1352,7 +1359,7 @@ function Landing() {
                 className="w-full rounded-2xl py-4 text-sm font-extrabold text-center no-underline block"
                 style={{ background: '#19C37D', color: '#071C17' }}
               >
-                Start 14-day free trial
+                See your numbers
               </a>
             </div>
 
@@ -1410,7 +1417,7 @@ function Landing() {
                 className="w-full rounded-2xl py-4 text-sm font-extrabold text-center no-underline block"
                 style={{ border: '2px solid #19C37D', color: '#19C37D' }}
               >
-                Start 14-day free trial
+                See your numbers
               </a>
             </div>
           </div>

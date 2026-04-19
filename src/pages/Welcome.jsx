@@ -498,10 +498,10 @@ export default function Welcome({ session = null }) {
         })
       }
 
-      navigate('/dashboard', { replace: true })
+        window.location.replace('/dashboard')
     } catch (err) {
       console.error('Snapshot handoff error:', err)
-      navigate('/dashboard', { replace: true })
+      window.location.replace('/dashboard')
     } finally {
       setIsSaving(false)
     }
@@ -751,7 +751,7 @@ export default function Welcome({ session = null }) {
                     Let&apos;s get started →
                   </button>
                   <div style={{ marginTop: 10, fontSize: 12, color: '#8bcab2', textAlign: 'center' }}>
-                    Takes about 3 minutes · Your data stays private
+                    Quick setup, just enter rough numbers to get started · Your data stays private
                   </div>
                 </div>
               </div>
@@ -774,7 +774,26 @@ export default function Welcome({ session = null }) {
                 serviceability, and your next acquisition path instantly.
               </div>
 
-              <div style={{ marginTop: 28, display: 'flex', flexDirection: 'column', gap: 18 }}>
+              <div style={{
+                background: '#F0FDF9',
+                border: '1px solid #D1FAE5',
+                borderRadius: '12px',
+                padding: '14px 16px',
+                marginTop: '28px',
+                marginBottom: '20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px'
+              }}>
+                <p style={{ fontSize: '13px', fontWeight: 700, color: '#065F46', margin: 0 }}>
+                  Quick setup, just enter rough numbers to get started
+                </p>
+                <p style={{ fontSize: '12px', color: '#047857', margin: 0, lineHeight: 1.5 }}>
+                  No bank connection · No credit check · Your data stays private
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                 <div>
                   <div style={{ fontSize: 14, marginBottom: 8, color: '#374151' }}>Property label / address</div>
                   <input
@@ -914,13 +933,13 @@ export default function Welcome({ session = null }) {
                 Income
               </div>
               <div style={{ marginTop: 14, fontSize: 16, lineHeight: 1.7, color: '#4d5a52', maxWidth: 520 }}>
-                A quick serviceability snapshot is enough here. We only need the core income inputs to
-                sharpen your first portfolio insight.
+                Estimates are fine, you can update these any time. We only need core income
+                inputs to calculate your real borrowing power and monthly position.
               </div>
 
               <div style={{ marginTop: 28, display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 520 }}>
                 <div>
-                  <div style={{ fontSize: 14, marginBottom: 8, color: '#374151' }}>Your annual income ($)</div>
+                  <div style={{ fontSize: 14, marginBottom: 8, color: '#374151' }}>Your annual gross income (before tax) ($)</div>
                   <input
                     value={draft.annualIncome}
                     onChange={(event) => updateDraft('annualIncome', event.target.value)}
@@ -931,7 +950,7 @@ export default function Welcome({ session = null }) {
 
                 <div>
                   <div style={{ fontSize: 14, marginBottom: 8, color: '#374151' }}>
-                    Partner / household income ($)
+                    Partner / household gross income (before tax) ($)
                   </div>
                   <input
                     value={draft.partnerIncome}
@@ -940,7 +959,7 @@ export default function Welcome({ session = null }) {
                     style={baseInputStyle}
                   />
                   <div style={{ marginTop: 6, fontSize: 13, color: '#6b7280' }}>
-                    Include if applying jointly
+                    Include if applying jointly · Use gross before tax figures
                   </div>
                 </div>
               </div>
@@ -1056,7 +1075,7 @@ export default function Welcome({ session = null }) {
                       cursor: isSaving ? 'default' : 'pointer',
                     }}
                   >
-                    {isSaving ? 'Saving your profile...' : 'View my portfolio snapshot →'}
+                    {isSaving ? 'Saving your profile...' : 'See my portfolio snapshot →'}
                   </button>
                 </div>
               </div>
