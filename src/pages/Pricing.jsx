@@ -151,7 +151,7 @@ export default function Pricing({ session, existingPlan }) {
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Choose your plan</h1>
           <p className="text-lg text-gray-500 max-w-xl mx-auto">
-            14-day free trial on all plans. No credit card required to start. Cancel any time.
+            Free during early access. No lock-in.
           </p>
           {error && (
             <div className="mt-4 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm inline-block max-w-2xl">
@@ -194,16 +194,13 @@ export default function Pricing({ session, existingPlan }) {
               </ul>
 
               <button
-                onClick={() => handleSubscribe(plan.id)}
-                disabled={loading === plan.id || existingPlan === plan.id}
+                onClick={() => { window.location.href = '/auth' }}
                 className={`w-full py-3 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 ${
                   plan.highlight
                     ? 'bg-primary-600 hover:bg-primary-700 text-white'
                     : 'bg-gray-900 hover:bg-gray-800 text-white'
                 }`}>
-                {loading === plan.id ? 'Redirecting...'
-                  : existingPlan === plan.id ? 'Current plan'
-                  : 'Start 14-day free trial'}
+                Join early access
               </button>
             </div>
           ))}

@@ -25,6 +25,7 @@ export default function Auth() {
         if (redirectTo && redirectTo.startsWith('/')) {
           sessionStorage.setItem('postLoginRedirect', redirectTo)
         }
+        window.location.replace('/dashboard')
       }
     } else {
       const { error } = await supabase.auth.signUp({ email, password })

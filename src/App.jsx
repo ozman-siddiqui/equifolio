@@ -320,7 +320,13 @@ export default function App() {
   }
 
   if (!isActive) {
-    return <Pricing session={session} existingPlan={null} />
+    return (
+      <Routes>
+        <Route path="/auth" element={<Navigate to="/welcome" replace />} />
+        <Route path="/welcome" element={<Welcome session={session} />} />
+        <Route path="*" element={<Navigate to="/welcome" replace />} />
+      </Routes>
+    )
   }
 
   if (requiresWelcome) {
@@ -366,7 +372,7 @@ export default function App() {
 
   return (
     <Routes>
-      <Route path="/auth" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/auth" element={<Auth />} />
       <Route path="/welcome" element={<Navigate to="/dashboard" replace />} />
       <Route path="/" element={session ? <Navigate to="/dashboard" replace /> : <Landing />} />
       <Route path="/how-it-works" element={<HowItWorks />} />

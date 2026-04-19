@@ -64,7 +64,7 @@ const pricingPlans = [
     description:
       'Perfect for investors starting out.',
     features: starterFeatures,
-    cta: 'See your numbers',
+    cta: 'Join early access',
     featured: false,
   },
   {
@@ -75,7 +75,7 @@ const pricingPlans = [
     description:
       'For serious investors building wealth.',
     features: investorFeatures,
-    cta: 'See your numbers',
+    cta: 'Join early access',
     featured: true,
   },
   {
@@ -94,7 +94,7 @@ const pricingPlans = [
       'Weekly AI digest',
       'Dedicated support',
     ],
-    cta: 'See your numbers',
+    cta: 'Join early access',
     featured: false,
   },
 ]
@@ -169,7 +169,7 @@ function Landing() {
             className="rounded-lg px-4 py-2 text-sm font-extrabold no-underline md:px-5 md:py-2.5"
             style={{ background: '#19C37D', color: '#071C17' }}
           >
-            Start free trial
+            Join early access
           </a>
         </div>
       </nav>
@@ -1290,10 +1290,11 @@ function Landing() {
 
               <a
                 href="/auth"
+                onClick={() => { window.location.href = '/auth' }}
                 className="w-full rounded-2xl py-4 text-sm font-extrabold text-center no-underline block"
                 style={{ border: '2px solid #19C37D', color: '#19C37D' }}
               >
-                See your numbers
+                Join early access
               </a>
             </div>
 
@@ -1356,10 +1357,11 @@ function Landing() {
 
               <a
                 href="/auth"
+                onClick={() => { window.location.href = '/auth' }}
                 className="w-full rounded-2xl py-4 text-sm font-extrabold text-center no-underline block"
                 style={{ background: '#19C37D', color: '#071C17' }}
               >
-                See your numbers
+                Join early access
               </a>
             </div>
 
@@ -1414,10 +1416,11 @@ function Landing() {
 
               <a
                 href="/auth"
+                onClick={() => { window.location.href = '/auth' }}
                 className="w-full rounded-2xl py-4 text-sm font-extrabold text-center no-underline block"
                 style={{ border: '2px solid #19C37D', color: '#19C37D' }}
               >
-                See your numbers
+                Join early access
               </a>
             </div>
           </div>
