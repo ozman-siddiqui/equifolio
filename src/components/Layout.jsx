@@ -298,6 +298,14 @@ export default function Layout({ session, onSignOut, cachedPages = {} }) {
           {/* Desktop header */}
           <header className="hidden lg:block bg-white border-b border-gray-100">
             <div className="px-5 py-3.5 flex items-center justify-end gap-4">
+              <button
+                onClick={() => navigate('/contact')}
+                className="text-sm text-gray-400 hover:text-gray-600"
+                type="button"
+              >
+                Need help?
+              </button>
+
               <span className="text-sm text-gray-500 hidden xl:block">
                 {session?.user?.email}
               </span>

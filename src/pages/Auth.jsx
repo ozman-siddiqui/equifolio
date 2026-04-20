@@ -5,6 +5,7 @@ export default function Auth() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLogin, setIsLogin] = useState(true)
+  const [isResetMode, setIsResetMode] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [message, setMessage] = useState(null)
@@ -15,7 +16,16 @@ export default function Auth() {
     setError(null)
     setMessage(null)
 
-    if (isLogin) {
+    if (isResetMode) {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`
+      })
+      if (error) {
+        setError(error.message)
+      } else {
+        setMessage('Check your email for a password reset link.')
+      }
+    } else if (isLogin) {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) {
         setError(error.message)
@@ -51,7 +61,7 @@ export default function Auth() {
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">
-            {isLogin ? 'Sign in to your account' : 'Create your account'}
+            {isResetMode ? 'Reset your password' : isLogin ? 'Sign in to your account' : 'Create your account'}
           </h2>
 
           {error && (
@@ -82,37 +92,60 @@ export default function Auth() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Password
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:border-transparent"
-                style={{ '--tw-ring-color': '#19C37D' }}
-                placeholder="••••••••"
-              />
-            </div>
+            {!isResetMode && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:border-transparent"
+                  style={{ '--tw-ring-color': '#19C37D' }}
+                  placeholder="Password"
+                />
+              </div>
+            )}
+
+            {isLogin && !isResetMode && (
+              <div className="text-right">
+                <button
+                  type="button"
+                  onClick={() => { setIsResetMode(true); setError(null); setMessage(null) }}
+                  className="text-sm text-[#19C37D] hover:text-[#15a86a] font-medium"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
 
             <button
               type="submit"
               disabled={loading}
               className="w-full bg-[#19C37D] hover:bg-[#15a86a] text-[#071C17] font-medium py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Please wait...' : isLogin ? 'Sign in' : 'Create account'}
+              {loading ? 'Please wait...' : isResetMode ? 'Send reset link' : isLogin ? 'Sign in' : 'Create account'}
             </button>
           </form>
 
           <div className="mt-6 text-center">
-            <button
-              onClick={() => { setIsLogin(!isLogin); setError(null); setMessage(null) }}
-              className="text-sm text-[#19C37D] hover:text-[#15a86a] font-medium"
-            >
-              {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-            </button>
+            {isResetMode ? (
+              <button
+                onClick={() => { setIsResetMode(false); setError(null); setMessage(null) }}
+                className="text-sm text-[#19C37D] hover:text-[#15a86a] font-medium"
+              >
+                Back to sign in
+              </button>
+            ) : (
+              <button
+                onClick={() => { setIsLogin(!isLogin); setIsResetMode(false); setError(null); setMessage(null) }}
+                className="text-sm text-[#19C37D] hover:text-[#15a86a] font-medium"
+              >
+                {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+              </button>
+            )}
           </div>
         </div>
 

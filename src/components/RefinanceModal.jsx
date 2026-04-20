@@ -18,7 +18,7 @@ const calcIORepayment = (principal, annualRate) => {
 export default function RefinanceModal({ loan, property, onClose }) {
   const currentBalance = Number(loan.current_balance)
   const currentRate = Number(loan.interest_rate)
-  const currentMonthly = Number(loan.monthly_repayment)
+  const recordedMonthlyRepayment = Number(loan.monthly_repayment)
   const isCurrentIO = loan.repayment_type === 'Interest Only'
 
   const [newRate, setNewRate] = useState(String((currentRate - 0.5).toFixed(2)))
@@ -30,17 +30,22 @@ export default function RefinanceModal({ loan, property, onClose }) {
 
   const newRateNum = newRate === '' ? 0 : Number(newRate)
   const totalSwitchCost = Number(dischargeFee) + Number(applicationFee) + Number(valuationFee)
+  const comparisonTermMonths =
+    newRepaymentType === 'Principal and Interest'
+      ? newTerm * 12
+      : null
 
   // Current monthly — use recorded value
-  const currentMonthlyCalc = currentMonthly > 0 ? currentMonthly
-    : isCurrentIO
-      ? calcIORepayment(currentBalance, currentRate)
-      : calcPIRepayment(currentBalance, currentRate, 30 * 12)
+  // Use model-to-model comparison to avoid mixing stored repayments with calculated scenarios.
+  // This ensures consistent and interpretable refinance outcomes.
+  const currentMonthlyCalc = newRepaymentType === 'Interest Only'
+    ? calcIORepayment(currentBalance, currentRate)
+    : calcPIRepayment(currentBalance, currentRate, comparisonTermMonths)
 
   // New monthly — based on selected repayment type
   const newMonthlyCalc = newRepaymentType === 'Interest Only'
     ? calcIORepayment(currentBalance, newRateNum)
-    : calcPIRepayment(currentBalance, newRateNum, newTerm * 12)
+    : calcPIRepayment(currentBalance, newRateNum, comparisonTermMonths)
 
   const monthlySaving = currentMonthlyCalc - newMonthlyCalc
   const annualSaving = monthlySaving * 12
@@ -48,7 +53,7 @@ export default function RefinanceModal({ loan, property, onClose }) {
   const breakEvenMonths = totalSwitchCost > 0 && monthlySaving > 0
     ? Math.ceil(totalSwitchCost / monthlySaving) : 0
 
-  const currentTotalInterest = isCurrentIO
+  const currentTotalInterest = newRepaymentType === 'Interest Only'
     ? calcIORepayment(currentBalance, currentRate) * newTerm * 12
     : (currentMonthlyCalc * newTerm * 12) - currentBalance
   const newTotalInterest = newRepaymentType === 'Interest Only'
@@ -94,6 +99,11 @@ export default function RefinanceModal({ loan, property, onClose }) {
                 <p className="text-sm font-semibold text-gray-900">{formatCurrency(currentMonthlyCalc)}</p>
               </div>
             </div>
+            {recordedMonthlyRepayment > 0 ? (
+              <p className="mt-3 text-xs text-gray-500">
+                Recorded repayment reference: {formatCurrency(recordedMonthlyRepayment)}
+              </p>
+            ) : null}
           </div>
 
           {/* New loan inputs */}
@@ -172,7 +182,7 @@ export default function RefinanceModal({ loan, property, onClose }) {
                 : <TrendingUp size={16} className="text-red-500" />}
               <p className={`text-sm font-semibold ${monthlySaving > 0 ? 'text-green-800' : 'text-red-700'}`}>
                 {monthlySaving > 0
-                  ? `Modelled repayment difference from refinance scenario: ${formatCurrency(monthlySaving)}/month`
+                  ? `Modelled repayment difference (like-for-like comparison): ${formatCurrency(monthlySaving)}/month`
                   : `You'd pay ${formatCurrency(Math.abs(monthlySaving))}/month more`}
               </p>
             </div>

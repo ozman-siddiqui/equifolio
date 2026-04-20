@@ -12,6 +12,7 @@ import Landing from './pages/Landing'
 import HowItWorks from './pages/HowItWorks'
 import Features from './pages/Features'
 import PrivacyPolicy from './pages/PrivacyPolicy'
+import ResetPassword from './pages/ResetPassword'
 import Terms from './pages/Terms'
 import Contact from './pages/Contact'
 import Properties from './pages/Properties'
@@ -89,6 +90,7 @@ class AppRouteErrorBoundary extends React.Component {
 
 export default function App() {
   const location = useLocation()
+  const isResetPasswordRoute = location.pathname === '/reset-password'
   const [session, setSession] = useState(null)
   const [subscription, setSubscription] = useState(null)
   const [ready, setReady] = useState(false)
@@ -285,6 +287,10 @@ export default function App() {
     }
   }, [session?.user?.id, isActive])
 
+  if (isResetPasswordRoute) {
+    return <ResetPassword />
+  }
+
   if (!ready || !subscriptionReady || !welcomeGateReady) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -312,6 +318,7 @@ export default function App() {
         <Route path="/how-it-works" element={<HowItWorks />} />
         <Route path="/features" element={<Features />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="*" element={<Auth />} />
