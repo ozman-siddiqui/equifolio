@@ -96,7 +96,8 @@ export default function App() {
   const [ready, setReady] = useState(false)
   const [subscriptionReady, setSubscriptionReady] = useState(false)
   const [welcomeGateReady, setWelcomeGateReady] = useState(false)
-  const [requiresWelcome, setRequiresWelcome] = useState(false)
+  const [hasProperties, setHasProperties] = useState(false)
+  const [hasFinancialProfile, setHasFinancialProfile] = useState(false)
 
   const signOut = async () => {
     try {
@@ -181,16 +182,35 @@ export default function App() {
     }
   }, [session])
 
-  const isActive =
-    subscription?.status === 'active' || subscription?.status === 'trialing'
+  const isAuthenticated = !!session
+  const loading = !ready || !subscriptionReady || !welcomeGateReady
+
+  const hasSnapshot = (() => {
+    try {
+      const key = session?.user?.id
+        ? `onboardingSnapshot_${session.user.id}`
+        : 'onboardingSnapshot'
+      return !!sessionStorage.getItem(key)
+    } catch {
+      return false
+    }
+  })()
+
+  const requiresWelcome =
+    isAuthenticated &&
+    !loading &&
+    !hasProperties &&
+    !hasFinancialProfile &&
+    !hasSnapshot
 
   useEffect(() => {
     let isMounted = true
 
     const resolveWelcomeGate = async () => {
-      if (!session?.user?.id || !isActive) {
+      if (!session?.user?.id) {
         if (!isMounted) return
-        setRequiresWelcome(false)
+        setHasProperties(false)
+        setHasFinancialProfile(false)
         setWelcomeGateReady(true)
         return
       }
@@ -221,20 +241,8 @@ export default function App() {
 
         if (!isMounted) return
 
-        const hasProperty = !!propertyRow?.id
-        const hasProfile = !!profileRow?.user_id
-
-        const hasSnapshot = (() => {
-          try {
-            const snapshotKey = session?.user?.id
-              ? `onboardingSnapshot_${session.user.id}`
-              : 'onboardingSnapshot'
-            return !!sessionStorage.getItem(snapshotKey)
-          } catch {
-            return false
-          }
-        })()
-        const nextRequiresWelcome = !hasProperty && !hasProfile && !hasSnapshot
+        const nextHasProperties = !!propertyRow?.id
+        const nextHasFinancialProfile = !!profileRow?.user_id
 
         console.log('Welcome gate', {
           userId: session.user.id,
@@ -242,27 +250,15 @@ export default function App() {
           profileRow,
           propertyError,
           profileError,
-          hasProperty,
-          hasProfile,
-          requiresWelcome: nextRequiresWelcome,
+          hasProperties: nextHasProperties,
+          hasFinancialProfile: nextHasFinancialProfile,
         })
 
-        setRequiresWelcome(nextRequiresWelcome)
+        setHasProperties(nextHasProperties)
+        setHasFinancialProfile(nextHasFinancialProfile)
         setWelcomeGateReady(true)
       } catch (error) {
         if (!isMounted) return
-
-        const hasSnapshot = (() => {
-          try {
-            const snapshotKey = session?.user?.id
-              ? `onboardingSnapshot_${session.user.id}`
-              : 'onboardingSnapshot'
-            return !!sessionStorage.getItem(snapshotKey)
-          } catch {
-            return false
-          }
-        })()
-        const nextRequiresWelcome = !hasSnapshot
 
         console.log('Welcome gate', {
           userId: session.user.id,
@@ -270,12 +266,12 @@ export default function App() {
           profileRow: null,
           propertyError: error,
           profileError: null,
-          hasProperty: false,
-          hasProfile: false,
-          requiresWelcome: nextRequiresWelcome,
+          hasProperties: false,
+          hasFinancialProfile: false,
         })
 
-        setRequiresWelcome(nextRequiresWelcome)
+        setHasProperties(false)
+        setHasFinancialProfile(false)
         setWelcomeGateReady(true)
       }
     }
@@ -285,13 +281,13 @@ export default function App() {
     return () => {
       isMounted = false
     }
-  }, [session?.user?.id, isActive])
+  }, [session?.user?.id])
 
   if (isResetPasswordRoute) {
     return <ResetPassword />
   }
 
-  if (!ready || !subscriptionReady || !welcomeGateReady) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -326,28 +322,10 @@ export default function App() {
     )
   }
 
-  if (!isActive) {
+  if (requiresWelcome) {
     return (
       <Routes>
         <Route path="/auth" element={<Navigate to="/welcome" replace />} />
-        <Route path="/welcome" element={<Welcome session={session} />} />
-        <Route path="*" element={<Navigate to="/welcome" replace />} />
-      </Routes>
-    )
-  }
-
-  if (requiresWelcome) {
-    const pendingRedirect = sessionStorage.getItem('postLoginRedirect')
-    const urlRedirect = new URLSearchParams(window.location.search).get('redirect')
-    const redirectTarget = pendingRedirect || urlRedirect
-
-    if (redirectTarget && redirectTarget.startsWith('/')) {
-      if (pendingRedirect) sessionStorage.removeItem('postLoginRedirect')
-      window.location.replace(redirectTarget)
-      return null
-    }
-    return (
-      <Routes>
         <Route path="/welcome" element={<Welcome session={session} />} />
         <Route path="*" element={<Navigate to="/welcome" replace />} />
       </Routes>

@@ -1494,11 +1494,11 @@ function Landing() {
           guesswork.
         </p>
         <a
-          href="#pricing"
+          href="/auth"
           className="inline-flex rounded-xl px-10 py-5 text-lg font-extrabold no-underline"
           style={{ background: '#19C37D', color: '#071C17' }}
         >
-          {'Start free trial ->'}
+          {'See your numbers ->'}
         </a>
         <p className="mt-5 text-xs tracking-wide" style={{ color: 'rgba(255,255,255,0.18)' }}>
           No credit card required | Cancel anytime | Australian-built
@@ -1549,7 +1549,7 @@ function Landing() {
             </div>
 
             {[
-              ['PRODUCT', ['Features', 'How it works', 'Pricing', 'FAQ', 'Start free trial']],
+              ['PRODUCT', ['Features', 'How it works', 'Pricing', 'FAQ', 'See your numbers']],
               ['LEGAL', ['Privacy Policy', 'Terms of Use', 'Disclaimer', 'Cookie Policy']],
               ['SUPPORT', ['Contact us', 'support@nextiq.com.au', 'Report an issue']],
             ].map(([title, links]) => (
@@ -1573,7 +1573,7 @@ function Landing() {
                               ? '#pricing'
                               : link === 'FAQ'
                                 ? '/#faq'
-                                : link === 'Start free trial'
+                                : link === 'See your numbers'
                                   ? '/auth'
                                   : link === 'Privacy Policy'
                                     ? '/privacy'
