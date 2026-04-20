@@ -434,7 +434,11 @@ export default function HeroDecisionCard({
         : `RBA move may increase repayments by ${formatCurrency(Math.abs(rateImpactMonthlyDeltaNumber))}/month`
   const rateImpactSupportingLine =
     rateImpactPreviousRateNumber != null && rateImpactNewRateNumber != null
-      ? `Cash rate moved from ${rateImpactPreviousRateNumber}% to ${rateImpactNewRateNumber}%.`
+      ? rateImpactNewRateNumber === rateImpactPreviousRateNumber
+        ? `Cash rate remains unchanged at ${rateImpactNewRateNumber}%.`
+        : rateImpactNewRateNumber > rateImpactPreviousRateNumber
+          ? `Cash rate increased from ${rateImpactPreviousRateNumber}% to ${rateImpactNewRateNumber}%.`
+          : `Cash rate reduced from ${rateImpactPreviousRateNumber}% to ${rateImpactNewRateNumber}%.`
       : null
   const rateImpactBorrowingLine =
     rateImpactBorrowingDeltaNumber == null

@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
 
 const defaultDraft = {
@@ -214,7 +213,6 @@ function MetricRow({ label, value, hint }) {
 }
 
 export default function Welcome({ session = null }) {
-  const navigate = useNavigate()
   const snapshotKey = session?.user?.id
     ? `onboardingSnapshot_${session.user.id}`
     : 'onboardingSnapshot'
@@ -578,6 +576,17 @@ export default function Welcome({ session = null }) {
     { number: 3, label: 'Capital', subtitle: 'Deposit & liquidity' },
   ]
 
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut()
+    } catch {
+      // Ignore sign-out errors and clear local state below.
+    }
+    localStorage.clear()
+    sessionStorage.clear()
+    window.location.href = '/'
+  }
+
   return (
     <div
       style={{
@@ -653,6 +662,23 @@ export default function Welcome({ session = null }) {
             </div>
           ) : (
             <>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                color: '#64748b',
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: 'pointer',
+              }}
+            >
+              Sign out
+            </button>
+          </div>
           <div
             style={{
               height: 2,

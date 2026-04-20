@@ -38,6 +38,34 @@ const toFiniteNumber = (value) => {
   return Number.isFinite(numeric) ? numeric : null
 }
 
+const normalizeBenchmarkRepaymentType = (value) => {
+  const normalized = String(value || '').trim().toLowerCase()
+  return normalized.includes('interest only') || normalized === 'io'
+    ? 'Interest Only'
+    : 'Principal and Interest'
+}
+
+const getBenchmarkOccupancyType = (propertyUse) =>
+  String(propertyUse || '').trim().toLowerCase() === 'investment'
+    ? 'investor'
+    : 'owner_occupier'
+
+const getBenchmarkLvrBand = (lvr) => {
+  const numericLvr = Number(lvr)
+  return Number.isFinite(numericLvr) && numericLvr <= 80 ? '<=80' : '80-90'
+}
+
+const buildLoanLvrBand = (loan, property) => {
+  const currentBalance = toFiniteNumber(loan?.current_balance)
+  const currentValue = toFiniteNumber(property?.current_value)
+
+  if (currentBalance !== null && currentValue !== null && currentBalance > 0 && currentValue > 0) {
+    return getBenchmarkLvrBand((currentBalance / currentValue) * 100)
+  }
+
+  return getBenchmarkLvrBand(loan?.current_lvr ?? loan?.lvr)
+}
+
 const formatConfidenceLabel = (value) => {
   const normalized = String(value || '').trim().toLowerCase()
   if (normalized === 'high') return 'High'
@@ -49,31 +77,31 @@ const formatConfidenceLabel = (value) => {
 function getRecommendationTone(type) {
   if (type === 'refinance') {
     return {
-      card: 'border-[#b8e8d8] bg-[#E1F5EE]',
-      badge: 'rounded-[20px] bg-[#E1F5EE] px-[10px] py-[3px] text-[10px] font-medium text-[#085041]',
+      card: 'border-[#CFE7DE] bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]',
+      badge: 'rounded-[20px] border border-[#B8E8D8] bg-[#F4FBF8] px-[10px] py-[3px] text-[10px] font-medium text-[#085041]',
       icon: 'text-[#0F6E56]',
     }
   }
 
   if (type === 'watch') {
     return {
-      card: 'border-[#FAEEDA] bg-[#FAEEDA]',
-      badge: 'rounded-[20px] bg-[#FAEEDA] px-[10px] py-[3px] text-[10px] font-medium text-[#633806]',
+      card: 'border-[#E9DFC7] bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]',
+      badge: 'rounded-[20px] border border-[#F2D8A5] bg-[#FFFBF2] px-[10px] py-[3px] text-[10px] font-medium text-[#7C5711]',
       icon: 'text-[#854F0B]',
     }
   }
 
   if (type === 'insufficient_data') {
     return {
-      card: 'border-[#FCEBEB] bg-[#FCEBEB]',
-      badge: 'rounded-[20px] bg-[#FCEBEB] px-[10px] py-[3px] text-[10px] font-medium text-[#791F1F]',
+      card: 'border-[#F2D9D9] bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]',
+      badge: 'rounded-[20px] border border-[#F1CACA] bg-[#FFF7F7] px-[10px] py-[3px] text-[10px] font-medium text-[#791F1F]',
       icon: 'text-[#A32D2D]',
     }
   }
 
   return {
-    card: 'border-gray-200 bg-white',
-    badge: 'rounded-[20px] bg-[#ebebeb] px-[10px] py-[3px] text-[10px] font-medium text-[#333]',
+    card: 'border-[#E2E8F0] bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]',
+    badge: 'rounded-[20px] border border-[#D9E2EC] bg-[#F8FAFC] px-[10px] py-[3px] text-[10px] font-medium text-[#475569]',
     icon: 'text-gray-500',
   }
 }
@@ -133,6 +161,7 @@ export default function Mortgages({ session = null }) {
   const [opportunitiesByLoanId, setOpportunitiesByLoanId] = useState({})
   const [activeOpportunityId, setActiveOpportunityId] = useState(null)
   const [opportunityActionError, setOpportunityActionError] = useState('')
+  const [benchmarkRows, setBenchmarkRows] = useState([])
 
   useEffect(() => {
     let active = true
@@ -237,9 +266,83 @@ export default function Mortgages({ session = null }) {
     }
   }, [session])
 
+  useEffect(() => {
+    let active = true
+
+    const loadBenchmarkRows = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('market_rate_benchmarks')
+          .select('occupancy_type, repayment_type, lvr_band, benchmark_rate')
+
+        if (error) throw error
+        if (!active) return
+
+        setBenchmarkRows(Array.isArray(data) ? data : [])
+      } catch {
+        if (active) setBenchmarkRows([])
+      }
+    }
+
+    loadBenchmarkRows()
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const benchmarkRateByKey = useMemo(() => {
+    const lookup = new Map()
+
+    for (const row of benchmarkRows) {
+      const rate = toFiniteNumber(row?.benchmark_rate)
+      if (rate === null) continue
+
+      const key = [
+        String(row?.occupancy_type || '').trim(),
+        String(row?.repayment_type || '').trim(),
+        String(row?.lvr_band || '').trim(),
+      ].join('|')
+
+      if (!lookup.has(key)) {
+        lookup.set(key, rate)
+      }
+    }
+
+    return lookup
+  }, [benchmarkRows])
+
+  const propertyById = useMemo(
+    () => Object.fromEntries(properties.map((property) => [String(property.id), property])),
+    [properties]
+  )
+
+  const loansWithBenchmarks = useMemo(
+    () =>
+      loans.map((loan) => {
+        const property = propertyById[String(loan.property_id)]
+        const benchmarkKey = [
+          getBenchmarkOccupancyType(property?.property_use),
+          normalizeBenchmarkRepaymentType(loan.interest_type ?? loan.repayment_type),
+          buildLoanLvrBand(loan, property),
+        ].join('|')
+        const matchedBenchmarkRate = benchmarkRateByKey.get(benchmarkKey)
+
+        if (matchedBenchmarkRate == null) {
+          return loan
+        }
+
+        return {
+          ...loan,
+          benchmark_rate: matchedBenchmarkRate,
+        }
+      }),
+    [benchmarkRateByKey, loans, propertyById]
+  )
+
   const refinanceAnalyses = useMemo(
-    () => buildPortfolioRefinanceRanking(loans, properties),
-    [loans, properties]
+    () => buildPortfolioRefinanceRanking(loansWithBenchmarks, properties),
+    [loansWithBenchmarks, properties]
   )
 
   const filteredAnalyses = useMemo(() => {
@@ -266,14 +369,21 @@ export default function Mortgages({ session = null }) {
       0
     )
     const positiveSavingsCount = refinanceAnalyses.filter(
-      (analysis) => analysis.annualSavings > 0
+      (analysis) =>
+        analysis.recommendationType !== 'competitive' && analysis.annualSavings > 0
     ).length
     const annualSavings = refinanceAnalyses.reduce(
-      (sum, analysis) => sum + Math.max(0, Number(analysis.annualSavings || 0)),
+      (sum, analysis) =>
+        analysis.recommendationType !== 'competitive'
+          ? sum + Math.max(0, Number(analysis.annualSavings || 0))
+          : sum,
       0
     )
     const hasLowConfidenceSavings = refinanceAnalyses.some(
-      (analysis) => analysis.annualSavings > 0 && analysis.confidenceLabel === 'Low'
+      (analysis) =>
+        analysis.recommendationType !== 'competitive' &&
+        analysis.annualSavings > 0 &&
+        analysis.confidenceLabel === 'Low'
     )
 
     return {
@@ -580,7 +690,7 @@ export default function Mortgages({ session = null }) {
             />
             <TopMetricCard
               icon={<PiggyBank size={16} className="text-[#854F0B]" />}
-              label="Potential Annual Savings"
+              label="Actionable Annual Savings"
               value={formatCurrency(overview.annualSavings)}
               helper={
                 overview.annualSavings > 0
@@ -760,6 +870,7 @@ function MortgageAnalysisCard({
   const opportunityRateGapPct = toFiniteNumber(opportunityMetadata?.rate_gap_pct)
   const opportunityConfidenceLabel = formatConfidenceLabel(opportunity?.confidence_level)
   const hasLiveOpportunity = Boolean(opportunity)
+  const isCompetitiveLoan = !hasLiveOpportunity && analysis.recommendationType === 'competitive'
   const tone = getRecommendationTone(
     hasLiveOpportunity ? 'refinance' : analysis.recommendationType
   )
@@ -770,7 +881,9 @@ function MortgageAnalysisCard({
     ? opportunity?.status === 'reviewing'
       ? 'This refinance opportunity is currently marked for review.'
       : 'This refinance opportunity is active against the stored benchmark comparison.'
-    : analysis.refinanceRecommendation
+    : isCompetitiveLoan
+      ? analysis.summary
+      : analysis.refinanceRecommendation
   const primaryDecisionMeta = hasLiveOpportunity
     ? 'Source: active AI opportunity'
     : `${analysis.estimateQualityLabel} | Benchmark: ${
@@ -792,7 +905,9 @@ function MortgageAnalysisCard({
     : `${analysis.rateDeltaBps} bps`
   const monthlyMetricValue = hasLiveOpportunity
     ? formatCurrency(opportunityMonthlySavings)
-    : formatCurrency(analysis.monthlySavings)
+    : !hasLiveOpportunity && analysis.recommendationType === 'competitive'
+      ? '—'
+      : formatCurrency(analysis.monthlySavings)
   const breakEvenMetricValue = hasLiveOpportunity
     ? Number.isFinite(opportunityBreakEvenMonths)
       ? `${opportunityBreakEvenMonths} mo`
@@ -804,14 +919,17 @@ function MortgageAnalysisCard({
     ? opportunity?.status === 'reviewing'
       ? 'Reviewing opportunity'
       : 'Refinance opportunity'
-    : analysis.refinanceRecommendation
+    : isCompetitiveLoan
+      ? null
+      : analysis.refinanceRecommendation
+  const refinanceCtaLabel = isCompetitiveLoan ? 'Model refinance' : 'Explore refinance'
   const [showOpportunityDetails, setShowOpportunityDetails] = useState(false)
   const [showActedForm, setShowActedForm] = useState(false)
   const [securedRate, setSecuredRate] = useState('')
 
   return (
     <article
-      className={`flex h-full flex-col rounded-[16px] border border-[rgba(0,0,0,0.08)] px-[22px] py-[18px] transition-[transform,box-shadow,border-color] duration-150 ease-[ease] will-change-transform hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.07)] md:px-[22px] md:py-[18px] ${tone.card}`}
+      className={`flex h-full flex-col rounded-[16px] border px-[22px] py-[18px] transition-[transform,box-shadow,border-color] duration-150 ease-[ease] will-change-transform hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(15,23,42,0.08)] md:px-[22px] md:py-[18px] ${tone.card}`}
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
         <div className="min-w-0 space-y-2">
@@ -822,9 +940,7 @@ function MortgageAnalysisCard({
             <span className="rounded-[20px] bg-[#ebebeb] px-[10px] py-[3px] text-[10px] font-medium text-[#333]">
               {analysis.fixedVariable || 'Loan'}
             </span>
-            <span className={tone.badge}>
-              {recommendationBadgeLabel}
-            </span>
+            {recommendationBadgeLabel ? <span className={tone.badge}>{recommendationBadgeLabel}</span> : null}
             {isTopOpportunity ? (
               <span className="rounded-[20px] bg-[#E1F5EE] px-[10px] py-[3px] text-[10px] font-medium text-[#085041]">
                 Top opportunity
@@ -850,7 +966,7 @@ function MortgageAnalysisCard({
         </div>
       </div>
 
-      <section className="mt-5 rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[22px] py-[18px]">
+      <section className="mt-5 rounded-[16px] border border-[#E2E8F0] bg-white px-[22px] py-[18px] shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
@@ -859,9 +975,16 @@ function MortgageAnalysisCard({
             <p className="mt-2 text-xl font-bold text-gray-900">
               {primaryDecisionTitle}
             </p>
-            <p className="mt-2 text-sm text-gray-500">
-              {primaryDecisionSummary}
-            </p>
+            {isCompetitiveLoan ? (
+              <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px' }}>
+                Any modelled difference is below the refinance action threshold.
+              </p>
+            ) : null}
+            {primaryDecisionSummary ? (
+              <p className="mt-2 text-sm text-gray-500">
+                {primaryDecisionSummary}
+              </p>
+            ) : null}
             <p className="mt-2 text-xs text-gray-400">
               {primaryDecisionMeta}
             </p>
@@ -879,8 +1002,8 @@ function MortgageAnalysisCard({
 
       {opportunity ? (
         <section
-          className="mt-4 rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-[var(--color-background-primary)] px-[22px] py-[18px]"
-          style={{ borderLeftWidth: 3, borderLeftColor: '#f59e0b' }}
+          className="mt-4 rounded-[16px] border border-[#F2D8A5] bg-white px-[22px] py-[18px] shadow-[0_1px_3px_rgba(15,23,42,0.04)]"
+          style={{ borderLeftWidth: 3, borderLeftColor: '#F59E0B' }}
         >
           <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
             Opportunity Detected
@@ -968,12 +1091,12 @@ function MortgageAnalysisCard({
         </section>
       ) : null}
 
-      <div className="mt-5 grid grid-cols-2 gap-3 text-sm text-gray-600 lg:grid-cols-5">
+      <div className="mt-5 flex flex-nowrap gap-2 text-sm text-gray-600">
         <InlineMetric label="Current" value={formatPercent(analysis.currentRate)} />
         <InlineMetric label="Benchmark" value={benchmarkMetricValue} />
         <InlineMetric label="Rate gap" value={rateGapMetricValue} />
-        <InlineMetric label="Monthly" value={monthlyMetricValue} />
-        <InlineMetric label="Break-even" value={breakEvenMetricValue} />
+        <InlineMetric label="Monthly" value={isCompetitiveLoan ? 'Minimal' : monthlyMetricValue} />
+        <InlineMetric label="Break even" value={breakEvenMetricValue} />
       </div>
 
       <section className="mt-5 space-y-2">
@@ -982,10 +1105,17 @@ function MortgageAnalysisCard({
         ) : (
           <>
             <p className="text-sm text-gray-600">{analysis.reasons[0] || analysis.summary}</p>
-            <p className="text-sm text-gray-500">
-              Annual interest ~{formatCurrency(analysis.annualInterestPaid)} | Avoidable interest ~
-              {formatCurrency(analysis.avoidableInterest)}/year
-            </p>
+            {isCompetitiveLoan ? (
+              <p className="text-sm text-gray-500">
+                Annual interest ~{formatCurrency(analysis.annualInterestPaid)} | Current pricing is
+                within the competitive threshold.
+              </p>
+            ) : (
+              <p className="text-sm text-gray-500">
+                Annual interest ~{formatCurrency(analysis.annualInterestPaid)} | Avoidable interest
+                ~{formatCurrency(analysis.avoidableInterest)}/year
+              </p>
+            )}
             {analysis.confidenceDrivers?.length > 0 ? (
               <p className="text-xs text-gray-400">
                 Confidence drivers: {analysis.confidenceDrivers.join(' | ')}
@@ -1001,7 +1131,7 @@ function MortgageAnalysisCard({
           onClick={onExploreRefinance}
           className={utilityInlinePrimaryButtonClass}
         >
-          <span className="whitespace-nowrap">Explore refinance</span>
+          <span className="whitespace-nowrap">{refinanceCtaLabel}</span>
           <ArrowRight size={14} className="shrink-0" />
         </button>
 
@@ -1020,15 +1150,23 @@ function MortgageAnalysisCard({
 
 function InlineMetric({ label, value }) {
   return (
-    <div className="min-w-0 rounded-[16px] border border-[rgba(0,0,0,0.08)] bg-gray-50/70 px-[22px] py-[18px]">
-      <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">{label}</p>
-      <p className="mt-1 truncate text-[13px] font-normal leading-[1.6] text-[var(--color-text-primary)]">{value}</p>
+    <div className="flex min-w-0 flex-1 flex-col justify-between rounded-[16px] border border-[#E2E8F0] bg-[#F8FAFC] px-[8px] py-[10px]">
+      <p className="overflow-hidden whitespace-nowrap text-ellipsis text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400">
+        {label}
+      </p>
+      <p className="mt-2 whitespace-nowrap text-[16px] font-bold leading-[1.2] text-slate-800">
+        {value}
+      </p>
     </div>
   )
 }
 
 function RankingRow({ analysis, rank }) {
   const tone = getRecommendationTone(analysis.recommendationType)
+  const rankingSavingsLabel =
+    analysis.recommendationType === 'competitive'
+      ? 'Below action threshold'
+      : `Save ${formatCurrency(analysis.annualSavings)}/year`
 
   return (
     <div className="flex flex-col gap-3 p-6 md:flex-row md:items-center md:justify-between">
@@ -1049,7 +1187,7 @@ function RankingRow({ analysis, rank }) {
 
       <div className="flex flex-wrap items-center gap-4 text-sm">
         <span className="font-semibold text-gray-900">
-          Save {formatCurrency(analysis.annualSavings)}/year
+          {rankingSavingsLabel}
         </span>
         <span className="text-gray-500">
           Break-even{' '}

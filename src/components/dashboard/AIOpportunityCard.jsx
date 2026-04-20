@@ -441,11 +441,22 @@ export default function AIOpportunityCard({ currentUserId, loans = [] }) {
         {showNoOpportunities ? (
           <div className="rounded-[16px] border-[0.5px] border-[rgba(0,0,0,0.08)] bg-[var(--color-background-secondary)] p-[18px]">
             <p className="text-[15px] font-medium text-[var(--color-text-primary)]">
-              No significant refinance opportunities detected at this time.
+              No strong refinance opportunities detected at this time.
+            </p>
+            <p className="mt-2 text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
+              Some loans may still have moderate or minor optimisation potential.
             </p>
             <p className="mt-2 text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
               We check your loans against current market benchmarks automatically.
             </p>
+            <button
+              type="button"
+              onClick={() => navigate('/mortgages')}
+              className="mt-3 inline-flex items-center gap-2 text-[13px] font-medium text-primary-600 hover:text-primary-700"
+            >
+              Review mortgage scenarios
+              <ArrowRight size={15} />
+            </button>
 
             <div className="mt-4">
               <p className="text-[10px] font-medium uppercase tracking-[0.09em] text-[var(--color-text-tertiary)]">

@@ -64,7 +64,7 @@ const pricingPlans = [
     description:
       'Perfect for investors starting out.',
     features: starterFeatures,
-    cta: 'See your numbers',
+    cta: 'Join early access',
     featured: false,
   },
   {
@@ -75,7 +75,7 @@ const pricingPlans = [
     description:
       'For serious investors building wealth.',
     features: investorFeatures,
-    cta: 'See your numbers',
+    cta: 'Join early access',
     featured: true,
   },
   {
@@ -94,7 +94,7 @@ const pricingPlans = [
       'Weekly AI digest',
       'Dedicated support',
     ],
-    cta: 'See your numbers',
+    cta: 'Join early access',
     featured: false,
   },
 ]
@@ -169,7 +169,7 @@ function Landing() {
             className="rounded-lg px-4 py-2 text-sm font-extrabold no-underline md:px-5 md:py-2.5"
             style={{ background: '#19C37D', color: '#071C17' }}
           >
-            Start free trial
+            Join early access
           </a>
         </div>
       </nav>
@@ -1290,10 +1290,11 @@ function Landing() {
 
               <a
                 href="/auth"
+                onClick={() => { window.location.href = '/auth' }}
                 className="w-full rounded-2xl py-4 text-sm font-extrabold text-center no-underline block"
                 style={{ border: '2px solid #19C37D', color: '#19C37D' }}
               >
-                See your numbers
+                Join early access
               </a>
             </div>
 
@@ -1356,10 +1357,11 @@ function Landing() {
 
               <a
                 href="/auth"
+                onClick={() => { window.location.href = '/auth' }}
                 className="w-full rounded-2xl py-4 text-sm font-extrabold text-center no-underline block"
                 style={{ background: '#19C37D', color: '#071C17' }}
               >
-                See your numbers
+                Join early access
               </a>
             </div>
 
@@ -1414,10 +1416,11 @@ function Landing() {
 
               <a
                 href="/auth"
+                onClick={() => { window.location.href = '/auth' }}
                 className="w-full rounded-2xl py-4 text-sm font-extrabold text-center no-underline block"
                 style={{ border: '2px solid #19C37D', color: '#19C37D' }}
               >
-                See your numbers
+                Join early access
               </a>
             </div>
           </div>
@@ -1491,11 +1494,11 @@ function Landing() {
           guesswork.
         </p>
         <a
-          href="#pricing"
+          href="/auth"
           className="inline-flex rounded-xl px-10 py-5 text-lg font-extrabold no-underline"
           style={{ background: '#19C37D', color: '#071C17' }}
         >
-          {'Start free trial ->'}
+          {'See your numbers ->'}
         </a>
         <p className="mt-5 text-xs tracking-wide" style={{ color: 'rgba(255,255,255,0.18)' }}>
           No credit card required | Cancel anytime | Australian-built
@@ -1546,7 +1549,7 @@ function Landing() {
             </div>
 
             {[
-              ['PRODUCT', ['Features', 'How it works', 'Pricing', 'FAQ', 'Start free trial']],
+              ['PRODUCT', ['Features', 'How it works', 'Pricing', 'FAQ', 'See your numbers']],
               ['LEGAL', ['Privacy Policy', 'Terms of Use', 'Disclaimer', 'Cookie Policy']],
               ['SUPPORT', ['Contact us', 'support@nextiq.com.au', 'Report an issue']],
             ].map(([title, links]) => (
@@ -1570,7 +1573,7 @@ function Landing() {
                               ? '#pricing'
                               : link === 'FAQ'
                                 ? '/#faq'
-                                : link === 'Start free trial'
+                                : link === 'See your numbers'
                                   ? '/auth'
                                   : link === 'Privacy Policy'
                                     ? '/privacy'
