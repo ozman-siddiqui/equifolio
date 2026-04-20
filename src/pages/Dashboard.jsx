@@ -81,6 +81,48 @@ export default function Dashboard({ session, subscription }) {
   useEffect(() => {
     let active = true
 
+    async function loadOnboardingSnapshot() {
+      if (!userId) {
+        setOnboardingSnapshot(null)
+        return
+      }
+
+      try {
+        const raw = sessionStorage.getItem(snapshotKey)
+        if (raw) {
+          setOnboardingSnapshot(JSON.parse(raw))
+          return
+        }
+      } catch {
+        // Fall through to the durable DB-backed snapshot.
+      }
+
+      const { data, error } = await supabase
+        .from('user_financial_profiles')
+        .select('onboarding_snapshot')
+        .eq('user_id', userId)
+        .maybeSingle()
+
+      if (!active) return
+
+      if (error || !data?.onboarding_snapshot) {
+        setOnboardingSnapshot(null)
+        return
+      }
+
+      setOnboardingSnapshot(data.onboarding_snapshot)
+    }
+
+    loadOnboardingSnapshot()
+
+    return () => {
+      active = false
+    }
+  }, [snapshotKey, userId])
+
+  useEffect(() => {
+    let active = true
+
     fetchCurrentCashRate().then((rate) => {
       if (active) setLiveCashRate(Number(rate ?? CURRENT_CASH_RATE))
     })
