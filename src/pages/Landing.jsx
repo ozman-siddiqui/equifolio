@@ -136,6 +136,22 @@ function Landing() {
 
   return (
     <div className="min-h-screen bg-white" style={{ color: '#0F172A' }}>
+      <div style={{
+        background: '#071C17',
+        borderBottom: '1px solid rgba(29,158,117,0.25)',
+        padding: '8px 24px',
+        textAlign: 'center',
+        width: '100%'
+      }}>
+        <span style={{
+          fontSize: '12px',
+          fontWeight: 400,
+          color: 'rgba(255,255,255,0.7)',
+          letterSpacing: '0.02em'
+        }}>
+          Limited launch. Founding members receive premium access during testing.
+        </span>
+      </div>
       <nav
         className="flex h-[66px] items-center justify-between px-6 md:px-10 lg:px-14"
         style={{ background: '#071C17' }}
@@ -169,7 +185,7 @@ function Landing() {
             className="rounded-lg px-4 py-2 text-sm font-extrabold no-underline md:px-5 md:py-2.5"
             style={{ background: '#19C37D', color: '#071C17' }}
           >
-            Join early access
+            Get access
           </a>
         </div>
       </nav>
@@ -203,18 +219,17 @@ function Landing() {
             fontSize: 'clamp(36px, 5vw, 58px)',
             lineHeight: '1.05',
             letterSpacing: '-1.5px',
-            maxWidth: '820px'
+            maxWidth: '860px'
           }}
         >
-          Find out if you can afford your next property.<br />
+          See what your property portfolio<br />
           <em style={{ color: '#19C37D', fontStyle: 'normal' }}>
-            See your real numbers instantly.
+            is really doing.
           </em>
         </h1>
 
-        <p className="mx-auto mb-11 max-w-xl text-lg leading-relaxed md:text-xl" style={{ color: 'rgba(255,255,255,0.48)' }}>
-          Track every property, loan, and dollar. Understand your real financial position. Spot
-          potential savings opportunities before they pass you by.
+        <p className="mx-auto mb-11 max-w-[760px] text-lg leading-relaxed md:text-xl" style={{ color: 'rgba(255,255,255,0.48)' }}>
+          Track equity, borrowing power, portfolio projections, refinance scenarios, fixed-rate and RBA alerts, and your next move, all from your actual numbers.
         </p>
 
         <div className="mb-5 flex flex-col justify-center gap-3 sm:flex-row">
@@ -231,7 +246,7 @@ function Landing() {
             marginTop: '10px',
             textAlign: 'center'
           }}>
-            Free during early access · No credit check · No bank connection
+            Built for Australian property investors · No credit check · No bank connection
           </p>
           <a
             href="#how-it-works"

@@ -459,6 +459,19 @@ export default function Welcome({ session = null }) {
         completedAt: new Date().toISOString(),
       }
 
+      sessionStorage.setItem(
+        snapshotKey,
+        JSON.stringify(snapshot)
+      )
+      const saved = sessionStorage.getItem(snapshotKey)
+
+      if (!saved) {
+        console.error('Onboarding snapshot write verification failed:', {
+          snapshotKey,
+          userId: session?.user?.id ?? null,
+        })
+      }
+
       if (session?.user?.id) {
         const employmentIncomeAnnual = parseNumber(draft.annualIncome)
         const partnerIncomeAnnual = parseNumber(draft.partnerIncome)
@@ -474,6 +487,7 @@ export default function Welcome({ session = null }) {
               partner_income_annual: partnerIncomeAnnual,
               household_income_annual: householdIncomeAnnual || null,
               cash_available_for_investment: cashAvailableForInvestment,
+              onboarding_snapshot: snapshot,
             },
             { onConflict: 'user_id' }
           )
@@ -483,20 +497,7 @@ export default function Welcome({ session = null }) {
         }
       }
 
-      sessionStorage.setItem(
-        snapshotKey,
-        JSON.stringify(snapshot)
-      )
-      const saved = sessionStorage.getItem(snapshotKey)
-
-      if (!saved) {
-        console.error('Onboarding snapshot write verification failed:', {
-          snapshotKey,
-          userId: session?.user?.id ?? null,
-        })
-      }
-
-        window.location.replace('/dashboard')
+      window.location.replace('/dashboard')
     } catch (err) {
       console.error('Snapshot handoff error:', err)
       window.location.replace('/dashboard')
