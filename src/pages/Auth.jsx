@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../supabase'
+import { trackEvent } from '../lib/metaPixel'
 
 export default function Auth() {
   const [email, setEmail] = useState('')
@@ -40,7 +41,10 @@ export default function Auth() {
     } else {
       const { error } = await supabase.auth.signUp({ email, password })
       if (error) setError(error.message)
-      else setMessage('Account created! Please check your email to confirm.')
+      else {
+        trackEvent('SignupCompleted')
+        setMessage('Account created! Please check your email to confirm.')
+      }
     }
     setLoading(false)
   }

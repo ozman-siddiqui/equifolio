@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState } from 'react'
 import { Wallet, Target, PiggyBank, LineChart } from 'lucide-react'
+import { trackEvent } from '../lib/metaPixel'
 
 const faqItems = [
   {
@@ -182,6 +183,9 @@ function Landing() {
           </a>
           <a
             href="/auth"
+            onClick={() => {
+              trackEvent('GetAccessClicked')
+            }}
             className="rounded-lg px-4 py-2 text-sm font-extrabold no-underline md:px-5 md:py-2.5"
             style={{ background: '#19C37D', color: '#071C17' }}
           >
@@ -235,6 +239,9 @@ function Landing() {
         <div className="mb-5 flex flex-col justify-center gap-3 sm:flex-row">
           <a
             href="/auth"
+            onClick={() => {
+              trackEvent('GetAccessClicked')
+            }}
             className="rounded-xl px-9 py-4 text-base font-extrabold no-underline"
             style={{ background: '#19C37D', color: '#071C17' }}
           >
@@ -1510,6 +1517,9 @@ function Landing() {
         </p>
         <a
           href="/auth"
+          onClick={() => {
+            trackEvent('GetAccessClicked')
+          }}
           className="inline-flex rounded-xl px-10 py-5 text-lg font-extrabold no-underline"
           style={{ background: '#19C37D', color: '#071C17' }}
         >
