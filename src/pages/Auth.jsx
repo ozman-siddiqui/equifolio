@@ -46,7 +46,7 @@ export default function Auth() {
         if (typeof window !== "undefined" && window.fbq) {
           window.fbq("track", "CompleteRegistration");
         }
-        trackServerEvent('CompleteRegistration', email)
+        await trackServerEvent('CompleteRegistration', email)
         setMessage('Account created! Please check your email to confirm.')
       }
     }
