@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabase'
-import { trackEvent } from '../lib/metaPixel'
+import { trackEvent, trackServerEvent } from '../lib/metaPixel'
 
 const defaultDraft = {
   currentValue: '',
@@ -499,10 +499,12 @@ export default function Welcome({ session = null }) {
       }
 
       trackEvent('OnboardingCompleted')
+      trackServerEvent('OnboardingCompleted')
       window.location.replace('/dashboard')
     } catch (err) {
       console.error('Snapshot handoff error:', err)
       trackEvent('OnboardingCompleted')
+      trackServerEvent('OnboardingCompleted')
       window.location.replace('/dashboard')
     } finally {
       setIsSaving(false)

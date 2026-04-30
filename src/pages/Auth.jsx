@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../supabase'
-import { trackEvent } from '../lib/metaPixel'
+import { trackEvent, trackServerEvent } from '../lib/metaPixel'
 
 export default function Auth() {
   const [email, setEmail] = useState('')
@@ -46,6 +46,7 @@ export default function Auth() {
         if (typeof window !== "undefined" && window.fbq) {
           window.fbq("track", "CompleteRegistration");
         }
+        trackServerEvent('CompleteRegistration', email)
         setMessage('Account created! Please check your email to confirm.')
       }
     }
