@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
       throw new Error('Missing Meta credentials')
     }
 
-    const { eventName, userEmail, userId, eventId } = await req.json()
+    const { eventName, userEmail, userId, eventId, fbp, fbc } = await req.json()
     const hashedEmail = userEmail
       ? [await hashSHA256(userEmail)]
       : undefined
@@ -42,6 +42,8 @@ Deno.serve(async (req) => {
           user_data: {
             em: hashedEmail,
             external_id: userId ? [userId] : undefined,
+            fbp: fbp || undefined,
+            fbc: fbc || undefined,
           },
         },
       ],
