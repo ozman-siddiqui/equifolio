@@ -42,7 +42,7 @@ export default function Auth() {
       const { error } = await supabase.auth.signUp({ email, password })
       if (error) setError(error.message)
       else {
-        trackEvent('CompleteRegistration')
+        trackEvent('SignupCompleted')
         if (typeof window !== "undefined" && window.fbq) {
           window.fbq("track", "CompleteRegistration");
         }
