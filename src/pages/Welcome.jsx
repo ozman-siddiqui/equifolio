@@ -499,12 +499,12 @@ export default function Welcome({ session = null }) {
       }
 
       trackEvent('OnboardingCompleted')
-      trackServerEvent('OnboardingCompleted')
+      await trackServerEvent('OnboardingCompleted')
       window.location.replace('/dashboard')
     } catch (err) {
       console.error('Snapshot handoff error:', err)
       trackEvent('OnboardingCompleted')
-      trackServerEvent('OnboardingCompleted')
+      await trackServerEvent('OnboardingCompleted')
       window.location.replace('/dashboard')
     } finally {
       setIsSaving(false)
