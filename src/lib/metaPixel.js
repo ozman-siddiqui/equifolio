@@ -7,12 +7,13 @@ export const trackEvent = (eventName, params = {}) => {
 
 export async function trackServerEvent(eventName, userEmail = null, userId = null) {
   try {
+    const eventId = `${eventName}_${Date.now()}`
     await fetch(
       'https://fcawdtlcimytvohivhfq.supabase.co/functions/v1/meta-conversions',
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventName, userEmail, userId }),
+        body: JSON.stringify({ eventName, userEmail, userId, eventId }),
       }
     )
   } catch (err) {

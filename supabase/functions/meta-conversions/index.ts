@@ -4,6 +4,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+async function hashSHA256(value) {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(value.trim().toLowerCase())
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -17,16 +26,20 @@ Deno.serve(async (req) => {
       throw new Error('Missing Meta credentials')
     }
 
-    const { eventName, userEmail, userId } = await req.json()
+    const { eventName, userEmail, userId, eventId } = await req.json()
+    const hashedEmail = userEmail
+      ? [await hashSHA256(userEmail)]
+      : undefined
 
     const payload = {
       data: [
         {
           event_name: eventName,
+          event_id: eventId || `${eventName}_${Date.now()}`,
           event_time: Math.floor(Date.now() / 1000),
           action_source: 'website',
           user_data: {
-            em: userEmail ? [userEmail] : undefined,
+            em: hashedEmail,
             external_id: userId ? [userId] : undefined,
           },
         },
