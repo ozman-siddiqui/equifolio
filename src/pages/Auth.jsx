@@ -43,6 +43,9 @@ export default function Auth() {
       if (error) setError(error.message)
       else {
         trackEvent('SignupCompleted')
+        if (typeof window !== "undefined" && window.fbq) {
+          window.fbq("track", "CompleteRegistration");
+        }
         setMessage('Account created! Please check your email to confirm.')
       }
     }
