@@ -498,13 +498,25 @@ export default function Welcome({ session = null }) {
         }
       }
 
-      trackEvent('OnboardingCompleted')
-      await trackServerEvent('OnboardingCompleted')
+      const eventId = `onboarding_${Date.now()}`
+      trackEvent('OnboardingCompleted', { eventID: eventId })
+      await trackServerEvent(
+        'OnboardingCompleted',
+        session?.user?.email || null,
+        session?.user?.id || null,
+        eventId
+      )
       window.location.replace('/dashboard')
     } catch (err) {
       console.error('Snapshot handoff error:', err)
-      trackEvent('OnboardingCompleted')
-      await trackServerEvent('OnboardingCompleted')
+      const eventId = `onboarding_${Date.now()}`
+      trackEvent('OnboardingCompleted', { eventID: eventId })
+      await trackServerEvent(
+        'OnboardingCompleted',
+        session?.user?.email || null,
+        session?.user?.id || null,
+        eventId
+      )
       window.location.replace('/dashboard')
     } finally {
       setIsSaving(false)

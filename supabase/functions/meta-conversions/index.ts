@@ -21,6 +21,7 @@ Deno.serve(async (req) => {
   try {
     const PIXEL_ID = Deno.env.get('META_PIXEL_ID')
     const ACCESS_TOKEN = Deno.env.get('META_ACCESS_TOKEN')
+    const TEST_EVENT_CODE = Deno.env.get('META_TEST_EVENT_CODE')
 
     if (!PIXEL_ID || !ACCESS_TOKEN) {
       throw new Error('Missing Meta credentials')
@@ -44,6 +45,7 @@ Deno.serve(async (req) => {
           },
         },
       ],
+      test_event_code: TEST_EVENT_CODE || undefined,
     }
 
     const response = await fetch(
@@ -56,10 +58,11 @@ Deno.serve(async (req) => {
     )
 
     const result = await response.json()
+    console.log('Meta CAPI response:', result)
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
+      status: result?.error ? 500 : 200,
     })
   } catch (error) {
     return new Response(
