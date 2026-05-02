@@ -156,7 +156,7 @@ function Landing() {
         className="flex h-[66px] items-center justify-between px-6 md:px-10 lg:px-14"
         style={{ background: '#071C17' }}
       >
-        <a href="/" className="no-underline" style={{ fontSize: '20px', fontWeight: 500, letterSpacing: '-0.5px' }}>
+        <a href="/" className="no-underline" style={{ fontSize: '24px', fontWeight: 500, letterSpacing: '-0.5px' }}>
           <span style={{ color: 'white' }}>next</span>
           <span style={{ color: '#1D9E75' }}>iq</span>
         </a>
@@ -194,63 +194,189 @@ function Landing() {
       </nav>
 
       <section
-        className="px-6 pt-10 pb-20 text-center md:px-10 md:pt-14 md:pb-24 lg:px-14 lg:pt-18"
+        className="px-6 pt-10 pb-16 text-center md:px-10 md:pt-14 md:pb-20 lg:px-14 lg:pt-16"
         style={{
           background: '#071C17',
           backgroundImage:
             'radial-gradient(ellipse 70% 55% at 65% 15%, rgba(11,43,35,0.9) 0%, transparent 65%), radial-gradient(ellipse 40% 50% at 10% 90%, rgba(9,36,25,0.7) 0%, transparent 55%)',
         }}
       >
-        <div
-          className="mb-8 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold tracking-wide"
-          style={{
-            borderColor: 'rgba(25,195,125,0.2)',
-            background: 'rgba(25,195,125,0.09)',
-            color: '#19C37D',
-          }}
-        >
-          <span
-            className="h-1.5 w-1.5 rounded-full animate-pulse"
-            style={{ background: '#19C37D' }}
-          />
-          AI-powered RBA intelligence, live now
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 lg:grid-cols-2 lg:items-start lg:gap-16">
+
+          <div className="flex flex-col items-center text-center gap-6 lg:items-start lg:text-left">
+            <div
+              className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold tracking-wide"
+              style={{
+                borderColor: 'rgba(25,195,125,0.2)',
+                background: 'rgba(25,195,125,0.09)',
+                color: '#19C37D',
+              }}
+            >
+              <span
+                className="h-1.5 w-1.5 rounded-full animate-pulse"
+                style={{ background: '#19C37D' }}
+              />
+              AI-powered RBA intelligence, live now
+            </div>
+
+            <p
+              className="text-center text-[11px] font-medium uppercase tracking-[0.14em] lg:text-left"
+              style={{ color: 'rgba(255,255,255,0.42)' }}
+            >
+              FOR PROPERTY INVESTORS
+            </p>
+
+            <h1
+              className="font-extrabold text-white text-center mx-auto lg:mx-0 lg:text-left"
+              style={{
+                fontSize: 'clamp(36px, 5vw, 58px)',
+                lineHeight: '1.05',
+                letterSpacing: '-1.5px',
+                maxWidth: '860px'
+              }}
+            >
+              See what your property portfolio<br />
+              <em style={{ color: '#19C37D', fontStyle: 'normal' }}>
+                is really doing.
+              </em>
+            </h1>
+
+            <p className="mx-auto max-w-xl text-base leading-relaxed text-white/80 md:text-lg lg:mx-0">
+              Most investors don’t actually know their real equity, borrowing position, or how rate changes affect them.
+            </p>
+
+            <a
+              href="/auth"
+              onClick={() => {
+                trackEvent('GetAccessClicked')
+              }}
+              className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-emerald-500 px-8 py-5 text-base font-semibold text-black shadow-lg transition-all duration-200 ease-out hover:bg-emerald-400 hover:scale-[1.02] hover:shadow-xl md:px-10 md:py-6 md:text-lg no-underline"
+            >
+              {'Check your real position'}
+            </a>
+
+            <p className="text-center text-sm lg:text-left" style={{ color: 'rgba(255,255,255,0.45)' }}>
+              Takes less than 2 minutes. No documents. No bank connection.
+            </p>
+
+            <p className="text-sm text-center lg:text-left" style={{ color: '#9CA3AF' }}>
+              Built for Australian property investors · No credit check · No bank connection
+            </p>
+          </div>
+
+          <div className="flex items-start justify-center lg:items-start lg:justify-end lg:pr-6">
+            <div style={{
+              background: '#0A1F14',
+              border: '1px solid #1A3A26',
+              borderRadius: '14px',
+              padding: '16px',
+              width: '100%',
+              maxWidth: '520px'
+            }}>
+
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '14px'
+              }}>
+                <span style={{
+                  fontSize: '10px',
+                  color: '#4B5563',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.12em',
+                  fontWeight: 600
+                }}>
+                  Portfolio snapshot
+                </span>
+
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <span style={{
+                    background: '#064E3B',
+                    color: '#10B981',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    padding: '3px 8px',
+                    borderRadius: '4px'
+                  }}>
+                    Indicatively viable
+                  </span>
+
+                  <span style={{
+                    background: '#1F2937',
+                    color: '#9CA3AF',
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    padding: '3px 8px',
+                    borderRadius: '4px'
+                  }}>
+                    96% ready
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-[8px] mb-[8px]">
+                <div style={{ background: '#071C17', borderRadius: '8px', padding: '10px' }}>
+                  <p style={{ fontSize: '9px', color: '#4B5563', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Net equity</p>
+                  <p style={{ fontSize: '20px', fontWeight: 700, color: 'white', margin: 0 }}>$576k</p>
+                </div>
+
+                <div style={{ background: '#071C17', borderRadius: '8px', padding: '10px' }}>
+                  <p style={{ fontSize: '9px', color: '#4B5563', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Borrowing</p>
+                  <p style={{ fontSize: '20px', fontWeight: 700, color: 'white', margin: 0 }}>$523k</p>
+                </div>
+
+                <div style={{ background: '#071C17', borderRadius: '8px', padding: '10px' }}>
+                  <p style={{ fontSize: '9px', color: '#4B5563', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Surplus</p>
+                  <p style={{ fontSize: '20px', fontWeight: 700, color: '#19C37D', margin: 0 }}>+$5.8k</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-[8px] mb-[8px]">
+                <div style={{ background: '#071C17', borderRadius: '8px', padding: '10px' }}>
+                  <p style={{ fontSize: '9px', color: '#4B5563', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>RBA impact</p>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#EF4444', margin: 0 }}>+$256/mo across 2 loans</p>
+                </div>
+
+                <div style={{ background: '#071C17', borderRadius: '8px', padding: '10px' }}>
+                  <p style={{ fontSize: '9px', color: '#4B5563', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Next acquisition</p>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: 'white', margin: 0 }}>$522k–$605k indicated</p>
+                </div>
+              </div>
+
+              <div style={{
+                background: '#071C17',
+                borderRadius: '8px',
+                padding: '10px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div>
+                  <p style={{ fontSize: '9px', color: '#4B5563', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Fixed rate alert</p>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#F59E0B', margin: 0 }}>
+                    47 days until expiry — Barley Street
+                  </p>
+                </div>
+
+                <span style={{
+                  background: '#451A03',
+                  color: '#F59E0B',
+                  fontSize: '9px',
+                  fontWeight: 600,
+                  padding: '3px 7px',
+                  borderRadius: '4px'
+                }}>
+                  Review now
+                </span>
+              </div>
+
+            </div>
+          </div>
+
         </div>
 
-        <h1
-          className="font-extrabold text-white text-center mx-auto mb-6"
-          style={{
-            fontSize: 'clamp(36px, 5vw, 58px)',
-            lineHeight: '1.05',
-            letterSpacing: '-1.5px',
-            maxWidth: '860px'
-          }}
-        >
-          See what your property portfolio<br />
-          <em style={{ color: '#19C37D', fontStyle: 'normal' }}>
-            is really doing.
-          </em>
-        </h1>
-
-        <p className="mx-auto mb-8 max-w-xl text-base leading-relaxed text-white/80 md:mb-10 md:text-lg">
-          Most investors don’t actually know their real equity, borrowing position, or how rate changes affect them.
-        </p>
-
-        <div className="mt-4 flex flex-col items-center justify-center text-center">
-          <a
-            href="/auth"
-            onClick={() => {
-              trackEvent('GetAccessClicked')
-            }}
-            className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-8 py-4 text-base font-semibold text-black shadow-lg transition hover:bg-emerald-400 md:px-10 md:py-5 md:text-lg no-underline"
-          >
-            {'See your numbers'}
-          </a>
-          <p className="text-white/70 text-sm mt-3">
-            Built for Australian property investors · No credit check · No bank connection
-          </p>
-        </div>
-
-        <div className="relative mt-10 mx-auto max-w-5xl md:mt-14 lg:mt-16">
+        <div className="relative mt-12 mx-auto max-w-5xl">
           <div
             className="absolute -top-5 right-4 rounded-full px-4 py-2 text-sm font-extrabold md:right-8 md:px-5 md:py-2.5"
             style={{
