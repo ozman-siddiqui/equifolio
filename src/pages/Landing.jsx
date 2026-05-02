@@ -33,7 +33,6 @@ const trustItems = [
   'Lender-grade serviceability calculations',
   'RBA-aware portfolio intelligence',
   'Built for Australian property investors',
-  'AI-powered by Anthropic Claude',
 ]
 
 const starterFeatures = [
@@ -304,14 +303,14 @@ function Landing() {
       </div>
 
       <section
-        className="flex flex-wrap items-center justify-center gap-4 border-t px-6 py-5 md:px-10 lg:gap-9 lg:px-14"
+        className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 border-t px-6 py-4 md:px-10 md:py-5 lg:gap-9 lg:px-14"
         style={{ background: '#071C17', borderColor: 'rgba(255,255,255,0.04)' }}
       >
         {trustItems.map((item, index) => (
-          <div key={item} className="flex items-center gap-4">
+          <div key={item} className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <span className="h-[5px] w-[5px] rounded-full" style={{ background: '#19C37D' }} />
-              <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.32)' }}>
+              <span className="text-xs font-medium leading-tight" style={{ color: 'rgba(255,255,255,0.45)' }}>
                 {item}
               </span>
             </div>
