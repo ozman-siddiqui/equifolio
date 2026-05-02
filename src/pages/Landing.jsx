@@ -195,7 +195,7 @@ function Landing() {
       </nav>
 
       <section
-        className="px-6 pb-0 pt-16 text-center md:px-10 lg:px-14 lg:pt-22"
+        className="px-6 pt-10 pb-20 text-center md:px-10 md:pt-14 md:pb-24 lg:px-14 lg:pt-18"
         style={{
           background: '#071C17',
           backgroundImage:
@@ -232,47 +232,26 @@ function Landing() {
           </em>
         </h1>
 
-        <p className="mx-auto mb-11 max-w-[760px] text-lg leading-relaxed md:text-xl" style={{ color: 'rgba(255,255,255,0.48)' }}>
-          Track equity, borrowing power, portfolio projections, refinance scenarios, fixed-rate and RBA alerts, and your next move, all from your actual numbers.
+        <p className="mx-auto mb-8 max-w-xl text-base leading-relaxed text-white/80 md:mb-10 md:text-lg">
+          Most investors don’t actually know their real equity, borrowing position, or how rate changes affect them.
         </p>
 
-        <div className="mb-5 flex flex-col justify-center gap-3 sm:flex-row">
+        <div className="mt-4 flex flex-col items-center justify-center text-center">
           <a
             href="/auth"
             onClick={() => {
               trackEvent('GetAccessClicked')
             }}
-            className="rounded-xl px-9 py-4 text-base font-extrabold no-underline"
-            style={{ background: '#19C37D', color: '#071C17' }}
+            className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-8 py-4 text-base font-semibold text-black shadow-lg transition hover:bg-emerald-400 md:px-10 md:py-5 md:text-lg no-underline"
           >
             {'See your numbers'}
           </a>
-          <p style={{
-            fontSize: '13px',
-            color: 'rgba(255,255,255,0.5)',
-            marginTop: '10px',
-            textAlign: 'center'
-          }}>
+          <p className="text-white/70 text-sm mt-3">
             Built for Australian property investors · No credit check · No bank connection
           </p>
-          <a
-            href="#how-it-works"
-            className="rounded-xl border px-9 py-4 text-base no-underline"
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              color: 'rgba(255,255,255,0.7)',
-              borderColor: 'rgba(255,255,255,0.1)',
-            }}
-          >
-            See how it works
-          </a>
         </div>
 
-        <p className="mb-14 text-xs tracking-wide" style={{ color: 'rgba(255,255,255,0.2)' }}>
-          No credit card required | Australian-built | Cancel anytime
-        </p>
-
-        <div className="relative mx-auto max-w-5xl">
+        <div className="relative mt-10 mx-auto max-w-5xl md:mt-14 lg:mt-16">
           <div
             className="absolute -top-5 right-4 rounded-full px-4 py-2 text-sm font-extrabold md:right-8 md:px-5 md:py-2.5"
             style={{
