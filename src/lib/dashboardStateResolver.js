@@ -138,7 +138,7 @@ export default function buildDashboardStateResolver({
       complete: hasMortgages && hasFullMortgageCoverage,
       route: '/mortgages',
       unlocked: hasProperties,
-      lockedReason: hasProperties ? null : 'Add a property first',
+      lockedReason: hasProperties ? null : 'Complete property details first',
     },
     {
       id: 'cashflow',
@@ -147,7 +147,7 @@ export default function buildDashboardStateResolver({
       route: '/cashflow',
       required: true,
       unlocked: hasProperties,
-      lockedReason: hasProperties ? null : 'Add a property first',
+      lockedReason: hasProperties ? null : 'Complete property details first',
     },
     {
       id: 'financials',
@@ -155,7 +155,7 @@ export default function buildDashboardStateResolver({
       complete: hasFinancials,
       route: '/financials',
       unlocked: hasProperties,
-      lockedReason: hasProperties ? null : 'Add a property first',
+      lockedReason: hasProperties ? null : 'Complete property details first',
     },
   ]
 

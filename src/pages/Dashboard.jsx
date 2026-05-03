@@ -400,7 +400,7 @@ export default function Dashboard({ session, subscription }) {
       usingOnboardingSnapshot && !dashboardCompleteness?.hasProperties
     const sectionMap = {
       properties: {
-        label: noLivePropertyYet ? 'Add your first property' : 'Add remaining properties',
+        label: noLivePropertyYet ? 'Complete property details' : 'Add remaining properties',
         to: '/properties',
         unlocked: true,
         lockedReason: null,
@@ -409,19 +409,19 @@ export default function Dashboard({ session, subscription }) {
         label: 'Complete mortgage details',
         to: '/mortgages',
         unlocked: noLivePropertyYet ? false : true,
-        lockedReason: noLivePropertyYet ? 'Add a property first' : null,
+        lockedReason: noLivePropertyYet ? 'Complete property details first' : null,
       },
       cashflow: {
         label: 'Add property cash flow & expenses',
         to: '/cashflow',
         unlocked: noLivePropertyYet ? false : true,
-        lockedReason: noLivePropertyYet ? 'Add a property first' : null,
+        lockedReason: noLivePropertyYet ? 'Complete property details first' : null,
       },
       financials: {
         label: 'Add household financials',
         to: '/financials',
         unlocked: noLivePropertyYet ? false : true,
-        lockedReason: noLivePropertyYet ? 'Add a property first' : null,
+        lockedReason: noLivePropertyYet ? 'Complete property details first' : null,
       },
     }
 
@@ -455,7 +455,7 @@ export default function Dashboard({ session, subscription }) {
   const primaryWorkflowStep = workflowSteps[0] ?? null
   const queuedWorkflowSteps = workflowSteps.slice(1, 4)
   const primaryWorkflowCtaLabel = primaryWorkflowStep?.id === 'properties'
-    ? 'Add property →'
+    ? 'Review property →'
     : primaryWorkflowStep?.id === 'mortgages'
     ? 'Complete mortgage details →'
     : primaryWorkflowStep?.id === 'cashflow'
@@ -1119,7 +1119,7 @@ export default function Dashboard({ session, subscription }) {
               </div>
               {primaryWorkflowStep?.unlocked === false ? (
                 <span
-                  title={primaryWorkflowStep.lockedReason || 'Add a property first'}
+                  title={primaryWorkflowStep.lockedReason || 'Complete property details first'}
                   style={{
                     fontSize: 12,
                     fontWeight: 600,
@@ -1127,7 +1127,7 @@ export default function Dashboard({ session, subscription }) {
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {primaryWorkflowStep.lockedReason || 'Add a property first'}
+                  {primaryWorkflowStep.lockedReason || 'Complete property details first'}
                 </span>
               ) : (
                 <Link
@@ -1153,7 +1153,7 @@ export default function Dashboard({ session, subscription }) {
                 item.unlocked === false ? (
                   <span
                     key={item.label}
-                    title={item.lockedReason || 'Add a property first'}
+                    title={item.lockedReason || 'Complete property details first'}
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -1170,7 +1170,7 @@ export default function Dashboard({ session, subscription }) {
                     }}
                   >
                     <Lock size={11} />
-                    {item.lockedReason || 'Add a property first'}
+                    {item.lockedReason || 'Complete property details first'}
                   </span>
                 ) : (
                   <Link
@@ -1301,7 +1301,7 @@ export default function Dashboard({ session, subscription }) {
                 eyebrow={section.label}
                 title={section.title}
                 body={section.body}
-                ctaLabel={section.unlocked === false ? (section.lockedReason || 'Add a property first') : section.ctaLabel}
+                ctaLabel={section.unlocked === false ? (section.lockedReason || 'Complete property details first') : section.ctaLabel}
                 onAction={() => navigate(section.unlocked === false ? '/properties' : section.route)}
               />
             ))}
@@ -1883,7 +1883,7 @@ function LockedChecklistCard({ eyebrow, title, body, missingSections, onAction }
             <div className="min-w-0">
               <p className="text-sm font-semibold text-gray-900">{section.label}</p>
               <p className="mt-1 text-sm leading-6 text-gray-600">
-                {section.unlocked === false ? (section.lockedReason || 'Add a property first') : section.body}
+                {section.unlocked === false ? (section.lockedReason || 'Complete property details first') : section.body}
               </p>
             </div>
             <span className={`shrink-0 text-sm font-semibold ${
