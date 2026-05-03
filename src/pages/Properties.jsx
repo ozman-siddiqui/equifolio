@@ -23,6 +23,7 @@ export default function Properties() {
   const [showAddProperty, setShowAddProperty] = useState(false)
   const [editingProperty, setEditingProperty] = useState(null)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [onboardingSnapshot, setOnboardingSnapshot] = useState(null)
 
   const [searchTerm, setSearchTerm] = useState('')
   const [propertyUseFilter, setPropertyUseFilter] = useState('all')
@@ -56,6 +57,26 @@ export default function Properties() {
       setSubscription(subData || null)
     }
   }
+
+  useEffect(() => {
+    if (!session?.user?.id) {
+      setOnboardingSnapshot(null)
+      return
+    }
+
+    try {
+      const key = `onboardingSnapshot_${session.user.id}`
+      const raw = sessionStorage.getItem(key)
+
+      if (raw) {
+        setOnboardingSnapshot(JSON.parse(raw))
+      } else {
+        setOnboardingSnapshot(null)
+      }
+    } catch {
+      setOnboardingSnapshot(null)
+    }
+  }, [session?.user?.id])
 
   const formatCurrency = (amount) =>
     new Intl.NumberFormat('en-AU', {
@@ -116,6 +137,8 @@ export default function Properties() {
       setShowAddProperty(true)
     }
   }
+
+  const isTrueEmptyPortfolio = properties.length === 0
 
   if (loading) {
     return (
@@ -229,13 +252,44 @@ export default function Properties() {
           </div>
 
           {filteredProperties.length === 0 ? (
-            <div className="p-12 text-center">
-              <Home className="mx-auto text-gray-300 mb-3" size={28} />
-              <h3 className="text-[15px] font-medium text-[var(--color-text-primary)]">No properties found</h3>
-              <p className="mt-2 text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
-                Try another filter or add your first property.
-              </p>
-            </div>
+            <>
+              {isTrueEmptyPortfolio && onboardingSnapshot && (
+                <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-5">
+                  <p className="mb-1 text-xs font-medium text-emerald-700">
+                    From onboarding snapshot
+                  </p>
+
+                  <p className="text-sm text-emerald-800">
+                    You added a property during onboarding.
+                    Complete its details to activate your
+                    live portfolio.
+                  </p>
+
+                  <div className="mt-4 flex items-center justify-between">
+                    <div className="text-sm font-medium text-emerald-900">
+                      {onboardingSnapshot?.propertyLabel ||
+                        onboardingSnapshot?.propertyAddress ||
+                        'Property added'}
+                    </div>
+
+                    <button
+                      onClick={handleOpenAddProperty}
+                      className="text-sm font-medium text-emerald-700 hover:underline"
+                    >
+                      Complete details →
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="p-12 text-center">
+                <Home className="mx-auto text-gray-300 mb-3" size={28} />
+                <h3 className="text-[15px] font-medium text-[var(--color-text-primary)]">No properties found</h3>
+                <p className="mt-2 text-[13px] font-normal leading-[1.6] text-[var(--color-text-secondary)]">
+                  Try another filter or add your first property.
+                </p>
+              </div>
+            </>
           ) : (
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
               {filteredProperties.map((property) => {
