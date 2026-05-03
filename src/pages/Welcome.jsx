@@ -136,7 +136,7 @@ function StepStatus({ number, label, subtitle, status }) {
           }
 
   return (
-    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+    <div className="flex items-start gap-3 sm:gap-4" style={{ display: 'flex', alignItems: 'flex-start' }}>
       <div
         style={{
           ...circleStyle,
@@ -155,15 +155,15 @@ function StepStatus({ number, label, subtitle, status }) {
       </div>
       <div>
         <div
+          className="text-base sm:text-lg"
           style={{
-            fontSize: 16,
             fontWeight: status === 'active' ? 600 : 500,
             color: status === 'pending' ? '#9bc5b3' : colors.strongText,
           }}
         >
           {label}
         </div>
-        <div style={{ marginTop: 3, fontSize: 14, color: '#57967f', lineHeight: 1.45 }}>
+        <div className="text-sm sm:text-base" style={{ marginTop: 3, color: '#57967f', lineHeight: 1.45 }}>
           {subtitle}
         </div>
       </div>
@@ -607,6 +607,7 @@ export default function Welcome({ session = null }) {
 
   return (
     <div
+      className="overflow-x-hidden"
       style={{
         minHeight: '100vh',
         background: colors.darkBg,
@@ -615,9 +616,9 @@ export default function Welcome({ session = null }) {
       }}
     >
       <div
+        className="flex flex-col lg:flex-row"
         style={{
           display: 'flex',
-          flexDirection: 'row',
           minHeight: 560,
           maxWidth: 1380,
           margin: '0 auto',
@@ -629,12 +630,11 @@ export default function Welcome({ session = null }) {
         }}
       >
         <aside
+          className="w-full px-4 py-6 sm:px-6 lg:w-[180px]"
           style={{
-            width: 180,
             flexShrink: 0,
             background: colors.darkBg,
             color: colors.lightText,
-            padding: '28px 20px',
             display: 'flex',
             flexDirection: 'column',
             boxSizing: 'border-box',
@@ -647,7 +647,7 @@ export default function Welcome({ session = null }) {
             </span>
           </div>
 
-          <div style={{ marginTop: 54, display: 'flex', flexDirection: 'column', gap: 28 }}>
+          <div className="mt-10 space-y-4 sm:space-y-6" style={{ display: 'flex', flexDirection: 'column' }}>
             {stepStatuses.map((step) => {
               const status =
                 currentStep > step.number ? 'completed' : currentStep === step.number ? 'active' : 'pending'
@@ -663,12 +663,12 @@ export default function Welcome({ session = null }) {
         </aside>
 
         <main
+          className="w-full px-4 py-6 sm:px-6 lg:flex-1 lg:px-8"
           style={{
             flex: 1,
             minWidth: 0,
             background: colors.formBg,
             color: '#121712',
-            padding: '26px 34px 28px',
             boxSizing: 'border-box',
             display: 'flex',
             flexDirection: 'column',
@@ -717,7 +717,7 @@ export default function Welcome({ session = null }) {
             />
           </div>
 
-          <div style={{ display: 'flex', gap: 12, marginBottom: 26 }}>
+          <div style={{ display: 'flex', gap: 12, marginBottom: 26, flexWrap: 'wrap' }}>
             {stepStatuses.map((step) => {
               const active = currentStep === step.number
               return (
@@ -879,8 +879,8 @@ export default function Welcome({ session = null }) {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: 14 }}>
-                  <div style={{ flex: 1 }}>
+                <div className="flex flex-col gap-3 sm:flex-row" style={{ display: 'flex', gap: 14 }}>
+                  <div className="w-full sm:flex-1" style={{ flex: 1 }}>
                     <div style={{ fontSize: 14, marginBottom: 8, color: '#374151' }}>Current value ($)</div>
                     <input
                       value={draft.currentValue}
@@ -889,7 +889,7 @@ export default function Welcome({ session = null }) {
                       style={baseInputStyle}
                     />
                   </div>
-                  <div style={{ flex: 1 }}>
+                  <div className="w-full sm:flex-1" style={{ flex: 1 }}>
                     <div style={{ fontSize: 14, marginBottom: 8, color: '#374151' }}>Loan balance ($)</div>
                     <input
                       value={draft.loanBalance}
@@ -900,8 +900,8 @@ export default function Welcome({ session = null }) {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: 14 }}>
-                  <div style={{ flex: 1 }}>
+                <div className="flex flex-col gap-3 sm:flex-row" style={{ display: 'flex', gap: 14 }}>
+                  <div className="w-full sm:flex-1" style={{ flex: 1 }}>
                     <div style={{ fontSize: 14, marginBottom: 8, color: '#374151' }}>Interest rate (%)</div>
                     <input
                       value={draft.interestRate}
@@ -913,7 +913,7 @@ export default function Welcome({ session = null }) {
                       Unknown? We use 6% as default
                     </div>
                   </div>
-                  <div style={{ flex: 1 }}>
+                  <div className="w-full sm:flex-1" style={{ flex: 1 }}>
                     <div style={{ fontSize: 14, marginBottom: 8, color: '#374151' }}>Repayment type</div>
                     <div
                       style={{
@@ -1012,7 +1012,7 @@ export default function Welcome({ session = null }) {
                 {errorMessage ? (
                   <div style={{ marginBottom: 12, fontSize: 13, color: '#b42318' }}>{errorMessage}</div>
                 ) : null}
-                <div style={{ display: 'flex', gap: 12 }}>
+                <div className="flex flex-col gap-3 sm:flex-row" style={{ display: 'flex', gap: 12 }}>
                   <button
                     type="button"
                     onClick={() => {
@@ -1093,7 +1093,7 @@ export default function Welcome({ session = null }) {
                 {errorMessage ? (
                   <div style={{ marginBottom: 12, fontSize: 13, color: '#b42318' }}>{errorMessage}</div>
                 ) : null}
-                <div style={{ display: 'flex', gap: 12 }}>
+                <div className="flex flex-col gap-3 sm:flex-row" style={{ display: 'flex', gap: 12 }}>
                   <button
                     type="button"
                     onClick={() => {
@@ -1130,12 +1130,11 @@ export default function Welcome({ session = null }) {
         </main>
 
         <aside
+          className="hidden w-full px-4 sm:px-6 lg:mt-0 lg:block lg:w-[260px]"
           style={{
-            width: 260,
             flexShrink: 0,
             background: colors.darkBg,
             color: colors.lightText,
-            padding: '28px 20px',
             boxSizing: 'border-box',
             display: 'flex',
             flexDirection: 'column',
